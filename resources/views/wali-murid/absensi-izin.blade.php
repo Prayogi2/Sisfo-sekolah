@@ -1,0 +1,164 @@
+@extends('layouts.app')
+
+@section('title', 'Pemantauan Absensi & Izin')
+
+@section('content')
+    <div class="container-fluid">
+        <!-- Page Heading -->
+        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+            <h1 class="h3 mb-0 text-gray-800 fw-bold">Pemantauan Absensi & Pengajuan Izin</h1>
+            <span class="badge bg-primary-soft text-primary p-2 shadow-sm">Tahun Ajaran 2023/2024</span>
+        </div>
+
+        <div class="row">
+            <!-- Kolom Kiri: Riwayat Absensi & Status Pengajuan -->
+            <div class="col-lg-8 col-md-12 mb-4">
+                <!-- Riwayat Absensi -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header py-3 bg-white">
+                        <h6 class="m-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Kehadiran 7 Hari Terakhir</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Check-In</th>
+                                        <th>Check-Out</th>
+                                        <th>Status</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>15 Mei 2024</td>
+                                        <td>06:45 WIB</td>
+                                        <td>13:00 WIB</td>
+                                        <td><span class="badge bg-success-soft text-success" style="background-color: #e6f9ee;">Hadir</span></td>
+                                        <td class="text-muted">Tepat Waktu</td>
+                                    </tr>
+                                    <tr>
+                                        <td>14 Mei 2024</td>
+                                        <td colspan="4" class="text-center text-muted">Libur Akhir Pekan</td>
+                                    </tr>
+                                    <tr>
+                                        <td>13 Mei 2024</td>
+                                        <td>06:50 WIB</td>
+                                        <td>13:00 WIB</td>
+                                        <td><span class="badge bg-success-soft text-success" style="background-color: #e6f9ee;">Hadir</span></td>
+                                        <td class="text-muted">Tepat Waktu</td>
+                                    </tr>
+                                    <tr>
+                                        <td>11 Mei 2024</td>
+                                        <td>07:15 WIB</td>
+                                        <td>13:00 WIB</td>
+                                        <td><span class="badge bg-warning-soft text-warning" style="background-color: #fff8e6;">Telat</span></td>
+                                        <td class="text-muted">Terlambat 15 Menit</td>
+                                    </tr>
+                                    <tr>
+                                        <td>10 Mei 2024</td>
+                                        <td colspan="2" class="text-muted">--</td>
+                                        <td><span class="badge bg-primary-soft text-primary">Izin</span></td>
+                                        <td class="text-muted">Sakit (Disetujui)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Pengajuan Izin -->
+                <div class="card shadow-sm">
+                    <div class="card-header py-3 bg-white">
+                        <h6 class="m-0 fw-bold text-primary"><i class="bi bi-file-earmark-text me-2"></i>Riwayat Pengajuan Izin/Sakit</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-medical fs-3 text-danger me-3"></i>
+                                    <div>
+                                        <span class="fw-bold text-dark">Budi Santoso - Izin Sakit</span><br>
+                                        <small class="text-muted">10 Mei 2024 - 1 Hari | Surat Dokter: bukti_sakit.pdf</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-success rounded-pill">Disetujui</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-person fs-3 text-warning me-3"></i>
+                                    <div>
+                                        <span class="fw-bold text-dark">Citra Lestari - Izin Keluarga</span><br>
+                                        <small class="text-muted">02 April 2024 - 2 Hari | Acara Keluarga</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-success rounded-pill">Disetujui</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kolom Kanan: Form Pengajuan Izin Baru -->
+            <div class="col-lg-4 col-md-12">
+                <div class="card shadow-sm sticky-top" style="top: 80px;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
+                        <h6 class="m-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Form Pengajuan Izin/Sakit Baru</h6>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Pilih Anak <span class="text-danger">*</span></label>
+                                <select class="form-select" required>
+                                    <option value="">-- Pilih Siswa --</option>
+                                    <option selected>Budi Santoso (X IPA 1)</option>
+                                    <option>Citra Lestari (VIII A)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Jenis Izin <span class="text-danger">*</span></label>
+                                <select class="form-select" required>
+                                    <option value="">-- Pilih Jenis --</option>
+                                    <option>Sakit</option>
+                                    <option>Izin Acara Keluarga</option>
+                                    <option>Izin Keperluan Lain</option>
+                                </select>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Tgl Mulai <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold">Tgl Selesai <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Alasan / Keterangan <span class="text-danger">*</span></label>
+                                <textarea class="form-control" rows="3" placeholder="Jelaskan alasan pengajuan izin..." required></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Upload Lampiran (Surat Dokter/Dll)</label>
+                                <input type="file" class="form-control">
+                                <small class="text-muted">Format: PDF, JPG, PNG (Max 2MB)</small>
+                            </div>
+
+                            <div class="alert alert-info d-flex align-items-center p-2" role="alert">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <small>Pengajuan akan dikirim ke Wali Kelas untuk disetujui.</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 shadow-sm">Kirim Pengajuan</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
