@@ -44,6 +44,7 @@
             <a href="{{ route('admin.buku-induk') }}" class="{{ request()->routeIs('admin.buku-induk') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill"></i> Buku Induk (Siswa)</a>
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
+            <a href="{{ route('admin.data-mapel') }}" class="{{ request()->routeIs('admin.data-mapel') ? 'active' : '' }}"><i class="bi bi-book-half"></i> Kelola Mapel</a>
             
             <div class="menu-title">Akademik & Keuangan</div>
             <a href="{{ route('admin.verifikasi-spp') }}" class="{{ request()->routeIs('admin.verifikasi-spp') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill"></i> Verifikasi SPP</a>

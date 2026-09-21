@@ -1,0 +1,210 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\GuardianRelationship;
+use App\Models\Classroom;
+use App\Models\Guardian;
+use App\Models\Student;
+use App\Models\StudentAcademicRecord;
+use App\Models\StudentProfile;
+use App\Models\User;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Tests\TestCase;
+
+class StudentRecordControllerTest extends TestCase
+{
+    use LazilyRefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RoleSeeder::class);
+    }
+
+    public function test_guru_is_forbidden_from_the_buku_induk(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($guru)->get(route('admin.buku-induk'))->assertForbidden();
+    }
+
+    public function test_guest_is_redirected_to_login_from_the_buku_induk(): void
+    {
+        $this->get(route('admin.buku-induk'))->assertRedirect(route('login'));
+    }
+
+    public function test_renders_an_empty_state_when_no_student_exists(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk'));
+
+        $response->assertOk();
+        $response->assertSee('Tidak ada data siswa yang cocok dengan pencarian.');
+    }
+
+    public function test_selects_the_first_student_alphabetically_when_none_is_requested(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create(['name' => 'Zulkifli']);
+        Student::factory()->create(['name' => 'Ahmad Fauzi']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk'));
+
+        $response->assertViewHas('student', fn (Student $student): bool => $student->name === 'Ahmad Fauzi');
+    }
+
+    public function test_renders_the_identity_of_the_requested_student(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create(['name' => '6-A']);
+        $student = Student::factory()->create([
+            'name' => 'Siti Aminah',
+            'nisn' => '0098761234',
+            'classroom_id' => $classroom->id,
+            'birth_place' => 'Cianjur',
+        ]);
+        StudentProfile::factory()->create([
+            'student_id' => $student->id,
+            'nik' => '3201234567890001',
+            'family_card_number' => '3201234567890123',
+            'village' => 'Sukamaju',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSee('Siti Aminah');
+        $response->assertSee('0098761234');
+        $response->assertSee('3201234567890001');
+        $response->assertSee('3201234567890123');
+        $response->assertSee('Cianjur');
+        $response->assertSee('Sukamaju');
+        $response->assertSee('6-A');
+    }
+
+    public function test_renders_the_academic_record_and_graduation_data_of_the_selected_student(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create(['name' => 'Budi Santoso']);
+        StudentAcademicRecord::factory()->create([
+            'student_id' => $student->id,
+            'kindergarten_origin' => 'TK Nurul Huda',
+            'kindergarten_certificate_number' => 'SKL-2023-001',
+            'entry_status' => 'Peserta Didik Baru',
+            'graduation_certificate_number' => 'IJZ-2024-077',
+            'graduation_year' => 2024,
+            'continued_to' => 'MTs Nurul Falaq',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSee('TK Nurul Huda');
+        $response->assertSee('SKL-2023-001');
+        $response->assertSee('Peserta Didik Baru');
+        $response->assertSee('IJZ-2024-077');
+        $response->assertSee('2024');
+        $response->assertSee('MTs Nurul Falaq');
+    }
+
+    public function test_renders_the_father_and_mother_of_the_selected_student(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+        $father = Guardian::factory()->create([
+            'name' => 'Bapak Udin',
+            'relationship' => GuardianRelationship::Father,
+            'occupation' => 'Petani',
+        ]);
+        $mother = Guardian::factory()->create([
+            'name' => 'Ibu Aminah',
+            'relationship' => GuardianRelationship::Mother,
+            'occupation' => 'Ibu Rumah Tangga',
+        ]);
+        $student->guardians()->attach([$father->id, $mother->id]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSee('Bapak Udin');
+        $response->assertSee('Petani');
+        $response->assertSee('Ibu Aminah');
+        $response->assertSee('Ibu Rumah Tangga');
+    }
+
+    public function test_reports_a_student_without_a_linked_guardian(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create(['parent_name' => 'Bapak Sopian']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSee('Siswa ini belum memiliki data wali murid terhubung.');
+        $response->assertSee('Bapak Sopian');
+    }
+
+    public function test_reports_a_student_whose_buku_induk_profile_is_incomplete(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSee('Data identitas buku induk siswa ini belum dilengkapi.');
+        $response->assertSee('Riwayat pendidikan siswa ini belum dilengkapi.');
+    }
+
+    public function test_search_narrows_the_student_picker_to_the_matching_student(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create(['name' => 'Ahmad Fauzi']);
+        Student::factory()->create(['name' => 'Siti Aminah']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['search' => 'Siti']));
+
+        $response->assertViewHas('students', fn ($students): bool => $students->pluck('name')->all() === ['Siti Aminah']);
+        $response->assertViewHas('student', fn (Student $student): bool => $student->name === 'Siti Aminah');
+    }
+
+    public function test_search_matches_a_student_by_nisn(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create(['name' => 'Ahmad Fauzi', 'nisn' => '1111111111']);
+        Student::factory()->create(['name' => 'Siti Aminah', 'nisn' => '2222222222']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['search' => '2222222222']));
+
+        $response->assertViewHas('student', fn (Student $student): bool => $student->name === 'Siti Aminah');
+    }
+
+    public function test_falls_back_to_the_first_student_when_the_requested_id_is_filtered_out(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $ahmad = Student::factory()->create(['name' => 'Ahmad Fauzi']);
+        Student::factory()->create(['name' => 'Siti Aminah']);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', [
+            'search' => 'Siti',
+            'student' => $ahmad->id,
+        ]));
+
+        $response->assertViewHas('student', fn (Student $student): bool => $student->name === 'Siti Aminah');
+    }
+
+    public function test_escapes_a_dangerous_student_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create(['name' => "<script>alert('xss')</script>"]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk'));
+
+        $response->assertSee('&lt;script&gt;', false);
+        $response->assertDontSee("<script>alert('xss')</script>", false);
+    }
+}

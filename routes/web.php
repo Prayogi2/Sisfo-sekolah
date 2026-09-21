@@ -7,8 +7,12 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\SppBillController;
+use App\Http\Controllers\SppPaymentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentPortalController;
+use App\Http\Controllers\StudentRecordController;
+use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,9 +46,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', function () {
             return view('admin.dashboard');
         })->name('dashboard');
-        Route::get('/buku-induk', function () {
-            return view('admin.buku-induk');
-        })->name('buku-induk');
+        Route::get('/buku-induk', [StudentRecordController::class, 'index'])->name('buku-induk');
         Route::get('/data-siswa', [StudentController::class, 'index'])->name('data-siswa');
         Route::post('/data-siswa', [StudentController::class, 'store'])->name('data-siswa.store');
         Route::put('/data-siswa/{student}', [StudentController::class, 'update'])->name('data-siswa.update');
@@ -55,14 +57,19 @@ Route::middleware('auth')->group(function () {
         Route::delete('/pembagian-kelas/{classroom}', [ClassroomController::class, 'destroy'])->name('pembagian-kelas.destroy');
         Route::post('/pembagian-kelas/{classroom}/siswa', [ClassroomController::class, 'assignStudents'])->name('pembagian-kelas.assign-students');
 
+        Route::get('/data-mapel', [SubjectController::class, 'index'])->name('data-mapel');
+        Route::post('/data-mapel', [SubjectController::class, 'store'])->name('data-mapel.store');
+        Route::put('/data-mapel/{subject}', [SubjectController::class, 'update'])->name('data-mapel.update');
+        Route::delete('/data-mapel/{subject}', [SubjectController::class, 'destroy'])->name('data-mapel.destroy');
+
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
         Route::post('/data-guru', [TeacherController::class, 'store'])->name('data-guru.store');
         Route::put('/data-guru/{teacher}', [TeacherController::class, 'update'])->name('data-guru.update');
         Route::delete('/data-guru/{teacher}', [TeacherController::class, 'destroy'])->name('data-guru.destroy');
         Route::post('/data-guru/{teacher}/reset-password', [TeacherController::class, 'resetPassword'])->name('data-guru.reset-password');
-        Route::get('/verifikasi-spp', function () {
-            return view('admin.verifikasi-spp');
-        })->name('verifikasi-spp');
+        Route::get('/verifikasi-spp', [SppPaymentController::class, 'index'])->name('verifikasi-spp');
+        Route::post('/verifikasi-spp/{sppPayment}/approve', [SppPaymentController::class, 'approve'])->name('verifikasi-spp.approve');
+        Route::post('/verifikasi-spp/{sppPayment}/reject', [SppPaymentController::class, 'reject'])->name('verifikasi-spp.reject');
         Route::get('/approval-izin', [LeaveRequestController::class, 'index'])->name('approval-izin');
         Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
         Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
@@ -77,9 +84,8 @@ Route::middleware('auth')->group(function () {
         // Laporan Admin
         Route::get('/laporan-absensi', [AttendanceController::class, 'report'])->name('laporan-absensi');
         Route::post('/laporan-absensi/toggle-late-blocking', [ScanController::class, 'toggleLateBlocking'])->name('laporan-absensi.toggle-late-blocking');
-        Route::get('/laporan-spp', function () {
-            return view('admin.laporan-spp');
-        })->name('laporan-spp');
+        Route::get('/laporan-spp', [SppBillController::class, 'report'])->name('laporan-spp');
+        Route::post('/laporan-spp/generate', [SppBillController::class, 'generate'])->name('laporan-spp.generate');
         Route::get('/laporan-nilai', function () {
             return view('admin.laporan-nilai');
         })->name('laporan-nilai');
@@ -126,9 +132,8 @@ Route::middleware('auth')->group(function () {
             return view('siswa.dashboard');
         })->name('dashboard');
         Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
-        Route::get('/pembayaran-spp', function () {
-            return view('siswa.pembayaran-spp');
-        })->name('spp');
+        Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
+        Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');
         Route::get('/kuis-cbt', function () {
             return view('siswa.kuis-ranking');
         })->name('kuis');
@@ -158,9 +163,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/absensi-izin', [LeaveRequestController::class, 'store'])->name('izin.store');
         Route::get('/kritik-saran', [FeedbackController::class, 'create'])->name('kritik-saran');
         Route::post('/kritik-saran', [FeedbackController::class, 'store'])->name('kritik-saran.store');
-        Route::get('/status-spp', function () {
-            return view('wali-murid.status-spp');
-        })->name('spp');
+        Route::get('/status-spp', [SppPaymentController::class, 'guardianStatus'])->name('spp');
         Route::get('/hasil-kuis', function () {
             return view('wali-murid.hasil-kuis');
         })->name('kuis');
