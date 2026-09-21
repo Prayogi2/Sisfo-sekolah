@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NURFA.ID</title>
+    
+    <!-- KODE FAVICON AMAN -->
+    @php
+        $faviconPath = public_path('images/logo.png');
+        $faviconUrl = asset('images/logo.png');
+    @endphp
+    @if(file_exists($faviconPath))
+        <link rel="icon" type="image/png" href="{{ $faviconUrl }}" />
+    @else
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='20'%20fill='%230d6efd'/%3E%3Ctext%20x='50'%20y='68'%20font-size='50'%20text-anchor='middle'%20fill='white'%20font-family='Arial'%20font-weight='bold'%3ENF%3C/text%3E%3C/svg%3E" />
+    @endif
+    <!-- AKHIR KODE FAVICON -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
     <style>
         body {
             margin: 0;
@@ -47,6 +61,20 @@
             border-radius: 50%; width: 80px; height: 80px; font-size: 2rem;
             border: 4px solid rgba(255,255,255,0.5);
         }
+        /* Style untuk Logo Kecil di Form Login */
+        .login-logo {
+            width: 70px; height: 70px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid #e7f1ff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .login-logo-fallback {
+            background-color: #0d6efd; color: white; font-weight: bold;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%; width: 70px; height: 70px; font-size: 1.5rem;
+            box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+        }
         @media (max-width: 768px) {
             .brand-panel { display: none; }
             .wrapper { height: auto; min-height: 100vh; overflow: auto; }
@@ -57,6 +85,7 @@
 <body>
 
 @php
+    // Cek ulang variabel untuk logo di body
     $logoPath = public_path('images/logo.png');
     $logoUrl = asset('images/logo.png');
 @endphp
@@ -80,6 +109,15 @@
             <div class="text-center mb-4">
                 <h4 class="fw-bold text-dark">Selamat Datang</h4>
                 <p class="text-muted">Silakan masuk untuk melanjutkan</p>
+                
+                <!-- Logo di bawah kalimat Selamat Datang -->
+                <div class="mb-3 mt-3">
+                    @if(file_exists($logoPath))
+                        <img src="{{ $logoUrl }}" alt="Logo" class="login-logo">
+                    @else
+                        <div class="login-logo-fallback">NF</div>
+                    @endif
+                </div>
             </div>
 
             <!-- Role Tabs -->
