@@ -6,10 +6,15 @@
     <div class="container-fluid">
         <!-- Header -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Rekapitulasi Nilai Siswa</h1>
+            <div class="d-flex align-items-center">
+                <a href="{{ route('admin.laporan') }}" class="btn btn-light me-3 shadow-sm border" title="Kembali ke Pusat Laporan">
+                    <i class="bi bi-arrow-left fs-5 text-primary"></i>
+                </a>
+                <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Rekapitulasi Nilai</h1>
+            </div>
             <div class="btn-group">
-                <button class="btn btn-outline-danger shadow-sm btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
                 <button class="btn btn-outline-success shadow-sm btn-sm"><i class="bi bi-file-earmark-excel"></i> Export Excel</button>
+                <button class="btn btn-outline-danger shadow-sm btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
             </div>
         </div>
 

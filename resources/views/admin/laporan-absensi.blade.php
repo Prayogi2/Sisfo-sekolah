@@ -6,9 +6,17 @@
     <div class="container-fluid">
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Kehadiran Siswa</h1>
-            <button class="btn btn-outline-success shadow-sm btn-sm"><i class="bi bi-file-earmark-excel"></i> Export Rekap</button>
-        </div>
+            <div class="d-flex align-items-center">
+                <a href="{{ route('admin.laporan') }}" class="btn btn-light me-3 shadow-sm border" title="Kembali ke Pusat Laporan">
+                    <i class="bi bi-arrow-left fs-5 text-primary"></i>
+                </a>
+                <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Kehadiran Siswa</h1>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-success shadow-sm btn-sm"><i class="bi bi-file-earmark-excel"></i> Export Excel</button>
+                <button class="btn btn-outline-danger shadow-sm btn-sm"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
+            </div>
+            </div>
 
         <!-- Control Bar Admin -->
         <div class="card shadow-sm mb-4 border-start border-danger border-4">

@@ -1,102 +1,69 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes - System SISFO Siswa (NURFA.ID)
-|--------------------------------------------------------------------------
-*/
+// ==========================================
+// 1. UMUM & SISTEM (Public Routes)
+// ==========================================
+Route::get('/', fn() => redirect()->route('login'));
+Route::get('/login', fn() => view('auth.login'))->name('login');
+Route::get('/scan-qr', fn() => view('sistem.scan-qr'))->name('presensi.scan');
 
-// Redirect halaman utama ke halaman login
-Route::get('/', function () {
-    return redirect()->route('login');
+// ==========================================
+// 2. MODUL ADMIN
+// ==========================================
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    Route::get('/buku-induk', fn() => view('admin.buku-induk'))->name('buku-induk');
+    Route::get('/data-guru', fn() => view('admin.data-guru'))->name('data-guru');
+    Route::get('/data-kelas', fn() => view('admin.data-kelas'))->name('data-kelas');
+    Route::get('/verifikasi-spp', fn() => view('admin.verifikasi-spp'))->name('verifikasi-spp');
+    Route::get('/approval-izin', fn() => view('admin.approval-izin'))->name('approval-izin');
+    
+    // Menu Laporan
+    Route::get('/laporan', fn() => view('admin.laporan'))->name('laporan');
+    Route::get('/laporan-absensi', fn() => view('admin.laporan-absensi'))->name('laporan-absensi');
+    Route::get('/laporan-nilai', fn() => view('admin.laporan-nilai'))->name('laporan-nilai');
+    Route::get('/laporan-spp', fn() => view('admin.laporan-spp'))->name('laporan-spp');
+    
+    // Prestasi & Pelanggaran
+    Route::get('/prestasi-pelanggaran', fn() => view('admin.prestasi-pelanggaran'))->name('prestasi-pelanggaran');
+    
+    // Manajemen Akun
+    Route::get('/manajemen-akun', fn() => view('admin.manajemen-akun'))->name('manajemen-akun');
 });
 
-// Guest Routes (Hanya bisa diakses jika BELUM login)
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+// ==========================================
+// 3. MODUL GURU
+// ==========================================
+Route::prefix('guru')->name('guru.')->group(function () {
+    // Rute dashboard tetap ada agar tombol login berfungsi, tapi disembunyikan dari menu
+    Route::get('/dashboard', fn() => view('admin.dashboard'))->name('dashboard');
+    Route::get('/data-guru', fn() => view('admin.data-guru'))->name('data-guru'); // Menu Baru
+    Route::get('/bank-soal', fn() => view('admin.bank-soal'))->name('bank-soal');
+    Route::get('/input-nilai', fn() => view('admin.laporan-nilai'))->name('input-nilai');
+    Route::get('/approval-izin', fn() => view('admin.approval-izin'))->name('approval-izin');
+});
 
-// Authenticated Routes (Hanya bisa diakses jika SUDAH login)
-Route::middleware('auth')->group(function () {
-    
-    // Proses Logout
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// ==========================================
+// 4. MODUL SISWA
+// ==========================================
+Route::prefix('siswa')->name('siswa.')->group(function () {
+    Route::get('/jadwal', fn() => view('siswa.dashboard'))->name('jadwal');
+    Route::get('/nilai-kuis', fn() => view('siswa.kuis-ranking'))->name('nilai-kuis');
+    Route::get('/presensi', fn() => view('siswa.kartu-digital'))->name('presensi');
+    Route::get('/pembayaran-spp', fn() => view('siswa.pembayaran-spp'))->name('spp'); // Menu Baru
+});
 
-    /*
-    |--------------------------------------------------------------------------
-    | 1. MODUL ADMIN
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () { return view('admin.dashboard'); })->name('dashboard');
-        Route::get('/buku-induk', function () { return view('admin.buku-induk'); })->name('buku-induk');
-        Route::get('/pembagian-kelas', function () { return view('admin.data-kelas'); })->name('pembagian-kelas');
-        Route::get('/data-guru', function () { return view('admin.data-guru'); })->name('data-guru');
-        Route::get('/verifikasi-spp', function () { return view('admin.verifikasi-spp'); })->name('verifikasi-spp');
-        Route::get('/approval-izin', function () { return view('admin.approval-izin'); })->name('approval-izin');
-        Route::get('/bank-soal', function () { return view('admin.bank-soal'); })->name('bank-soal');
-        Route::get('/prestasi-pelanggaran', function () { return view('admin.prestasi-pelanggaran'); })->name('prestasi-pelanggaran');
-
-        // Laporan Admin
-        Route::get('/laporan-absensi', function () { return view('admin.laporan-absensi'); })->name('laporan-absensi');
-        Route::get('/laporan-spp', function () { return view('admin.laporan-spp'); })->name('laporan-spp');
-        Route::get('/laporan-nilai', function () { return view('admin.laporan-nilai'); })->name('laporan-nilai');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 2. MODUL GURU
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('guru')->name('guru.')->group(function () {
-        Route::get('/dashboard', function () { return view('guru.dashboard'); })->name('dashboard');
-        Route::get('/data-guru', function () { return view('guru.data-guru'); })->name('data-guru');
-        Route::get('/approval-izin', function () { return view('guru.approval-izin'); })->name('approval-izin');
-
-        // Manajemen Bank Soal & Kuis
-        Route::get('/bank-soal', function () { return view('guru.bank-soal'); })->name('bank-soal');
-        Route::post('/bank-soal/simpan', function () {
-            return back()->with('success', 'Soal/Kuis baru berhasil disimpan!');
-        })->name('bank-soal.simpan');
-
-        // Laporan & Input Nilai
-        Route::get('/laporan-nilai', function () { return view('guru.laporan-nilai'); })->name('laporan-nilai');
-        Route::post('/laporan-nilai/simpan', function () {
-            return back()->with('success', 'Nilai siswa berhasil diperbarui!');
-        })->name('laporan-nilai.simpan');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 3. MODUL SISWA
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('siswa')->name('siswa.')->group(function () {
-        Route::get('/dashboard', function () { return view('siswa.dashboard'); })->name('dashboard');
-        Route::get('/kartu-digital', function () { return view('siswa.kartu-digital'); })->name('kartu-digital');
-        Route::get('/pembayaran-spp', function () { return view('siswa.pembayaran-spp'); })->name('spp');
-        Route::get('/kuis-cbt', function () { return view('siswa.kuis-ranking'); })->name('kuis');
-        Route::get('/riwayat-absensi', function () { return view('siswa.absensi'); })->name('absensi');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 4. PORTAL WALI MURID
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('wali-murid')->name('wali.')->group(function () {
-        Route::get('/dashboard', function () { return view('wali-murid.dashboard'); })->name('dashboard');
-        Route::get('/absensi-izin', function () { return view('wali-murid.absensi-izin'); })->name('izin');
-        Route::get('/status-spp', function () { return view('wali-murid.status-spp'); })->name('spp');
-        Route::get('/hasil-kuis', function () { return view('wali-murid.hasil-kuis'); })->name('kuis');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 5. UMUM / SISTEM
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/scan-qr', function () { return view('sistem.scan-qr'); })->name('scan-qr');
+// ==========================================
+// 5. PORTAL WALI MURID
+// ==========================================
+Route::prefix('wali-murid')->name('wali.')->group(function () {
+    Route::get('/dashboard', fn() => view('wali-murid.dashboard'))->name('dashboard');
+    // Rute data-anak dan kritik-saran dihapus
+    Route::get('/absensi-nilai', fn() => view('wali-murid.absensi-izin'))->name('absensi-nilai');
+    Route::get('/hasil-kuis', fn() => view('wali-murid.hasil-kuis'))->name('hasil-kuis'); // Menu Baru
+    Route::get('/prestasi-pelanggaran', fn() => view('admin.prestasi-pelanggaran'))->name('prestasi-pelanggaran'); // Menu Baru
+    Route::get('/tagihan-spp', fn() => view('siswa.pembayaran-spp'))->name('tagihan-spp');
+    Route::get('/ajukan-izin', fn() => view('wali-murid.absensi-izin'))->name('ajukan-izin');
 });
