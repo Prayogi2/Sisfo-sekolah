@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Semester;
 use App\Http\Requests\Subject\StoreSubjectRequest;
 use App\Http\Requests\Subject\UpdateSubjectRequest;
+use App\Models\Classroom;
+use App\Models\GradeWeight;
 use App\Models\Subject;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -20,7 +23,16 @@ class SubjectController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.data-mapel', compact('subjects'));
+        $academicYear = Classroom::currentAcademicYear();
+        $semester = Semester::current();
+
+        $weights = GradeWeight::query()
+            ->where('academic_year', $academicYear)
+            ->where('semester', $semester)
+            ->get()
+            ->keyBy('subject_id');
+
+        return view('admin.data-mapel', compact('subjects', 'weights', 'academicYear', 'semester'));
     }
 
     public function store(StoreSubjectRequest $request): RedirectResponse

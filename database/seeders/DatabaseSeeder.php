@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             AttendanceScheduleSeeder::class,
             SppSettingSeeder::class,
+            GradeSettingSeeder::class,
             DemoAcademicDataSeeder::class,
         ]);
     }

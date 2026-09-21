@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChildSelectionController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\GradeWeightController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SppBillController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\QuizController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -74,9 +77,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
         Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
         Route::get('/kritik-saran', [FeedbackController::class, 'index'])->name('kritik-saran');
-        Route::get('/bank-soal', function () {
-            return view('admin.bank-soal');
-        })->name('bank-soal');
+        Route::get('/bank-soal', [QuizController::class, 'questionBank'])->name('bank-soal');
+        Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
         Route::get('/prestasi-pelanggaran', function () {
             return view('admin.prestasi-pelanggaran');
         })->name('prestasi-pelanggaran');
@@ -86,9 +88,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/laporan-absensi/toggle-late-blocking', [ScanController::class, 'toggleLateBlocking'])->name('laporan-absensi.toggle-late-blocking');
         Route::get('/laporan-spp', [SppBillController::class, 'report'])->name('laporan-spp');
         Route::post('/laporan-spp/generate', [SppBillController::class, 'generate'])->name('laporan-spp.generate');
-        Route::get('/laporan-nilai', function () {
-            return view('admin.laporan-nilai');
-        })->name('laporan-nilai');
+        Route::get('/laporan-nilai', [GradeController::class, 'report'])->name('laporan-nilai');
+        Route::put('/data-mapel/{subject}/bobot-nilai', [GradeWeightController::class, 'update'])->name('data-mapel.bobot-nilai');
     });
 
     /*
@@ -106,20 +107,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
 
         // Manajemen Bank Soal & Kuis
-        Route::get('/bank-soal', function () {
-            return view('guru.bank-soal');
-        })->name('bank-soal');
-        Route::post('/bank-soal/simpan', function () {
-            return back()->with('success', 'Soal/Kuis baru berhasil disimpan!');
-        })->name('bank-soal.simpan');
+        Route::get('/bank-soal', [QuizController::class, 'questionBank'])->name('bank-soal');
+        Route::post('/bank-soal/simpan', [QuizController::class, 'storeQuestion'])->name('bank-soal.simpan');
+        Route::put('/bank-soal/{question}', [QuizController::class, 'updateQuestion'])->name('bank-soal.update');
+        Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
+        Route::post('/kuis', [QuizController::class, 'storeQuiz'])->name('kuis.store');
 
         // Laporan & Input Nilai
-        Route::get('/laporan-nilai', function () {
-            return view('guru.laporan-nilai');
-        })->name('laporan-nilai');
-        Route::post('/laporan-nilai/simpan', function () {
-            return back()->with('success', 'Nilai siswa berhasil diperbarui!');
-        })->name('laporan-nilai.simpan');
+        Route::get('/laporan-nilai', [GradeController::class, 'index'])->name('laporan-nilai');
+        Route::post('/laporan-nilai/simpan', [GradeController::class, 'store'])->name('laporan-nilai.simpan');
     });
 
     /*
@@ -134,9 +130,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
         Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
         Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');
-        Route::get('/kuis-cbt', function () {
-            return view('siswa.kuis-ranking');
-        })->name('kuis');
+        Route::get('/kuis-cbt', [QuizController::class, 'available'])->name('kuis');
+        Route::get('/kuis-cbt/{quiz}', [QuizController::class, 'start'])->name('kuis.start');
+        Route::post('/kuis-cbt/attempt/{attempt}/jawaban', [QuizController::class, 'answer'])->name('kuis.answer');
+        Route::post('/kuis-cbt/attempt/{attempt}/kumpulkan', [QuizController::class, 'submit'])->name('kuis.submit');
         Route::get('/riwayat-absensi', [StudentPortalController::class, 'attendanceHistory'])->name('absensi');
     });
 
@@ -164,9 +161,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/kritik-saran', [FeedbackController::class, 'create'])->name('kritik-saran');
         Route::post('/kritik-saran', [FeedbackController::class, 'store'])->name('kritik-saran.store');
         Route::get('/status-spp', [SppPaymentController::class, 'guardianStatus'])->name('spp');
-        Route::get('/hasil-kuis', function () {
-            return view('wali-murid.hasil-kuis');
-        })->name('kuis');
+        Route::get('/hasil-kuis', [QuizController::class, 'results'])->name('kuis');
     });
 
     /*

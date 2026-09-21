@@ -47,7 +47,8 @@
                                 <th width="150">Kode</th>
                                 <th>Nama Mata Pelajaran</th>
                                 <th class="text-center">Jumlah Guru Pengampu</th>
-                                <th class="text-center" width="120">Aksi</th>
+                                <th class="text-center">Bobot Nilai (T/K/UTS/UAS)</th>
+                                <th class="text-center" width="160">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -57,7 +58,27 @@
                                     <td><span class="badge bg-primary-soft text-primary" style="background-color: #e7f1ff;">{{ $subject->code }}</span></td>
                                     <td class="fw-semibold text-dark">{{ $subject->name }}</td>
                                     <td class="text-center">{{ $subject->teachers_count }}</td>
+                                    @php
+                                        $weight = $weights->get($subject->id)
+                                            ?? \App\Models\GradeWeight::default($subject->id, $academicYear, $semester);
+                                        $isCustomWeight = $weights->has($subject->id);
+                                    @endphp
                                     <td class="text-center">
+                                        {{ $weight->assignment_weight }}/{{ $weight->quiz_weight }}/{{ $weight->midterm_weight }}/{{ $weight->final_weight }}
+                                        @unless ($isCustomWeight)
+                                            <span class="badge bg-secondary ms-1">bawaan</span>
+                                        @endunless
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-light" title="Atur Bobot Nilai"
+                                            data-bs-toggle="modal" data-bs-target="#modalBobotNilai"
+                                            data-action="{{ route('admin.data-mapel.bobot-nilai', $subject) }}"
+                                            data-subject="{{ $subject->name }}"
+                                            data-assignment="{{ $weight->assignment_weight }}"
+                                            data-quiz="{{ $weight->quiz_weight }}"
+                                            data-midterm="{{ $weight->midterm_weight }}"
+                                            data-final="{{ $weight->final_weight }}"
+                                        ><i class="bi bi-sliders text-primary"></i></button>
                                         <button type="button" class="btn btn-sm btn-light" title="Edit"
                                             data-bs-toggle="modal" data-bs-target="#modalEditMapel"
                                             data-action="{{ route('admin.data-mapel.update', $subject) }}"
@@ -73,13 +94,60 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Belum ada mata pelajaran. Tambahkan mapel baru untuk mulai.</td>
+                                    <td colspan="6" class="text-center text-muted py-4">Belum ada mata pelajaran. Tambahkan mapel baru untuk mulai.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Atur Bobot Nilai -->
+    <div class="modal fade" id="modalBobotNilai" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="formBobotNilai" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="academic_year" value="{{ $academicYear }}">
+                <input type="hidden" name="semester" value="{{ $semester->value }}">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-sliders me-2"></i>Atur Bobot Nilai</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">
+                            Mapel: <strong id="bobotSubjectName"></strong><br>
+                            <span class="text-muted small">Berlaku untuk semester {{ $semester->label() }} {{ $academicYear }}.</span>
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Bobot Tugas (%)</label>
+                                <input type="number" min="0" max="100" name="assignment_weight" id="bobotAssignment" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Bobot Kuis (%)</label>
+                                <input type="number" min="0" max="100" name="quiz_weight" id="bobotQuiz" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Bobot UTS (%)</label>
+                                <input type="number" min="0" max="100" name="midterm_weight" id="bobotMidterm" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Bobot UAS (%)</label>
+                                <input type="number" min="0" max="100" name="final_weight" id="bobotFinal" class="form-control" required>
+                            </div>
+                        </div>
+                        <p class="text-muted small mt-3 mb-0">Total keempat bobot harus tepat 100%.</p>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Bobot</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -148,6 +216,16 @@
             document.getElementById('formEditMapel').action = button.dataset.action;
             document.getElementById('editMapelCode').value = button.dataset.code;
             document.getElementById('editMapelName').value = button.dataset.name;
+        });
+
+        document.getElementById('modalBobotNilai').addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            document.getElementById('formBobotNilai').action = button.dataset.action;
+            document.getElementById('bobotSubjectName').textContent = button.dataset.subject;
+            document.getElementById('bobotAssignment').value = button.dataset.assignment;
+            document.getElementById('bobotQuiz').value = button.dataset.quiz;
+            document.getElementById('bobotMidterm').value = button.dataset.midterm;
+            document.getElementById('bobotFinal').value = button.dataset.final;
         });
     </script>
 @endsection
