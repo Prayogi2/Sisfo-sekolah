@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,11 +16,11 @@ Route::get('/', function () {
 
 // Guest Routes (Hanya bisa diakses jika BELUM login)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 // Authenticated Routes (Hanya bisa diakses jika SUDAH login)
 Route::middleware('auth')->group(function () {
-    
+
     // Proses Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -29,20 +29,42 @@ Route::middleware('auth')->group(function () {
     | 1. MODUL ADMIN
     |--------------------------------------------------------------------------
     */
-    Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () { return view('admin.dashboard'); })->name('dashboard');
-        Route::get('/buku-induk', function () { return view('admin.buku-induk'); })->name('buku-induk');
-        Route::get('/pembagian-kelas', function () { return view('admin.data-kelas'); })->name('pembagian-kelas');
-        Route::get('/data-guru', function () { return view('admin.data-guru'); })->name('data-guru');
-        Route::get('/verifikasi-spp', function () { return view('admin.verifikasi-spp'); })->name('verifikasi-spp');
-        Route::get('/approval-izin', function () { return view('admin.approval-izin'); })->name('approval-izin');
-        Route::get('/bank-soal', function () { return view('admin.bank-soal'); })->name('bank-soal');
-        Route::get('/prestasi-pelanggaran', function () { return view('admin.prestasi-pelanggaran'); })->name('prestasi-pelanggaran');
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('admin.dashboard');
+        })->name('dashboard');
+        Route::get('/buku-induk', function () {
+            return view('admin.buku-induk');
+        })->name('buku-induk');
+        Route::get('/pembagian-kelas', function () {
+            return view('admin.data-kelas');
+        })->name('pembagian-kelas');
+        Route::get('/data-guru', function () {
+            return view('admin.data-guru');
+        })->name('data-guru');
+        Route::get('/verifikasi-spp', function () {
+            return view('admin.verifikasi-spp');
+        })->name('verifikasi-spp');
+        Route::get('/approval-izin', function () {
+            return view('admin.approval-izin');
+        })->name('approval-izin');
+        Route::get('/bank-soal', function () {
+            return view('admin.bank-soal');
+        })->name('bank-soal');
+        Route::get('/prestasi-pelanggaran', function () {
+            return view('admin.prestasi-pelanggaran');
+        })->name('prestasi-pelanggaran');
 
         // Laporan Admin
-        Route::get('/laporan-absensi', function () { return view('admin.laporan-absensi'); })->name('laporan-absensi');
-        Route::get('/laporan-spp', function () { return view('admin.laporan-spp'); })->name('laporan-spp');
-        Route::get('/laporan-nilai', function () { return view('admin.laporan-nilai'); })->name('laporan-nilai');
+        Route::get('/laporan-absensi', function () {
+            return view('admin.laporan-absensi');
+        })->name('laporan-absensi');
+        Route::get('/laporan-spp', function () {
+            return view('admin.laporan-spp');
+        })->name('laporan-spp');
+        Route::get('/laporan-nilai', function () {
+            return view('admin.laporan-nilai');
+        })->name('laporan-nilai');
     });
 
     /*
@@ -50,19 +72,29 @@ Route::middleware('auth')->group(function () {
     | 2. MODUL GURU
     |--------------------------------------------------------------------------
     */
-    Route::prefix('guru')->name('guru.')->group(function () {
-        Route::get('/dashboard', function () { return view('guru.dashboard'); })->name('dashboard');
-        Route::get('/data-guru', function () { return view('guru.data-guru'); })->name('data-guru');
-        Route::get('/approval-izin', function () { return view('guru.approval-izin'); })->name('approval-izin');
+    Route::middleware('role:guru')->prefix('guru')->name('guru.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('guru.dashboard');
+        })->name('dashboard');
+        Route::get('/data-guru', function () {
+            return view('guru.data-guru');
+        })->name('data-guru');
+        Route::get('/approval-izin', function () {
+            return view('guru.approval-izin');
+        })->name('approval-izin');
 
         // Manajemen Bank Soal & Kuis
-        Route::get('/bank-soal', function () { return view('guru.bank-soal'); })->name('bank-soal');
+        Route::get('/bank-soal', function () {
+            return view('guru.bank-soal');
+        })->name('bank-soal');
         Route::post('/bank-soal/simpan', function () {
             return back()->with('success', 'Soal/Kuis baru berhasil disimpan!');
         })->name('bank-soal.simpan');
 
         // Laporan & Input Nilai
-        Route::get('/laporan-nilai', function () { return view('guru.laporan-nilai'); })->name('laporan-nilai');
+        Route::get('/laporan-nilai', function () {
+            return view('guru.laporan-nilai');
+        })->name('laporan-nilai');
         Route::post('/laporan-nilai/simpan', function () {
             return back()->with('success', 'Nilai siswa berhasil diperbarui!');
         })->name('laporan-nilai.simpan');
@@ -70,15 +102,25 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | 3. MODUL SISWA
+    | 3. MODUL SISWA (diakses lewat akun Wali Murid, siswa tidak login sendiri)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('siswa')->name('siswa.')->group(function () {
-        Route::get('/dashboard', function () { return view('siswa.dashboard'); })->name('dashboard');
-        Route::get('/kartu-digital', function () { return view('siswa.kartu-digital'); })->name('kartu-digital');
-        Route::get('/pembayaran-spp', function () { return view('siswa.pembayaran-spp'); })->name('spp');
-        Route::get('/kuis-cbt', function () { return view('siswa.kuis-ranking'); })->name('kuis');
-        Route::get('/riwayat-absensi', function () { return view('siswa.absensi'); })->name('absensi');
+    Route::middleware('role:wali')->prefix('siswa')->name('siswa.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('siswa.dashboard');
+        })->name('dashboard');
+        Route::get('/kartu-digital', function () {
+            return view('siswa.kartu-digital');
+        })->name('kartu-digital');
+        Route::get('/pembayaran-spp', function () {
+            return view('siswa.pembayaran-spp');
+        })->name('spp');
+        Route::get('/kuis-cbt', function () {
+            return view('siswa.kuis-ranking');
+        })->name('kuis');
+        Route::get('/riwayat-absensi', function () {
+            return view('siswa.absensi');
+        })->name('absensi');
     });
 
     /*
@@ -86,17 +128,27 @@ Route::middleware('auth')->group(function () {
     | 4. PORTAL WALI MURID
     |--------------------------------------------------------------------------
     */
-    Route::prefix('wali-murid')->name('wali.')->group(function () {
-        Route::get('/dashboard', function () { return view('wali-murid.dashboard'); })->name('dashboard');
-        Route::get('/absensi-izin', function () { return view('wali-murid.absensi-izin'); })->name('izin');
-        Route::get('/status-spp', function () { return view('wali-murid.status-spp'); })->name('spp');
-        Route::get('/hasil-kuis', function () { return view('wali-murid.hasil-kuis'); })->name('kuis');
+    Route::middleware('role:wali')->prefix('wali-murid')->name('wali.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('wali-murid.dashboard');
+        })->name('dashboard');
+        Route::get('/absensi-izin', function () {
+            return view('wali-murid.absensi-izin');
+        })->name('izin');
+        Route::get('/status-spp', function () {
+            return view('wali-murid.status-spp');
+        })->name('spp');
+        Route::get('/hasil-kuis', function () {
+            return view('wali-murid.hasil-kuis');
+        })->name('kuis');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | 5. UMUM / SISTEM
+    | 5. UMUM / SISTEM (pos presensi, dioperasikan admin/guru piket)
     |--------------------------------------------------------------------------
     */
-    Route::get('/scan-qr', function () { return view('sistem.scan-qr'); })->name('scan-qr');
+    Route::middleware('role:admin|guru')->get('/scan-qr', function () {
+        return view('sistem.scan-qr');
+    })->name('scan-qr');
 });

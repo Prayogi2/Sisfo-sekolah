@@ -21,15 +21,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // 1. Validasi Input dari Form
+        // Catatan: 'siswa' bukan role login yang valid — siswa tidak login sendiri,
+        // data siswa diakses lewat akun wali murid (lihat rencana Fase 0).
         $request->validate([
-            'login'    => 'required|string',
+            'login' => 'required|string',
             'password' => 'required|string',
-            'role'     => 'required|in:admin,guru,siswa,wali',
+            'role' => 'required|in:admin,guru,wali',
         ], [
-            'login.required'    => 'Field login wajib diisi.',
+            'login.required' => 'Field login wajib diisi.',
             'password.required' => 'Kata sandi wajib diisi.',
-            'role.required'     => 'Peran/Role harus dipilih.',
-            'role.in'           => 'Peran/Role tidak valid.',
+            'role.required' => 'Peran/Role harus dipilih.',
+            'role.in' => 'Peran/Role tidak valid.',
         ]);
 
         $input = $request->input('login');
@@ -42,9 +44,9 @@ class AuthController extends Controller
 
         // Susun kredensial pencocokan
         $credentials = [
-            $field    => $input,
+            $field => $input,
             'password' => $password,
-            'role'     => $role,
+            'role' => $role,
         ];
 
         // 3. Coba Autentikasi
@@ -55,9 +57,8 @@ class AuthController extends Controller
             // Redirect pengguna ke dashboard sesuai role
             return match ($role) {
                 'admin' => redirect()->route('admin.dashboard'),
-                'guru'  => redirect()->route('guru.dashboard'),
-                'siswa' => redirect()->route('siswa.dashboard'),
-                'wali'  => redirect()->route('wali.dashboard'),
+                'guru' => redirect()->route('guru.dashboard'),
+                'wali' => redirect()->route('wali.dashboard'),
                 default => redirect()->to('/'),
             };
         }
