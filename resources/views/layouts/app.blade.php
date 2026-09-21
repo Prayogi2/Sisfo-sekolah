@@ -50,6 +50,7 @@
             <a href="{{ route('admin.approval-izin') }}" class="{{ request()->routeIs('admin.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Approval Izin</a>
             <a href="{{ route('admin.bank-soal') }}" class="{{ request()->routeIs('admin.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Bank Soal Kuis</a>
             <a href="{{ route('admin.prestasi-pelanggaran') }}" class="{{ request()->routeIs('admin.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Prestasi & Pelanggaran</a>
+            <a href="{{ route('admin.kritik-saran') }}" class="{{ request()->routeIs('admin.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
 
             <div class="menu-title">Laporan & Hasil</div>
             <a href="{{ route('admin.laporan-absensi') }}" class="{{ request()->routeIs('admin.laporan-absensi') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Laporan Absensi</a>
@@ -84,6 +85,7 @@
             <a href="{{ route('wali.izin') }}" class="{{ request()->routeIs('wali.izin') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Pemantauan Absensi & Izin</a>
             <a href="{{ route('wali.spp') }}" class="{{ request()->routeIs('wali.spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status Pembayaran SPP</a>
             <a href="{{ route('wali.kuis') }}" class="{{ request()->routeIs('wali.kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis & Ranking</a>
+            <a href="{{ route('wali.kritik-saran') }}" class="{{ request()->routeIs('wali.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
         @endif
 
         <div class="menu-title">Aksi</div>
@@ -114,10 +116,23 @@
             <div class="dropdown me-3">
                 <a href="#" class="text-dark position-relative" data-bs-toggle="dropdown">
                     <i class="bi bi-bell-fill fs-5 text-primary-custom"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">3</span>
+                    @if ($role == 'admin' && isset($adminFeedbackNotifications) && $adminFeedbackNotifications->isNotEmpty())
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">{{ $adminFeedbackNotifications->count() }}</span>
+                    @endif
                 </a>
                 <div class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
-                    <a class="dropdown-item" href="#"><i class="bi bi-cash text-warning me-2"></i> Notifikasi Pembayaran SPP</a>
+                    @if ($role == 'admin')
+                        @forelse ($adminFeedbackNotifications ?? [] as $notification)
+                            <a class="dropdown-item" href="{{ route('admin.kritik-saran') }}">
+                                <i class="bi bi-chat-square-text text-primary me-2"></i>
+                                Kritik/saran baru dari {{ $notification->data['guardian_name'] }}
+                            </a>
+                        @empty
+                            <span class="dropdown-item text-muted">Tidak ada notifikasi baru</span>
+                        @endforelse
+                    @else
+                        <a class="dropdown-item" href="#"><i class="bi bi-cash text-warning me-2"></i> Notifikasi Pembayaran SPP</a>
+                    @endif
                 </div>
             </div>
             

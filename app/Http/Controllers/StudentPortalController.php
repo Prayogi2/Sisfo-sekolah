@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
 use App\Models\Attendance;
 use App\Models\AttendanceSchedule;
+use App\Models\LeaveRequest;
 use App\Models\Student;
 use App\Services\CurrentStudentResolver;
 use Illuminate\Http\RedirectResponse;
@@ -57,7 +58,12 @@ class StudentPortalController extends Controller
 
         $history = $this->lastSevenDaysAttendance($student);
 
-        return view('wali-murid.absensi-izin', compact('student', 'history'));
+        $leaveRequests = LeaveRequest::query()
+            ->where('student_id', $student->id)
+            ->latest()
+            ->get();
+
+        return view('wali-murid.absensi-izin', compact('student', 'history', 'leaveRequests'));
     }
 
     /**

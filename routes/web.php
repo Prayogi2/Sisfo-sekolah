@@ -4,6 +4,8 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChildSelectionController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentPortalController;
@@ -61,9 +63,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/verifikasi-spp', function () {
             return view('admin.verifikasi-spp');
         })->name('verifikasi-spp');
-        Route::get('/approval-izin', function () {
-            return view('admin.approval-izin');
-        })->name('approval-izin');
+        Route::get('/approval-izin', [LeaveRequestController::class, 'index'])->name('approval-izin');
+        Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
+        Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
+        Route::get('/kritik-saran', [FeedbackController::class, 'index'])->name('kritik-saran');
         Route::get('/bank-soal', function () {
             return view('admin.bank-soal');
         })->name('bank-soal');
@@ -92,9 +95,9 @@ Route::middleware('auth')->group(function () {
             return view('guru.dashboard');
         })->name('dashboard');
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
-        Route::get('/approval-izin', function () {
-            return view('guru.approval-izin');
-        })->name('approval-izin');
+        Route::get('/approval-izin', [LeaveRequestController::class, 'index'])->name('approval-izin');
+        Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
+        Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
 
         // Manajemen Bank Soal & Kuis
         Route::get('/bank-soal', function () {
@@ -152,6 +155,9 @@ Route::middleware('auth')->group(function () {
             return view('wali-murid.dashboard');
         })->name('dashboard');
         Route::get('/absensi-izin', [StudentPortalController::class, 'guardianAttendance'])->name('izin');
+        Route::post('/absensi-izin', [LeaveRequestController::class, 'store'])->name('izin.store');
+        Route::get('/kritik-saran', [FeedbackController::class, 'create'])->name('kritik-saran');
+        Route::post('/kritik-saran', [FeedbackController::class, 'store'])->name('kritik-saran.store');
         Route::get('/status-spp', function () {
             return view('wali-murid.status-spp');
         })->name('spp');
