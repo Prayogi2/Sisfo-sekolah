@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChildSelectionController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\ScanController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,9 +72,8 @@ Route::middleware('auth')->group(function () {
         })->name('prestasi-pelanggaran');
 
         // Laporan Admin
-        Route::get('/laporan-absensi', function () {
-            return view('admin.laporan-absensi');
-        })->name('laporan-absensi');
+        Route::get('/laporan-absensi', [AttendanceController::class, 'report'])->name('laporan-absensi');
+        Route::post('/laporan-absensi/toggle-late-blocking', [ScanController::class, 'toggleLateBlocking'])->name('laporan-absensi.toggle-late-blocking');
         Route::get('/laporan-spp', function () {
             return view('admin.laporan-spp');
         })->name('laporan-spp');
@@ -119,18 +122,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', function () {
             return view('siswa.dashboard');
         })->name('dashboard');
-        Route::get('/kartu-digital', function () {
-            return view('siswa.kartu-digital');
-        })->name('kartu-digital');
+        Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
         Route::get('/pembayaran-spp', function () {
             return view('siswa.pembayaran-spp');
         })->name('spp');
         Route::get('/kuis-cbt', function () {
             return view('siswa.kuis-ranking');
         })->name('kuis');
-        Route::get('/riwayat-absensi', function () {
-            return view('siswa.absensi');
-        })->name('absensi');
+        Route::get('/riwayat-absensi', [StudentPortalController::class, 'attendanceHistory'])->name('absensi');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pilih Anak (wali dengan >1 anak, dipakai sebelum akses halaman siswa.*)
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('role:wali')->prefix('pilih-anak')->name('pilih-anak.')->group(function () {
+        Route::get('/', [ChildSelectionController::class, 'index'])->name('index');
+        Route::get('/{student}', [ChildSelectionController::class, 'select'])->name('select');
     });
 
     /*
@@ -142,9 +151,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', function () {
             return view('wali-murid.dashboard');
         })->name('dashboard');
-        Route::get('/absensi-izin', function () {
-            return view('wali-murid.absensi-izin');
-        })->name('izin');
+        Route::get('/absensi-izin', [StudentPortalController::class, 'guardianAttendance'])->name('izin');
         Route::get('/status-spp', function () {
             return view('wali-murid.status-spp');
         })->name('spp');
@@ -158,7 +165,8 @@ Route::middleware('auth')->group(function () {
     | 5. UMUM / SISTEM (pos presensi, dioperasikan admin/guru piket)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:admin|guru')->get('/scan-qr', function () {
-        return view('sistem.scan-qr');
-    })->name('scan-qr');
+    Route::middleware('role:admin|guru')->group(function () {
+        Route::get('/scan-qr', [ScanController::class, 'index'])->name('scan-qr');
+        Route::post('/scan-qr', [ScanController::class, 'store'])->name('scan-qr.store');
+    });
 });

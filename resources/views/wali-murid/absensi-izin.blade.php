@@ -16,7 +16,7 @@
                 <!-- Riwayat Absensi -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header py-3 bg-white">
-                        <h6 class="m-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Kehadiran 7 Hari Terakhir</h6>
+                        <h6 class="m-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Kehadiran 7 Hari Terakhir - {{ $student->name }}</h6>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -27,41 +27,40 @@
                                         <th>Check-In</th>
                                         <th>Check-Out</th>
                                         <th>Status</th>
-                                        <th>Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>15 Mei 2024</td>
-                                        <td>06:45 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-success-soft text-success" style="background-color: #e6f9ee;">Hadir</span></td>
-                                        <td class="text-muted">Tepat Waktu</td>
-                                    </tr>
-                                    <tr>
-                                        <td>14 Mei 2024</td>
-                                        <td colspan="4" class="text-center text-muted">Libur Akhir Pekan</td>
-                                    </tr>
-                                    <tr>
-                                        <td>13 Mei 2024</td>
-                                        <td>06:50 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-success-soft text-success" style="background-color: #e6f9ee;">Hadir</span></td>
-                                        <td class="text-muted">Tepat Waktu</td>
-                                    </tr>
-                                    <tr>
-                                        <td>11 Mei 2024</td>
-                                        <td>07:15 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-warning-soft text-warning" style="background-color: #fff8e6;">Telat</span></td>
-                                        <td class="text-muted">Terlambat 15 Menit</td>
-                                    </tr>
-                                    <tr>
-                                        <td>10 Mei 2024</td>
-                                        <td colspan="2" class="text-muted">--</td>
-                                        <td><span class="badge bg-primary-soft text-primary">Izin</span></td>
-                                        <td class="text-muted">Sakit (Disetujui)</td>
-                                    </tr>
+                                    @foreach ($history as $row)
+                                        <tr>
+                                            <td>{{ $row['date']->translatedFormat('d F Y') }}</td>
+                                            @if (! $row['is_school_day'])
+                                                <td colspan="3" class="text-center text-muted">Libur Sekolah</td>
+                                            @elseif ($row['attendance'])
+                                                <td>{{ $row['attendance']->check_in_at?->format('H:i').' WIB' ?? '--:--' }}</td>
+                                                <td>{{ $row['attendance']->check_out_at?->format('H:i').' WIB' ?? '--:--' }}</td>
+                                                <td>
+                                                    @php
+                                                        $badge = match ($row['attendance']->status->value) {
+                                                            'hadir' => 'bg-success-soft text-success',
+                                                            'telat' => 'bg-warning-soft text-warning',
+                                                            'izin' => 'bg-primary-soft text-primary',
+                                                            default => 'bg-danger-soft text-danger',
+                                                        };
+                                                        $label = match ($row['attendance']->status->value) {
+                                                            'hadir' => 'Hadir',
+                                                            'telat' => 'Telat',
+                                                            'izin' => 'Izin',
+                                                            default => 'Alpa',
+                                                        };
+                                                    @endphp
+                                                    <span class="badge {{ $badge }}" style="background-color: #e6f9ee;">{{ $label }}</span>
+                                                </td>
+                                            @else
+                                                <td colspan="2" class="text-muted">--</td>
+                                                <td><span class="badge bg-danger-soft text-danger">Alpa</span></td>
+                                            @endif
+                                        </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>
