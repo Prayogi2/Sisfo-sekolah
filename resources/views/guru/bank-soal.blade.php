@@ -95,11 +95,11 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Mata Pelajaran</label>
-                            <select class="form-select" name="mapel" required>
+                            <select class="form-select" name="subject_id" required>
                                 <option value="">-- Pilih Mapel --</option>
-                                <option value="Matematika">Matematika</option>
-                                <option value="IPA Terpadu">IPA Terpadu</option>
-                                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                                @foreach($subjects as $subject)
+                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -112,21 +112,25 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Judul Kuis / Topik Soal</label>
-                        <input type="text" class="form-control" name="judul" placeholder="Contoh: Kuis Harian Perkalian" required>
+                        <input type="text" class="form-control" name="question" placeholder="Tuliskan pertanyaan di sini..." required>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Durasi (Menit)</label>
-                            <input type="number" class="form-control" name="durasi" placeholder="30" required>
+                            <input type="number" class="form-control" name="points" value="1" min="1" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Jumlah Soal</label>
-                            <input type="number" class="form-control" name="jumlah_soal" placeholder="10" required>
+                            <input type="text" class="form-control" name="explanation" placeholder="Penjelasan jawaban (opsional)">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Pertanyaan Soal</label>
-                        <textarea class="form-control" name="pertanyaan" rows="3" placeholder="Tuliskan pertanyaan di sini..." required></textarea>
+                        <div class="row g-2">
+                            @foreach(['A', 'B', 'C', 'D'] as $option)
+                                <div class="col-md-6"><div class="input-group"><span class="input-group-text">{{ $option }}</span><input class="form-control" name="options[{{ $option }}]" required><span class="input-group-text"><input type="radio" name="correct_answer" value="{{ $option }}" required> Kunci</span></div></div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

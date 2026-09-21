@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['user_id', 'nip', 'name', 'gender', 'phone', 'address'])]
+#[Fillable(['user_id', 'nip', 'name', 'gender', 'phone', 'address', 'email', 'is_active'])]
 class Teacher extends Model
 {
     /** @use HasFactory<TeacherFactory> */
@@ -25,6 +26,7 @@ class Teacher extends Model
     {
         return [
             'gender' => Gender::class,
+            'is_active' => 'boolean',
         ];
     }
 
@@ -42,5 +44,13 @@ class Teacher extends Model
     public function homeroomClassrooms(): HasMany
     {
         return $this->hasMany(Classroom::class, 'homeroom_teacher_id');
+    }
+
+    /**
+     * The subjects this teacher is assigned to teach.
+     */
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'subject_teacher');
     }
 }

@@ -16,32 +16,30 @@
                 <div class="card shadow-lg border-0 rounded-lg">
                     <div class="card-header bg-primary text-white text-center py-3">
                         <h5 class="mb-0">KARTU PELAJAR DIGITAL</h5>
-                        <small>SMAN 1 dummySejahtera</small>
+                        <small>MIS Nurul Falaq</small>
                     </div>
                     <div class="card-body text-center">
                         <div class="d-flex flex-column align-items-center">
-                            <!-- Foto Siswa (Dummy) -->
-                            <img src="https://ui-avatars.com/api/?name=Budi+Santoso&size=150&background=4e73df&color=fff&bold=true" 
+                            <img src="https://ui-avatars.com/api/?name={{ urlencode($student->name) }}&size=150&background=4e73df&color=fff&bold=true"
                                  class="rounded-circle mb-3 shadow" width="120" height="120" alt="Foto Siswa">
-                            
-                            <h4 class="mb-0">Budi Santoso</h4>
-                            <p class="text-muted mb-2">NIS: 1002456 / NISN: 0098761234</p>
-                            <span class="badge bg-info mb-3">Kelas X IPA 1</span>
-                            
+
+                            <h4 class="mb-0">{{ $student->name }}</h4>
+                            <p class="text-muted mb-2">NIS: {{ $student->nis }} / NISN: {{ $student->nisn }}</p>
+                            <span class="badge bg-info mb-3">Kelas {{ $student->classroom?->name ?? '-' }}</span>
+
                             <hr class="w-100">
-                            
-                            <p class="mb-2"><small class="text-muted">Tunjukkan QR Code ini ke perangkat scanner presensi:</small></p>
-                            
-                            <!-- QR Code Dummy -->
+
+                            <p class="mb-2"><small class="text-muted">Tunjukkan QR Code ini ke alat scanner presensi:</small></p>
+
                             <div class="bg-white p-3 rounded shadow-sm mb-3">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SISFO-1002456-XIPA1" alt="QR Code" width="200" height="200">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($student->qr_token) }}" alt="QR Code" width="200" height="200">
                             </div>
-                            
+
                             <button class="btn btn-outline-primary w-100"><i class="bi bi-download me-2"></i> Unduh Kartu (PDF)</button>
                         </div>
                     </div>
                     <div class="card-footer text-muted text-center" style="font-size: 0.8rem;">
-                        Berlaku hingga 2025 | SISFO Sekolah
+                        NURFA.ID - Digital Platform MIS Nurul Falaq
                     </div>
                 </div>
             </div>
@@ -52,17 +50,27 @@
                 <div class="card shadow mb-4 border-start-success">
                     <div class="card-body">
                         <h5 class="card-title text-primary">Presensi Hari Ini</h5>
-                        <p class="card-text text-muted">Senin, 15 Mei 2024</p>
+                        <p class="card-text text-muted">{{ now()->translatedFormat('l, d F Y') }}</p>
                         <div class="row text-center">
                             <div class="col-6 border-end">
                                 <h6 class="text-muted">Check-In (Pagi)</h6>
-                                <h3 class="text-success"><i class="bi bi-box-arrow-in-right me-1"></i> 06:45 WIB</h3>
-                                <span class="badge bg-success-soft text-success">Tepat Waktu</span>
+                                @if ($today?->check_in_at)
+                                    <h3 class="text-success"><i class="bi bi-box-arrow-in-right me-1"></i> {{ $today->check_in_at->format('H:i') }} WIB</h3>
+                                    <span class="badge {{ $today->status->value === 'telat' ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success' }}">{{ $today->status->value === 'telat' ? 'Terlambat' : 'Tepat Waktu' }}</span>
+                                @else
+                                    <h3 class="text-muted"><i class="bi bi-box-arrow-in-right me-1"></i> --:-- WIB</h3>
+                                    <span class="badge bg-secondary text-white">Belum Scan</span>
+                                @endif
                             </div>
                             <div class="col-6">
                                 <h6 class="text-muted">Check-Out (Pulang)</h6>
-                                <h3 class="text-muted"><i class="bi bi-box-arrow-right me-1"></i> --:-- WIB</h3>
-                                <span class="badge bg-secondary text-white">Menunggu</span>
+                                @if ($today?->check_out_at)
+                                    <h3 class="text-success"><i class="bi bi-box-arrow-right me-1"></i> {{ $today->check_out_at->format('H:i') }} WIB</h3>
+                                    <span class="badge bg-success-soft text-success">Selesai</span>
+                                @else
+                                    <h3 class="text-muted"><i class="bi bi-box-arrow-right me-1"></i> --:-- WIB</h3>
+                                    <span class="badge bg-secondary text-white">Menunggu</span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -86,51 +94,38 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>14 Mei 2024</td>
-                                        <td>Minggu</td>
-                                        <td colspan="3" class="text-center text-muted">Libur Sekolah</td>
-                                    </tr>
-                                    <tr>
-                                        <td>13 Mei 2024</td>
-                                        <td>Sabtu</td>
-                                        <td>06:50 WIB</td>
-                                        <td>12:00 WIB</td>
-                                        <td><span class="badge bg-success">Hadir</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>12 Mei 2024</td>
-                                        <td>Jumat</td>
-                                        <td>06:45 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-success">Hadir</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>11 Mei 2024</td>
-                                        <td>Kamis</td>
-                                        <td>07:05 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-warning text-dark">Telat</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>10 Mei 2024</td>
-                                        <td>Rabu</td>
-                                        <td colspan="3"><span class="badge bg-info">Izin (Sakit)</span> <small class="text-muted">Disetujui Pak Budi (Wali Kelas)</small></td>
-                                    </tr>
-                                    <tr>
-                                        <td>09 Mei 2024</td>
-                                        <td>Selasa</td>
-                                        <td>06:40 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-success">Hadir</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>08 Mei 2024</td>
-                                        <td>Senin</td>
-                                        <td>06:48 WIB</td>
-                                        <td>13:00 WIB</td>
-                                        <td><span class="badge bg-success">Hadir</span></td>
-                                    </tr>
+                                    @foreach ($history as $row)
+                                        <tr>
+                                            <td>{{ $row['date']->translatedFormat('d F Y') }}</td>
+                                            <td>{{ $row['date']->translatedFormat('l') }}</td>
+                                            @if (! $row['is_school_day'])
+                                                <td colspan="3" class="text-center text-muted">Libur Sekolah</td>
+                                            @elseif ($row['attendance'])
+                                                <td>{{ $row['attendance']->check_in_at?->format('H:i').' WIB' ?? '--:--' }}</td>
+                                                <td>{{ $row['attendance']->check_out_at?->format('H:i').' WIB' ?? '--:--' }}</td>
+                                                <td>
+                                                    @php
+                                                        $badge = match ($row['attendance']->status->value) {
+                                                            'hadir' => 'bg-success',
+                                                            'telat' => 'bg-warning text-dark',
+                                                            'izin' => 'bg-info',
+                                                            default => 'bg-danger',
+                                                        };
+                                                        $label = match ($row['attendance']->status->value) {
+                                                            'hadir' => 'Hadir',
+                                                            'telat' => 'Telat',
+                                                            'izin' => 'Izin',
+                                                            default => 'Alpa',
+                                                        };
+                                                    @endphp
+                                                    <span class="badge {{ $badge }}">{{ $label }}</span>
+                                                </td>
+                                            @else
+                                                <td colspan="2" class="text-muted">--:--</td>
+                                                <td><span class="badge bg-danger">Alpa</span></td>
+                                            @endif
+                                        </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>

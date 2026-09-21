@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 class AuthController extends Controller
 {
     /**
-     * Tampilkan halaman login secara langsung
+     * Menampilkan halaman form login.
      */
     public function showLoginForm()
     {
@@ -16,56 +16,70 @@ class AuthController extends Controller
     }
 
     /**
-     * Proses otentikasi login
+     * Memproses autentikasi login multi-role.
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required'],
+        // 1. Validasi Input dari Form
+        // Catatan: 'siswa' bukan role login yang valid — siswa tidak login sendiri,
+        // data siswa diakses lewat akun wali murid (lihat rencana Fase 0).
+        $request->validate([
+            'login' => 'required|string',
+            'password' => 'required|string',
+            'role' => 'required|in:admin,guru,wali',
+        ], [
+            'login.required' => 'Field login wajib diisi.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'role.required' => 'Peran/Role harus dipilih.',
+            'role.in' => 'Peran/Role tidak valid.',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $input = $request->input('login');
+        $password = $request->input('password');
+        $role = $request->input('role');
+        $remember = $request->has('remember');
+
+        // 2. Deteksi field login (email / username / nip / nisn)
+        $field = filter_var($input, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // Susun kredensial pencocokan
+        $credentials = [
+            $field => $input,
+            'password' => $password,
+            'role' => $role,
+        ];
+
+        // 3. Coba Autentikasi
+        if (Auth::attempt($credentials, $remember)) {
+            // Mencegah Session Fixation Attack
             $request->session()->regenerate();
 
-            // Direct ke halaman sesuai role
-            return $this->redirectUserByRole(Auth::user()->role);
+            // Redirect pengguna ke dashboard sesuai role
+            return match ($role) {
+                'admin' => redirect()->route('admin.dashboard'),
+                'guru' => redirect()->route('guru.dashboard'),
+                'wali' => redirect()->route('wali.dashboard'),
+                default => redirect()->to('/'),
+            };
         }
 
-        return back()->withErrors([
-            'email' => 'Email atau password yang Anda masukkan salah.',
-        ])->onlyInput('email');
+        // 4. Pengondisian jika login gagal
+        return back()
+            ->with('error', 'Kredensial atau role yang Anda pilih tidak cocok.')
+            ->withInput($request->only('login', 'role'));
     }
 
     /**
-     * Proses logout
+     * Memproses logout pengguna.
      */
     public function logout(Request $request)
     {
         Auth::logout();
+
+        // Invalidate session dan regenerasi CSRF token
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    /**
-     * Pengalihan halaman sesuai hak akses
-     */
-    private function redirectUserByRole($role)
-    {
-        switch ($role) {
-            case 'admin':
-                return redirect()->route('admin.dashboard');
-            case 'guru':
-                return redirect()->route('guru.dashboard');
-            case 'siswa':
-                return redirect()->route('siswa.jadwal'); // Siswa langsung ke jadwal
-            case 'wali':
-                return redirect()->route('wali.dashboard');
-            default:
-                Auth::logout();
-                return redirect()->route('login');
-        }
     }
 }
