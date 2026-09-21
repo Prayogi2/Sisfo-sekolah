@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'grade_level', 'academic_year', 'homeroom_teacher_id'])]
+#[Fillable(['name', 'grade_level', 'academic_year', 'capacity', 'homeroom_teacher_id'])]
 class Classroom extends Model
 {
     /** @use HasFactory<ClassroomFactory> */
@@ -29,5 +29,15 @@ class Classroom extends Model
     public function students(): HasMany
     {
         return $this->hasMany(Student::class);
+    }
+
+    /**
+     * Tahun ajaran berjalan, mis. "2026/2027". Tahun ajaran baru dimulai Juli.
+     */
+    public static function currentAcademicYear(): string
+    {
+        $startYear = now()->month >= 7 ? now()->year : now()->year - 1;
+
+        return "{$startYear}/".($startYear + 1);
     }
 }

@@ -6,6 +6,8 @@ use App\Enums\GuardianRelationship;
 use App\Models\Classroom;
 use App\Models\Guardian;
 use App\Models\Student;
+use App\Models\StudentAcademicRecord;
+use App\Models\StudentProfile;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\User;
@@ -20,12 +22,19 @@ class DemoAcademicDataSeeder extends Seeder
 {
     public function run(): void
     {
-        Subject::factory(3)->create();
+        $subjects = Subject::factory(3)->create();
 
         $teachers = collect(range(1, 2))->map(
             fn () => Teacher::factory()
                 ->for(User::factory()->state(['role' => 'guru']))
                 ->create()
+        );
+
+        // Tiap guru mengampu 1-2 mapel.
+        $teachers->each(
+            fn (Teacher $teacher) => $teacher->subjects()->attach(
+                $subjects->random(2)->pluck('id')
+            )
         );
 
         $classrooms = $teachers->map(
@@ -39,6 +48,12 @@ class DemoAcademicDataSeeder extends Seeder
                 'classroom_id' => $classroom->id,
             ])
         )->flatten();
+
+        // Lengkapi data buku induk (profil & riwayat akademik) tiap siswa.
+        $studentsByClassroom->each(function (Student $student) {
+            StudentProfile::factory()->create(['student_id' => $student->id]);
+            StudentAcademicRecord::factory()->create(['student_id' => $student->id]);
+        });
 
         // Keluarga 1: ayah & ibu sama-sama terhubung ke anak yang sama.
         $ayah = Guardian::factory()

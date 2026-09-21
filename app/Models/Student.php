@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'user_id',
@@ -66,5 +67,21 @@ class Student extends Model
     public function guardians(): BelongsToMany
     {
         return $this->belongsToMany(Guardian::class, 'guardian_student');
+    }
+
+    /**
+     * Data identitas lengkap buku induk (tab "Data Peserta Didik").
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(StudentProfile::class);
+    }
+
+    /**
+     * Riwayat pendidikan & kelulusan buku induk.
+     */
+    public function academicRecord(): HasOne
+    {
+        return $this->hasOne(StudentAcademicRecord::class);
     }
 }

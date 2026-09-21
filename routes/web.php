@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,12 +39,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/buku-induk', function () {
             return view('admin.buku-induk');
         })->name('buku-induk');
-        Route::get('/pembagian-kelas', function () {
-            return view('admin.data-kelas');
-        })->name('pembagian-kelas');
-        Route::get('/data-guru', function () {
-            return view('admin.data-guru');
-        })->name('data-guru');
+        Route::get('/data-siswa', [StudentController::class, 'index'])->name('data-siswa');
+        Route::post('/data-siswa', [StudentController::class, 'store'])->name('data-siswa.store');
+        Route::put('/data-siswa/{student}', [StudentController::class, 'update'])->name('data-siswa.update');
+        Route::delete('/data-siswa/{student}', [StudentController::class, 'destroy'])->name('data-siswa.destroy');
+        Route::get('/pembagian-kelas', [ClassroomController::class, 'index'])->name('pembagian-kelas');
+        Route::post('/pembagian-kelas', [ClassroomController::class, 'store'])->name('pembagian-kelas.store');
+        Route::put('/pembagian-kelas/{classroom}', [ClassroomController::class, 'update'])->name('pembagian-kelas.update');
+        Route::delete('/pembagian-kelas/{classroom}', [ClassroomController::class, 'destroy'])->name('pembagian-kelas.destroy');
+        Route::post('/pembagian-kelas/{classroom}/siswa', [ClassroomController::class, 'assignStudents'])->name('pembagian-kelas.assign-students');
+
+        Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
+        Route::post('/data-guru', [TeacherController::class, 'store'])->name('data-guru.store');
+        Route::put('/data-guru/{teacher}', [TeacherController::class, 'update'])->name('data-guru.update');
+        Route::delete('/data-guru/{teacher}', [TeacherController::class, 'destroy'])->name('data-guru.destroy');
+        Route::post('/data-guru/{teacher}/reset-password', [TeacherController::class, 'resetPassword'])->name('data-guru.reset-password');
         Route::get('/verifikasi-spp', function () {
             return view('admin.verifikasi-spp');
         })->name('verifikasi-spp');
@@ -76,9 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', function () {
             return view('guru.dashboard');
         })->name('dashboard');
-        Route::get('/data-guru', function () {
-            return view('guru.data-guru');
-        })->name('data-guru');
+        Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
         Route::get('/approval-izin', function () {
             return view('guru.approval-izin');
         })->name('approval-izin');
