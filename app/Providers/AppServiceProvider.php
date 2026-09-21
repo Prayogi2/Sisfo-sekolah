@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Teacher;
 use App\Models\User;
+use App\Observers\TeacherObserver;
 use App\Observers\UserObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
         Model::preventLazyLoading(! $this->app->isProduction());
 
         User::observe(UserObserver::class);
+        Teacher::observe(TeacherObserver::class);
 
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->string('login').'|'.$request->ip());

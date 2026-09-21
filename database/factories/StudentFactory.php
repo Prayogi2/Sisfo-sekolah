@@ -27,7 +27,7 @@ class StudentFactory extends Factory
             'name' => fake()->name(),
             'gender' => fake()->randomElement(Gender::cases()),
             'birth_place' => fake()->city(),
-            'birth_date' => fake()->dateTimeBetween('-17 years', '-15 years'),
+            'birth_date' => fake()->dateTimeBetween('-12 years', '-6 years'),
             'address' => fake()->address(),
             'parent_name' => fake()->name(),
             'parent_phone' => fake()->phoneNumber(),

@@ -17,11 +17,11 @@ class ClassroomFactory extends Factory
      */
     public function definition(): array
     {
-        $gradeLevel = fake()->numberBetween(10, 12);
+        $gradeLevel = fake()->numberBetween(1, 6);
         $startYear = fake()->numberBetween(2020, 2026);
 
         return [
-            'name' => "{$gradeLevel} ".fake()->randomElement(['IPA', 'IPS']).' '.fake()->numberBetween(1, 3),
+            'name' => "{$gradeLevel}-".fake()->randomElement(['A', 'B', 'C']),
             'grade_level' => $gradeLevel,
             'academic_year' => "{$startYear}/".($startYear + 1),
             'homeroom_teacher_id' => null,
