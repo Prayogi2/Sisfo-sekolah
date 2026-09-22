@@ -12,6 +12,8 @@
             </button>
         </div>
 
+        <x-page-guide>Buat kelas baru dan tetapkan wali kelasnya di sini, lalu pindahkan siswa ke kelas yang sesuai lewat tombol <strong>Atur Siswa</strong>.</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}

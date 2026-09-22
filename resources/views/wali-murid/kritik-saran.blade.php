@@ -8,6 +8,8 @@
         <h1 class="h3 mb-0 text-gray-800 fw-bold">Kritik & Saran</h1>
     </div>
 
+    <x-page-guide>Kirim pesan lewat form di samping — langsung masuk sebagai notifikasi ke admin.</x-page-guide>
+
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif

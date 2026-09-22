@@ -15,6 +15,8 @@
             </button>
         </div>
 
+        <x-page-guide>Daftar mapel di sini dipakai saat menetapkan mapel yang diajarkan guru, dan saat guru membuat soal/kuis.</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}

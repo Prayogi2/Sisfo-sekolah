@@ -28,9 +28,11 @@ class QuizController extends Controller
     {
         abort_unless($request->user()->hasRole(['admin', 'guru']), 403);
 
+        $teacher = $request->user()->hasRole('guru') ? $this->teacherFor($request) : null;
+
         $subjects = Subject::query()
             ->when(
-                $request->user()->hasRole('guru') && $this->guruHasTeacherProfile($request),
+                $teacher !== null,
                 fn ($query) => $query->whereHas('teachers', fn ($query) => $query->where('user_id', $request->user()->id))
             )
             ->orderBy('name')
@@ -38,9 +40,19 @@ class QuizController extends Controller
         $questions = QuizQuestion::with('subject')->when($request->user()->hasRole('guru'), fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
         $quizzes = Quiz::with(['subject', 'classroom', 'questions'])->when($request->user()->hasRole('guru'), fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
 
+        // Kelas yang boleh dipilih guru saat membuat kuis: gabungan semua
+        // kelas dari semua mapel yang ia ajarkan. Pasangan mapel+kelas yang
+        // sebenarnya valid dikirim lewat $subjectClassroomMap untuk
+        // menyaring pilihan kelas di formulir sesuai mapel yang dipilih.
+        $classrooms = $teacher !== null ? $teacher->classrooms()->orderBy('name')->get() : Classroom::orderBy('name')->get();
+        $subjectClassroomMap = $teacher !== null
+            ? $teacher->teachingAssignments->groupBy('subject_id')->map(fn ($rows) => $rows->pluck('classroom_id'))
+            : collect();
+
         return view($request->user()->hasRole('admin') ? 'admin.bank-soal' : 'guru.bank-soal', [
             'subjects' => $subjects,
-            'classrooms' => Classroom::orderBy('name')->get(),
+            'classrooms' => $classrooms,
+            'subjectClassroomMap' => $subjectClassroomMap,
             'questions' => $questions,
             'quizzes' => $quizzes,
         ]);
@@ -115,17 +127,19 @@ class QuizController extends Controller
         $data = $request->validate([
             'subject_id' => ['required', 'integer', 'exists:subjects,id'], 'classroom_id' => ['required', 'integer', 'exists:classrooms,id'],
             'title' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string'],
-            'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'], 'mode' => ['nullable', 'in:async,live'], 'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'], 'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_published' => ['sometimes', 'boolean'], 'question_ids' => ['required', 'array', 'min:1'], 'question_ids.*' => ['integer', 'exists:quiz_questions,id'],
         ]);
         $this->authorizeSubject($request, (int) $data['subject_id']);
+        $this->authorizeClassroom($request, (int) $data['subject_id'], (int) $data['classroom_id']);
         $questionIds = $data['question_ids'];
         $validQuestionIds = QuizQuestion::where('subject_id', $data['subject_id'])->whereIn('id', $questionIds)->pluck('id')->all();
         abort_if(count($validQuestionIds) !== count($questionIds), 422, 'Semua soal harus berasal dari mata pelajaran kuis.');
 
         $quizData = collect($data)->except('question_ids')->all();
         $quizData['created_by'] = $request->user()->id;
-        $quizData['mode'] ??= 'async';
+        // Semua kuis dibuat sebagai kuis Kahoot (serentak, dikendalikan guru).
+        $quizData['mode'] = 'live';
         $quizData['show_score_per_question'] = (bool) ($quizData['show_score_per_question'] ?? false);
         $quizData['live_phase'] = 'lobby';
         $quiz = Quiz::create($quizData);
@@ -400,9 +414,31 @@ class QuizController extends Controller
         );
     }
 
+    /**
+     * Kuis punya kelas, bukan cuma mapel: guru hanya boleh membuat kuis di
+     * kelas yang benar-benar ia ajarkan untuk mapel tersebut.
+     */
+    private function authorizeClassroom(Request $request, int $subjectId, int $classroomId): void
+    {
+        $teacher = $this->teacherFor($request);
+
+        abort_unless(
+            $request->user()->hasRole('admin')
+            || $teacher === null
+            || $teacher->teaches($subjectId, $classroomId),
+            403,
+            'Anda tidak mengajar mata pelajaran ini di kelas tersebut.'
+        );
+    }
+
     private function guruHasTeacherProfile(Request $request): bool
     {
-        return Teacher::where('user_id', $request->user()->id)->exists();
+        return $this->teacherFor($request) !== null;
+    }
+
+    private function teacherFor(Request $request): ?Teacher
+    {
+        return Teacher::where('user_id', $request->user()->id)->first();
     }
 
     /**

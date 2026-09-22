@@ -17,6 +17,7 @@ use App\Http\Controllers\SppBillController;
 use App\Http\Controllers\SppPaymentController;
 use App\Http\Controllers\StudentConductController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentImportController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
@@ -66,6 +67,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/buku-induk/{student}/edit', [StudentRecordController::class, 'edit'])->name('buku-induk.edit');
         Route::put('/buku-induk/{student}', [StudentRecordController::class, 'update'])->name('buku-induk.update');
         Route::get('/data-siswa', [StudentController::class, 'index'])->name('data-siswa');
+        Route::get('/data-siswa/tambah', [StudentRecordController::class, 'create'])->name('data-siswa.create');
+        Route::get('/data-siswa/import', [StudentImportController::class, 'create'])->name('data-siswa.import');
+        Route::get('/data-siswa/import/template', [StudentImportController::class, 'template'])->name('data-siswa.import.template');
+        Route::post('/data-siswa/import', [StudentImportController::class, 'store'])->name('data-siswa.import.store');
         Route::get('/data-siswa/{student}/kartu-qr', [StudentController::class, 'qrCard'])->name('data-siswa.kartu-qr');
         Route::post('/data-siswa', [StudentController::class, 'store'])->name('data-siswa.store');
         Route::put('/data-siswa/{student}', [StudentController::class, 'update'])->name('data-siswa.update');

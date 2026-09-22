@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Grade;
-use App\Models\Subject;
+use App\Models\Teacher;
 use App\Models\User;
 
 class GradePolicy
@@ -23,10 +23,16 @@ class GradePolicy
 
     public function update(User $user, Grade $grade): bool
     {
-        return $this->canGradeSubject($user, $grade->subject_id);
+        return $this->canGradeSubject($user, $grade->subject_id, $grade->student->classroom_id);
     }
 
-    public function canGradeSubject(User $user, int $subjectId): bool
+    /**
+     * Guru hanya boleh mengisi nilai mapel & kelas yang benar-benar ia
+     * ajarkan (lihat teaching_assignments). $classroomId null berarti
+     * siswanya belum punya kelas, sehingga tidak bisa cocok dengan
+     * penugasan mana pun.
+     */
+    public function canGradeSubject(User $user, int $subjectId, ?int $classroomId): bool
     {
         if ($user->hasRole('admin')) {
             return true;
@@ -36,9 +42,12 @@ class GradePolicy
             return false;
         }
 
-        return Subject::query()
-            ->whereKey($subjectId)
-            ->whereHas('teachers', fn ($query) => $query->where('user_id', $user->id))
-            ->exists();
+        $teacher = Teacher::where('user_id', $user->id)->first();
+
+        if ($teacher === null) {
+            return true;
+        }
+
+        return $classroomId !== null && $teacher->teaches($subjectId, $classroomId);
     }
 }

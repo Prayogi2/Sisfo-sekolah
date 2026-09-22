@@ -47,6 +47,7 @@
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
             
             <div class="menu-title">Manajemen Data</div>
+            <a href="{{ route('admin.data-siswa') }}" class="{{ request()->routeIs('admin.data-siswa*') ? 'active' : '' }}"><i class="bi bi-people-fill"></i> Data Siswa</a>
             <a href="{{ route('admin.buku-induk') }}" class="{{ request()->routeIs('admin.buku-induk') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill"></i> Buku Induk (Siswa)</a>
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
@@ -93,6 +94,7 @@
             <a href="{{ route('wali.dashboard') }}" class="{{ request()->routeIs('wali.dashboard') ? 'active' : '' }}"><i class="bi bi-house-door-fill"></i> Dashboard & Performa Anak</a>
             <a href="{{ route('wali.izin') }}" class="{{ request()->routeIs('wali.izin') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Pemantauan Absensi & Izin</a>
             <a href="{{ route('wali.spp') }}" class="{{ request()->routeIs('wali.spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status Pembayaran SPP</a>
+            <a href="{{ route('siswa.spp') }}" class="{{ request()->routeIs('siswa.spp') ? 'active' : '' }}"><i class="bi bi-upload"></i> Bayar / Upload Bukti SPP</a>
             <a href="{{ route('wali.kuis') }}" class="{{ request()->routeIs('wali.kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis & Ranking</a>
             <a href="{{ route('wali.prestasi-pelanggaran') }}" class="{{ request()->routeIs('wali.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
             <a href="{{ route('wali.kritik-saran') }}" class="{{ request()->routeIs('wali.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>

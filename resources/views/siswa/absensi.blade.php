@@ -6,6 +6,8 @@
     <div class="container-fluid">
         <h1 class="h3 mb-4 text-gray-800 fw-bold">Riwayat Absensi - {{ $student->name }}</h1>
 
+        <x-page-guide>Riwayat kehadiran 30 hari terakhir, tercatat otomatis dari scan QR di sekolah setiap pagi & pulang.</x-page-guide>
+
         <div class="card shadow-sm">
             <div class="card-header py-3 bg-white">
                 <h6 class="m-0 fw-bold text-primary">30 Hari Terakhir</h6>

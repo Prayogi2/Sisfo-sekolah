@@ -10,6 +10,7 @@ use App\Models\GradeWeight;
 use App\Models\Setting;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Models\Teacher;
 use App\Policies\GradePolicy;
 use App\Services\ReportExportService;
 use Illuminate\Database\Eloquent\Collection;
@@ -85,8 +86,9 @@ class GradeController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
+        $student = Student::findOrFail($validated['student_id']);
 
-        abort_unless(app(GradePolicy::class)->canGradeSubject($user, $validated['subject_id']), 403);
+        abort_unless(app(GradePolicy::class)->canGradeSubject($user, $validated['subject_id'], $student->classroom_id), 403);
 
         Grade::updateOrCreate(
             [
@@ -115,12 +117,29 @@ class GradeController extends Controller
      */
     private function gradeSheet(Request $request, $subjects): array
     {
-        $classrooms = Classroom::orderBy('name')->get();
+        $user = $request->user();
+        $teacher = $user->hasRole('guru') ? Teacher::where('user_id', $user->id)->first() : null;
 
         $academicYear = $request->string('academic_year', Classroom::currentAcademicYear())->toString();
         $semester = Semester::tryFrom($request->string('semester')->toString()) ?? Semester::current();
         $subjectId = $request->integer('subject_id') ?: $subjects->first()?->id;
+
+        if ($teacher !== null && $subjectId && ! $subjects->contains('id', $subjectId)) {
+            $subjectId = $subjects->first()?->id;
+        }
+
+        // Guru hanya boleh melihat kelas yang ia ajarkan untuk mapel yang
+        // sedang dipilih, bukan sembarang kelas dari mapel lain yang
+        // kebetulan juga ia ajarkan.
+        $classrooms = $teacher !== null && $subjectId
+            ? $teacher->classroomsForSubject($subjectId)
+            : Classroom::orderBy('name')->get();
+
         $classroomId = $request->integer('classroom_id') ?: $classrooms->first()?->id;
+
+        if ($teacher !== null && $classroomId && ! $classrooms->contains('id', $classroomId)) {
+            $classroomId = $classrooms->first()?->id;
+        }
 
         $students = $classroomId
             ? Student::query()->where('classroom_id', $classroomId)->orderBy('name')->get()

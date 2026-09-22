@@ -18,6 +18,8 @@
             <span class="badge bg-primary-soft text-primary p-2 shadow-sm">{{ $student->name }}</span>
         </div>
 
+        <x-page-guide>Transfer sesuai tagihan, lalu unggah bukti transfer di form <strong>Upload Bukti Transfer</strong>. Status berubah menjadi Lunas setelah admin memverifikasi.</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif

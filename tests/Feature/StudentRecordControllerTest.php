@@ -197,6 +197,31 @@ class StudentRecordControllerTest extends TestCase
         $response->assertViewHas('student', fn (Student $student): bool => $student->name === 'Siti Aminah');
     }
 
+    public function test_admin_can_update_the_buku_induk_of_a_student(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $response = $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), [
+            'nisn' => $student->nisn,
+            'nis' => $student->nis,
+            'name' => 'Nama Baru',
+            'gender' => 'P',
+            'status' => 'active',
+            'nickname' => 'Nana',
+            'mother_name' => 'Ibu Sari',
+            'progress_academic_year' => '2026/2027',
+            'progress_semester' => 'ganjil',
+            'promotion_status' => 'naik',
+        ]);
+
+        $response->assertRedirect(route('admin.buku-induk', ['student' => $student->id]));
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Nama Baru']);
+        $this->assertDatabaseHas('student_profiles', ['student_id' => $student->id, 'nickname' => 'Nana']);
+        $this->assertSame(['Ibu Sari'], $student->guardians()->pluck('name')->all());
+        $this->assertDatabaseHas('student_progress_notes', ['student_id' => $student->id, 'academic_year' => '2026/2027', 'promotion_status' => 'naik']);
+    }
+
     public function test_escapes_a_dangerous_student_name(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

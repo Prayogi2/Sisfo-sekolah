@@ -30,6 +30,9 @@
             </div>
         </div>
 
+        <x-page-guide>Pilih siswa dari daftar/pencarian untuk melihat data lengkapnya. Klik <strong>Edit Buku Induk Lengkap</strong> untuk mengisi atau melengkapi data yang masih kosong.</x-page-guide>
+        </div>
+
         <!-- Pilih Siswa -->
         <div class="card shadow-sm mb-4">
             <div class="card-body">

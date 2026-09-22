@@ -152,12 +152,22 @@ class MathQuestionBankSeeder extends Seeder
             return;
         }
 
-        // Pastikan ada guru pengampu, supaya bank soal ini muncul juga di
-        // halaman guru (halaman itu menyaring berdasarkan mapel yang diampu).
+        $classroom = Classroom::query()->orderByDesc('grade_level')->first();
+
+        if (! $classroom) {
+            return;
+        }
+
+        // Pastikan ada guru pengampu di kelas ini, supaya bank soal ini
+        // muncul juga di halaman guru (halaman itu menyaring berdasarkan
+        // mapel & kelas yang diampu).
         $teacher = $subject->teachers()->first() ?? Teacher::query()->whereNotNull('user_id')->first();
 
-        if ($teacher && $subject->teachers()->where('teachers.id', $teacher->id)->doesntExist()) {
-            $subject->teachers()->attach($teacher->id);
+        if ($teacher && ! $teacher->teaches($subject->id, $classroom->id)) {
+            $teacher->teachingAssignments()->firstOrCreate([
+                'subject_id' => $subject->id,
+                'classroom_id' => $classroom->id,
+            ]);
         }
 
         $questions = collect(self::QUESTIONS)->map(fn (array $item) => QuizQuestion::firstOrCreate(
@@ -173,12 +183,6 @@ class MathQuestionBankSeeder extends Seeder
             ],
         ));
 
-        $classroom = Classroom::query()->orderByDesc('grade_level')->first();
-
-        if (! $classroom) {
-            return;
-        }
-
         $quiz = Quiz::firstOrCreate(
             ['title' => 'Kuis Matematika - Operasi Hitung & Bangun Datar', 'classroom_id' => $classroom->id],
             [
@@ -186,11 +190,12 @@ class MathQuestionBankSeeder extends Seeder
                 'created_by' => $teacher?->user_id,
                 'description' => 'Kuis latihan 10 soal pilihan ganda untuk mengukur pemahaman operasi hitung, pecahan, satuan, dan bangun datar.',
                 'duration_minutes' => 30,
+                // Semua kuis dikerjakan serentak (model Kahoot); guru yang
+                // membuka sesinya lewat Panel Kahoot, jadi defaultnya tertutup.
+                'mode' => 'live',
                 'is_published' => true,
-                // Sengaja dibuka supaya alurnya langsung bisa dicoba; kuis
-                // baru yang dibuat guru default-nya tertutup.
-                'is_open' => true,
-                'opened_at' => now(),
+                'is_open' => false,
+                'live_phase' => 'lobby',
             ],
         );
 

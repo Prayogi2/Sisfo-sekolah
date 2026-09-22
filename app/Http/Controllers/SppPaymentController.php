@@ -87,6 +87,12 @@ class SppPaymentController extends Controller
             return $student;
         }
 
+        // Wali mengunggah dari akunnya sendiri; siswa yang login sendiri
+        // belum punya baris Guardian, jadi diarahkan ke wali pertama yang
+        // terhubung ke akunnya.
+        $guardian = $user->guardian ?? $student->guardians()->first();
+        abort_unless($guardian, 422, 'Akun ini belum terhubung dengan data wali. Hubungi admin untuk melengkapi data orang tua/wali di Buku Induk terlebih dahulu.');
+
         // Tagihan harus benar-benar milik anak yang sedang dipilih.
         $bill = SppBill::query()
             ->where('student_id', $student->id)
@@ -96,7 +102,7 @@ class SppPaymentController extends Controller
 
         SppPayment::create([
             'spp_bill_id' => $bill->id,
-            'guardian_id' => $user->guardian->id,
+            'guardian_id' => $guardian->id,
             'amount' => $request->integer('amount'),
             'proof_path' => $path,
             'status' => SppPaymentStatus::Pending,

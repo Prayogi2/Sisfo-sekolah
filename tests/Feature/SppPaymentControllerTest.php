@@ -180,4 +180,60 @@ class SppPaymentControllerTest extends TestCase
         $this->actingAs($wali)->get(route('siswa.spp'))->assertOk()->assertSee($student->name);
         $this->actingAs($wali)->get(route('wali.spp'))->assertOk()->assertSee($student->name);
     }
+
+    public function test_status_spp_page_links_to_the_upload_page(): void
+    {
+        [$wali, , $student] = $this->waliWithChild();
+        SppBill::factory()->create(['student_id' => $student->id]);
+
+        $this->actingAs($wali)->get(route('wali.spp'))->assertSee(route('siswa.spp'), false);
+    }
+
+    /**
+     * Siswa yang login sendiri (bukan wali) tidak punya baris Guardian di
+     * akunnya sendiri — pembayaran harus tetap tercatat ke wali anak itu.
+     */
+    public function test_student_account_can_upload_a_payment_proof_using_their_linked_guardian(): void
+    {
+        Storage::fake('public');
+
+        $guardian = Guardian::factory()->create();
+        $student = Student::factory()->create();
+        $guardian->students()->attach($student);
+        $studentUser = User::factory()->create(['role' => 'siswa']);
+        $student->update(['user_id' => $studentUser->id]);
+        $bill = SppBill::factory()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAs($studentUser)->post(route('siswa.spp.store'), [
+            'spp_bill_id' => $bill->id,
+            'amount' => 350000,
+            'proof' => UploadedFile::fake()->image('bukti.jpg'),
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('spp_payments', [
+            'spp_bill_id' => $bill->id,
+            'guardian_id' => $guardian->id,
+            'amount' => 350000,
+        ]);
+    }
+
+    public function test_student_account_without_any_guardian_gets_a_friendly_error_instead_of_a_crash(): void
+    {
+        Storage::fake('public');
+
+        $student = Student::factory()->create();
+        $studentUser = User::factory()->create(['role' => 'siswa']);
+        $student->update(['user_id' => $studentUser->id]);
+        $bill = SppBill::factory()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAs($studentUser)->post(route('siswa.spp.store'), [
+            'spp_bill_id' => $bill->id,
+            'amount' => 350000,
+            'proof' => UploadedFile::fake()->image('bukti.jpg'),
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('spp_payments', 0);
+    }
 }

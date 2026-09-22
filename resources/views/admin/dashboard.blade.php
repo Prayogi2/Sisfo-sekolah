@@ -5,6 +5,8 @@
 @section('content')
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1 fw-bold">Dashboard Utama</h1><p class="text-muted mb-0">Ringkasan data sekolah {{ now()->translatedFormat('F Y') }}.</p></div><a href="{{ route('admin.laporan') }}" class="btn btn-outline-primary"><i class="bi bi-file-earmark-bar-graph me-1"></i>Laporan</a></div>
+
+        <x-page-guide>Ringkasan cepat kondisi sekolah bulan ini. Gunakan menu di sisi kiri untuk mengelola data, atau klik <strong>Laporan</strong> untuk rekap lengkap.</x-page-guide>
         <div class="row g-3 mb-4">
             @foreach([['Total Siswa', $studentCount, 'primary'], ['Kehadiran Bulan Ini', $attendanceRate.'%', 'success'], ['Pembayaran Pending', $pendingPayments, 'warning'], ['Izin Pending', $pendingLeaves, 'danger']] as [$label, $value, $color])
                 <div class="col-md-6 col-xl-3"><div class="card border-0 shadow-sm border-start border-{{ $color }} border-4 h-100"><div class="card-body"><small class="text-uppercase text-muted fw-bold">{{ $label }}</small><h3 class="mt-2 mb-0 text-{{ $color }}">{{ $value }}</h3></div></div></div>

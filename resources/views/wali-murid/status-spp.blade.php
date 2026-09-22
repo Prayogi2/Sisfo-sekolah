@@ -6,8 +6,13 @@
     <div class="container-fluid">
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Status Pembayaran SPP</h1>
-            <span class="badge bg-primary-soft text-primary p-2 shadow-sm">{{ $student->name }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-soft text-primary p-2 shadow-sm">{{ $student->name }}</span>
+                <a href="{{ route('siswa.spp') }}" class="btn btn-primary btn-sm shadow-sm"><i class="bi bi-upload me-1"></i>Upload Bukti Transfer</a>
+            </div>
         </div>
+
+        <x-page-guide>Rekap tagihan & riwayat pembayaran anak Anda. Klik <strong>Upload Bukti Transfer</strong> untuk mengirim bukti bayar — status berubah menjadi Lunas setelah admin memverifikasi.</x-page-guide>
 
         @php
             $totalTagihan = $bills->sum('amount');

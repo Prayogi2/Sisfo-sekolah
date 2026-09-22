@@ -22,6 +22,8 @@
             @if($student)<a href="{{ route('siswa.kartu-digital') }}" class="btn btn-outline-primary"><i class="bi bi-qr-code me-1"></i>Kartu Digital</a>@endif
         </div>
 
+        <x-page-guide>Ringkasan absensi, tagihan, dan kuis hari ini. Kerjakan kuis lewat menu Kuis setelah absen pagi.</x-page-guide>
+
         <div class="row g-3 mb-4">
             <div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-uppercase text-muted fw-bold">Absensi hari ini</small><h4 class="mt-2 mb-0 text-{{ $today?->status?->value === 'hadir' ? 'success' : 'warning' }}">{{ $today?->status?->value ? ucfirst($today->status->value) : 'Belum tercatat' }}</h4></div></div></div>
             <div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-uppercase text-muted fw-bold">Tagihan berjalan</small><h4 class="mt-2 mb-0">Rp {{ number_format($pendingBill?->remainingAmount() ?? 0, 0, ',', '.') }}</h4></div></div></div>

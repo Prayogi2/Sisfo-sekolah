@@ -5,6 +5,7 @@ namespace App\Http\Requests\Student;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
 use App\Models\Student;
+use App\Services\StudentRecordWriter;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,7 +34,7 @@ class StoreStudentRequest extends FormRequest
             'parent_name' => ['nullable', 'string', 'max:255'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
             'status' => ['nullable', Rule::enum(StudentStatus::class)],
-        ];
+        ] + app(StudentRecordWriter::class)->rules();
     }
 
     public function messages(): array

@@ -8,6 +8,8 @@
         <h1 class="h3 mb-0 text-gray-800 fw-bold">Approval Pengajuan Izin</h1>
     </div>
 
+    <x-page-guide>Setujui atau tolak pengajuan izin/sakit siswa. Pastikan sudah ada bukti (surat dokter/foto sakit) sebelum menyetujui — tanpa bukti, siswa tercatat alpa.</x-page-guide>
+
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif

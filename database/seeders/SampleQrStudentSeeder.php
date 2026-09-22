@@ -19,6 +19,7 @@ class SampleQrStudentSeeder extends Seeder
     {
         $classroom = Classroom::query()->firstOrFail();
         $waliUser = User::query()->where('username', 'wali')->firstOrFail();
+        $studentUser = User::query()->where('username', 'siswa')->firstOrFail();
 
         $guardian = Guardian::updateOrCreate(
             ['user_id' => $waliUser->id],
@@ -35,7 +36,7 @@ class SampleQrStudentSeeder extends Seeder
                 'classroom_id' => $classroom->id,
                 'nisn' => '9999000001',
                 'qr_token' => self::QR_TOKEN,
-                'name' => 'Siswa Demo QR',
+                'name' => $studentUser->name,
                 'gender' => Gender::Male,
                 'birth_place' => 'Kota Demo',
                 'birth_date' => '2015-01-01',
@@ -47,10 +48,6 @@ class SampleQrStudentSeeder extends Seeder
         );
 
         $guardian->students()->syncWithoutDetaching([$student->id]);
-        $studentUser = User::updateOrCreate(
-            ['email' => $student->nisn.'@siswa.local'],
-            ['name' => $student->name, 'username' => $student->nisn, 'password' => 'password123', 'role' => 'siswa']
-        );
         $student->update(['user_id' => $studentUser->id]);
 
         $this->command?->info("Siswa demo QR siap: {$student->name}");

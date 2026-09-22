@@ -1,12 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Buku Induk Siswa')
+@section('title', $student->exists ? 'Edit Buku Induk Siswa' : 'Tambah Siswa Baru')
 
 @php
     $profile = $student->profile;
     $academic = $student->academicRecord;
     $father = $father ?? null;
     $mother = $mother ?? null;
+    $isNew = ! $student->exists;
+    $backUrl = $isNew ? route('admin.data-siswa') : route('admin.buku-induk', ['student' => $student->id]);
     $value = fn (string $field, mixed $fallback = '') => old($field, $fallback);
     $guardianValue = function (string $prefix, string $field, $guardian = null) use ($value) {
         return $value($prefix.'_'.$field, $guardian?->{$field});
@@ -24,24 +26,34 @@
 @section('content')
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div><h1 class="h3 mb-1 fw-bold">Edit Buku Induk Siswa</h1><p class="text-muted mb-0">{{ $student->name }} · Lengkapi seluruh data dalam satu halaman.</p></div>
-            <a href="{{ route('admin.buku-induk', ['student' => $student->id]) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+            @if($isNew)
+                <div><h1 class="h3 mb-1 fw-bold">Tambah Siswa Baru</h1><p class="text-muted mb-0">Isi identitas utama. Data Buku Induk lainnya boleh dikosongkan dan dilengkapi menyusul.</p></div>
+            @else
+                <div><h1 class="h3 mb-1 fw-bold">Edit Buku Induk Siswa</h1><p class="text-muted mb-0">{{ $student->name }} · Lengkapi seluruh data dalam satu halaman.</p></div>
+            @endif
+            <a href="{{ $backUrl }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
         </div>
 
         @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-        <form action="{{ route('admin.buku-induk.update', $student) }}" method="POST" enctype="multipart/form-data">
+        @if($isNew)
+            <x-page-guide>Kolom bertanda <span class="text-danger">*</span> wajib diisi. Kolom lain boleh dikosongkan dan dilengkapi kapan saja lewat menu Buku Induk → Edit Buku Induk Lengkap.</x-page-guide>
+        @else
+            <x-page-guide>Formulir ini menyimpan semua bagian Buku Induk sekaligus. Bagian yang masih kosong boleh dilengkapi bertahap — klik Simpan Semua Data setiap kali selesai mengisi sebagian.</x-page-guide>
+        @endif
+
+        <form action="{{ $isNew ? route('admin.data-siswa.store') : route('admin.buku-induk.update', $student) }}" method="POST" enctype="multipart/form-data">
             @csrf
-            @method('PUT')
+            @unless($isNew)@method('PUT')@endunless
             <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Identitas Peserta Didik</h6></div><div class="card-body"><div class="row g-3">
-                <div class="col-md-4"><label class="form-label">NISN</label><input name="nisn" class="form-control" value="{{ $value('nisn', $student->nisn) }}" required></div>
-                <div class="col-md-4"><label class="form-label">NIS</label><input name="nis" class="form-control" value="{{ $value('nis', $student->nis) }}" required></div>
-                <div class="col-md-4"><label class="form-label">Nama Lengkap</label><input name="name" class="form-control" value="{{ $value('name', $student->name) }}" required></div>
-                <div class="col-md-4"><label class="form-label">Jenis Kelamin</label><select name="gender" class="form-select" required><option value="L" @selected($value('gender', $student->gender->value) === 'L')>Laki-laki</option><option value="P" @selected($value('gender', $student->gender->value) === 'P')>Perempuan</option></select></div>
+                <div class="col-md-4"><label class="form-label">NISN <span class="text-danger">*</span></label><input name="nisn" class="form-control" value="{{ $value('nisn', $student->nisn) }}" required></div>
+                <div class="col-md-4"><label class="form-label">NIS <span class="text-danger">*</span></label><input name="nis" class="form-control" value="{{ $value('nis', $student->nis) }}" required></div>
+                <div class="col-md-4"><label class="form-label">Nama Lengkap <span class="text-danger">*</span></label><input name="name" class="form-control" value="{{ $value('name', $student->name) }}" required></div>
+                <div class="col-md-4"><label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label><select name="gender" class="form-select" required>@if($isNew)<option value="">-- Pilih --</option>@endif<option value="L" @selected($value('gender', $student->gender?->value) === 'L')>Laki-laki</option><option value="P" @selected($value('gender', $student->gender?->value) === 'P')>Perempuan</option></select></div>
                 <div class="col-md-4"><label class="form-label">Tempat Lahir</label><input name="birth_place" class="form-control" value="{{ $value('birth_place', $student->birth_place) }}"></div>
                 <div class="col-md-4"><label class="form-label">Tanggal Lahir</label><input name="birth_date" type="date" class="form-control" value="{{ $value('birth_date', $student->birth_date?->format('Y-m-d')) }}"></div>
                 <div class="col-md-4"><label class="form-label">Kelas</label><select name="classroom_id" class="form-select"><option value="">-- Belum Ada Kelas --</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) $value('classroom_id', $student->classroom_id) === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
-                <div class="col-md-4"><label class="form-label">Status Siswa</label><select name="status" class="form-select">@foreach($studentStatuses as $status)<option value="{{ $status->value }}" @selected($value('status', $student->status->value) === $status->value)>{{ $status->label() }}</option>@endforeach</select></div>
+                <div class="col-md-4"><label class="form-label">Status Siswa</label><select name="status" class="form-select">@foreach($studentStatuses as $status)<option value="{{ $status->value }}" @selected($value('status', $student->status?->value) === $status->value)>{{ $status->label() }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Nama Orang Tua</label><input name="parent_name" class="form-control" value="{{ $value('parent_name', $student->parent_name) }}"></div>
                 <div class="col-md-4"><label class="form-label">No. Telepon Orang Tua</label><input name="parent_phone" class="form-control" value="{{ $value('parent_phone', $student->parent_phone) }}"></div>
                 <div class="col-md-8"><label class="form-label">Alamat</label><textarea name="address" class="form-control" rows="2">{{ $value('address', $student->address) }}</textarea></div>
@@ -107,14 +119,16 @@
                 <div class="col-md-6"><label class="form-label">Catatan Kelulusan</label><textarea name="graduation_notes" class="form-control" rows="2">{{ $value('graduation_notes', $academic?->graduation_notes) }}</textarea></div>
             </div></div></div>
 
+            @unless($isNew)
             <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-graph-up-arrow me-2"></i>Perkembangan Akademik</h6></div><div class="card-body"><div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Tahun Ajaran</label><input name="progress_academic_year" class="form-control" value="{{ $value('progress_academic_year', $currentProgressNote?->academic_year ?? \App\Models\Classroom::currentAcademicYear()) }}" required></div>
                 <div class="col-md-4"><label class="form-label">Semester</label><select name="progress_semester" class="form-select">@foreach($semesters as $item)<option value="{{ $item->value }}" @selected($value('progress_semester', $currentProgressNote?->semester?->value ?? \App\Enums\Semester::current()->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Kenaikan Kelas</label><select name="promotion_status" class="form-select">@foreach($promotionStatuses as $item)<option value="{{ $item->value }}" @selected($value('promotion_status', $currentProgressNote?->promotion_status?->value ?? \App\Enums\PromotionStatus::Undecided->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
                 <div class="col-12"><label class="form-label">Catatan Perkembangan Siswa</label><textarea name="progress_notes" class="form-control" rows="4" placeholder="Catatan wali kelas/guru tentang perkembangan siswa">{{ $value('progress_notes', $currentProgressNote?->notes) }}</textarea></div>
             </div></div></div>
+            @endunless
 
-            <div class="d-flex justify-content-end gap-2 mb-5"><a href="{{ route('admin.buku-induk', ['student' => $student->id]) }}" class="btn btn-secondary">Batal</a><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Simpan Semua Data</button></div>
+            <div class="d-flex justify-content-end gap-2 mb-5"><a href="{{ $backUrl }}" class="btn btn-secondary">Batal</a><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>{{ $isNew ? 'Simpan Siswa Baru' : 'Simpan Semua Data' }}</button></div>
         </form>
     </div>
 @endsection

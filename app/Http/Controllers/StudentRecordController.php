@@ -17,10 +17,11 @@ use App\Models\GradeWeight;
 use App\Models\Student;
 use App\Models\StudentProgressNote;
 use App\Services\ReportExportService;
+use App\Services\StudentRecordWriter;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -75,13 +76,37 @@ class StudentRecordController extends Controller
         return $exporter->xlsx('buku-induk-'.now()->format('Ymd-His').'.xlsx', ['Nama Siswa', 'NISN', 'NIS', 'Kelas', 'NIK', 'Tahun Ajaran', 'Semester', 'Mata Pelajaran', 'Tugas', 'Kuis', 'UTS', 'UAS', 'Nilai Akhir'], $rows);
     }
 
+    /**
+     * Form tambah siswa baru memakai form Buku Induk yang sama. Hanya
+     * identitas utama yang wajib, sisanya bisa dilengkapi menyusul.
+     */
+    public function create(): View
+    {
+        Gate::authorize('create', Student::class);
+
+        $student = (new Student(['status' => StudentStatus::Active]))->setRelations([
+            'guardians' => new Collection,
+            'progressNotes' => new Collection,
+        ]);
+
+        return view('admin.buku-induk-edit', $this->formData($student));
+    }
+
     public function edit(Student $student): View
     {
         Gate::authorize('update', $student);
 
         $student->load(['profile', 'academicRecord', 'classroom', 'progressNotes', 'guardians']);
 
-        return view('admin.buku-induk-edit', [
+        return view('admin.buku-induk-edit', $this->formData($student));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formData(Student $student): array
+    {
+        return [
             'student' => $student,
             'father' => $student->guardians->firstWhere('relationship', GuardianRelationship::Father),
             'mother' => $student->guardians->firstWhere('relationship', GuardianRelationship::Mother),
@@ -98,10 +123,10 @@ class StudentRecordController extends Controller
                 fn (StudentProgressNote $note) => $note->academic_year === Classroom::currentAcademicYear()
                     && $note->semester === Semester::current()
             ),
-        ]);
+        ];
     }
 
-    public function update(Request $request, Student $student): RedirectResponse
+    public function update(Request $request, Student $student, StudentRecordWriter $recordWriter): RedirectResponse
     {
         Gate::authorize('update', $student);
 
@@ -117,102 +142,18 @@ class StudentRecordController extends Controller
             'address' => ['nullable', 'string'],
             'parent_name' => ['nullable', 'string', 'max:255'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'nickname' => ['nullable', 'string', 'max:255'],
-            'nik' => ['nullable', 'string', 'max:30', Rule::unique('student_profiles', 'nik')->ignore($student->profile?->id)],
-            'family_card_number' => ['nullable', 'string', 'max:30'],
-            'religion' => ['nullable', Rule::enum(Religion::class)],
-            'family_status' => ['nullable', Rule::enum(FamilyStatus::class)],
-            'birth_order' => ['nullable', 'integer', 'min:1'],
-            'siblings_count' => ['nullable', 'integer', 'min:0'],
-            'weight_kg' => ['nullable', 'integer', 'min:0'],
-            'height_cm' => ['nullable', 'integer', 'min:0'],
-            'blood_type' => ['nullable', Rule::enum(BloodType::class)],
-            'street_address' => ['nullable', 'string'],
-            'hamlet' => ['nullable', 'string', 'max:255'],
-            'village' => ['nullable', 'string', 'max:255'],
-            'district' => ['nullable', 'string', 'max:255'],
-            'regency' => ['nullable', 'string', 'max:255'],
-            'province' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['nullable', 'string', 'max:10'],
-            'entry_status' => ['nullable', 'string', 'max:100'],
-            'entry_date' => ['nullable', 'date'],
-            'kindergarten_origin' => ['nullable', 'string', 'max:255'],
-            'kindergarten_certificate_number' => ['nullable', 'string', 'max:100'],
-            'kindergarten_certificate_date' => ['nullable', 'date'],
-            'transfer_out_date' => ['nullable', 'date'],
-            'transfer_out_reason' => ['nullable', 'string'],
-            'exit_date' => ['nullable', 'date'],
-            'exit_reason' => ['nullable', 'string'],
-            'graduation_status' => ['nullable', Rule::enum(GraduationStatus::class)],
-            'graduation_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
-            'graduation_certificate_number' => ['nullable', 'string', 'max:100'],
-            'graduation_certificate_date' => ['nullable', 'date'],
-            'continued_to' => ['nullable', 'string', 'max:255'],
-            'graduation_notes' => ['nullable', 'string'],
             'progress_academic_year' => ['required', 'string', 'max:20'],
             'progress_semester' => ['required', Rule::enum(Semester::class)],
             'promotion_status' => ['required', Rule::enum(PromotionStatus::class)],
             'progress_notes' => ['nullable', 'string', 'max:5000'],
-            'father_name' => ['nullable', 'string', 'max:255'],
-            'father_gender' => ['nullable', 'in:L,P'],
-            'father_nik' => ['nullable', 'string', 'max:30'],
-            'father_family_card_number' => ['nullable', 'string', 'max:30'],
-            'father_birth_place' => ['nullable', 'string', 'max:255'],
-            'father_birth_date' => ['nullable', 'date'],
-            'father_religion' => ['nullable', Rule::enum(Religion::class)],
-            'father_blood_type' => ['nullable', Rule::enum(BloodType::class)],
-            'father_last_education' => ['nullable', Rule::enum(EducationLevel::class)],
-            'father_occupation' => ['nullable', 'string', 'max:255'],
-            'father_monthly_income' => ['nullable', 'string', 'max:100'],
-            'father_phone' => ['nullable', 'string', 'max:30'],
-            'father_address' => ['nullable', 'string'],
-            'mother_name' => ['nullable', 'string', 'max:255'],
-            'mother_gender' => ['nullable', 'in:L,P'],
-            'mother_nik' => ['nullable', 'string', 'max:30'],
-            'mother_family_card_number' => ['nullable', 'string', 'max:30'],
-            'mother_birth_place' => ['nullable', 'string', 'max:255'],
-            'mother_birth_date' => ['nullable', 'date'],
-            'mother_religion' => ['nullable', Rule::enum(Religion::class)],
-            'mother_blood_type' => ['nullable', Rule::enum(BloodType::class)],
-            'mother_last_education' => ['nullable', Rule::enum(EducationLevel::class)],
-            'mother_occupation' => ['nullable', 'string', 'max:255'],
-            'mother_monthly_income' => ['nullable', 'string', 'max:100'],
-            'mother_phone' => ['nullable', 'string', 'max:30'],
-            'mother_address' => ['nullable', 'string'],
-        ]);
+        ] + $recordWriter->rules($student));
 
         $student->update(collect($data)->only([
             'nisn', 'nis', 'name', 'gender', 'birth_place', 'birth_date',
             'classroom_id', 'status', 'address', 'parent_name', 'parent_phone',
         ])->all());
 
-        $student->profile()->updateOrCreate(
-            ['student_id' => $student->id],
-            collect($data)->only([
-                'nickname', 'nik', 'family_card_number', 'religion', 'family_status',
-                'birth_order', 'siblings_count', 'weight_kg', 'height_cm', 'blood_type',
-                'street_address', 'hamlet', 'village', 'district', 'regency', 'province', 'postal_code',
-            ])->all(),
-        );
-
-        if ($request->hasFile('photo')) {
-            if ($student->profile?->photo_path) {
-                Storage::disk('public')->delete($student->profile->photo_path);
-            }
-
-            $student->profile()->update(['photo_path' => $request->file('photo')->store('student-photos', 'public')]);
-        }
-
-        $student->academicRecord()->updateOrCreate(
-            ['student_id' => $student->id],
-            collect($data)->only([
-                'kindergarten_origin', 'kindergarten_certificate_number', 'kindergarten_certificate_date',
-                'entry_status', 'entry_date', 'transfer_out_date', 'transfer_out_reason',
-                'exit_date', 'exit_reason', 'graduation_status', 'graduation_year',
-                'graduation_certificate_number', 'graduation_certificate_date', 'continued_to', 'graduation_notes',
-            ])->all(),
-        );
+        $recordWriter->save($student, $data, $request->file('photo'));
 
         $student->progressNotes()->updateOrCreate(
             ['academic_year' => $data['progress_academic_year'], 'semester' => $data['progress_semester']],
@@ -222,32 +163,6 @@ class StudentRecordController extends Controller
                 'notes' => $data['progress_notes'] ?? null,
             ],
         );
-
-        foreach ([GuardianRelationship::Father, GuardianRelationship::Mother] as $relationship) {
-            $prefix = $relationship === GuardianRelationship::Father ? 'father' : 'mother';
-            $guardian = $student->guardians()->where('relationship', $relationship)->first();
-            $guardianData = collect([
-                'name' => $data[$prefix.'_name'] ?? null,
-                'gender' => $data[$prefix.'_gender'] ?? null,
-                'nik' => $data[$prefix.'_nik'] ?? null,
-                'family_card_number' => $data[$prefix.'_family_card_number'] ?? null,
-                'birth_place' => $data[$prefix.'_birth_place'] ?? null,
-                'birth_date' => $data[$prefix.'_birth_date'] ?? null,
-                'religion' => $data[$prefix.'_religion'] ?? null,
-                'blood_type' => $data[$prefix.'_blood_type'] ?? null,
-                'last_education' => $data[$prefix.'_last_education'] ?? null,
-                'occupation' => $data[$prefix.'_occupation'] ?? null,
-                'monthly_income' => $data[$prefix.'_monthly_income'] ?? null,
-                'phone' => $data[$prefix.'_phone'] ?? null,
-                'address' => $data[$prefix.'_address'] ?? null,
-            ])->filter(fn ($value) => $value !== null && $value !== '')->all();
-
-            if ($guardian) {
-                $guardian->update($guardianData);
-            } elseif ($guardianData !== []) {
-                $student->guardians()->create($guardianData + ['relationship' => $relationship]);
-            }
-        }
 
         return redirect()->route('admin.buku-induk', ['student' => $student->id])
             ->with('success', 'Data Buku Induk siswa berhasil diperbarui.');

@@ -22,6 +22,8 @@
             </div>
             </div>
 
+        <x-page-guide>Pilih kelas/periode dengan filter di bawah, lalu unduh Excel atau PDF untuk arsip atau laporan ke wali kelas. Sakelar <strong>Blokir Scan Telat</strong> menghentikan siswa terlambat untuk bisa absen sama sekali (langsung tercatat alpa).</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}

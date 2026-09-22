@@ -10,6 +10,7 @@
             <div class="text-end"><span class="badge bg-danger fs-6" id="quizTimer">--:--</span><br><span class="badge bg-primary mt-1">{{ $attempt->status === 'in_progress' ? 'Sedang dikerjakan' : 'Selesai' }}</span></div>
         </div>
         <div class="card-body">
+            <x-page-guide>Jawab semua soal sebelum waktu habis. Jawaban tersimpan begitu dipilih; kuis otomatis dikumpulkan jika waktu berakhir.</x-page-guide>
             @foreach($quiz->questions as $number => $question)
                 <form method="POST" action="{{ route('siswa.kuis.answer', $attempt) }}" class="border rounded p-3 mb-3">
                     @csrf

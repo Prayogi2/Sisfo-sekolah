@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="container-fluid"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1 fw-bold">Kuis & Ranking</h1><p class="text-muted mb-0">Kuis yang tersedia untuk kelas {{ $student->classroom?->name ?? '-' }}.</p></div></div>
+    <x-page-guide>Kuis baru bisa dikerjakan setelah absen QR pagi ini dan guru membuka sesinya. Kuis dikerjakan serentak (Kahoot) — masuk begitu guru menekan Mulai, lalu jawab di layar ini mengikuti soal yang tampil.</x-page-guide>
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 

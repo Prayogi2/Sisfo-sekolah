@@ -7,8 +7,10 @@
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Pemantauan Absensi & Pengajuan Izin</h1>
-            <span class="badge bg-primary-soft text-primary p-2 shadow-sm">Tahun Ajaran 2023/2024</span>
+            <span class="badge bg-primary-soft text-primary p-2 shadow-sm">Tahun Ajaran {{ \App\Models\Classroom::currentAcademicYear() }}</span>
         </div>
+
+        <x-page-guide>Ajukan izin/sakit lewat form di bawah dan lampirkan bukti (surat dokter/foto) — tanpa bukti, anak tercatat alpa. Wali kelas atau admin akan memverifikasi pengajuan Anda.</x-page-guide>
 
         <div class="row">
             <!-- Kolom Kiri: Riwayat Absensi & Status Pengajuan -->

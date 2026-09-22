@@ -6,7 +6,7 @@ use App\Http\Requests\Student\StoreStudentRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Models\Classroom;
 use App\Models\Student;
-use App\Models\User;
+use App\Services\StudentEnroller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -36,18 +36,12 @@ class StudentController extends Controller
         return view('admin.data-siswa', compact('students', 'classrooms'));
     }
 
-    public function store(StoreStudentRequest $request): RedirectResponse
+    public function store(StoreStudentRequest $request, StudentEnroller $enroller): RedirectResponse
     {
-        $student = Student::create($request->validated());
-        $student->update(['user_id' => User::create([
-            'name' => $student->name,
-            'email' => $student->nisn.'@siswa.local',
-            'username' => $student->nisn,
-            'password' => 'password123',
-            'role' => 'siswa',
-        ])->id]);
+        $student = $enroller->enroll($request->validated(), $request->file('photo'));
 
-        return back()->with('success', "Siswa berhasil ditambahkan. Login: {$student->name} / password123");
+        return redirect()->route('admin.data-siswa')
+            ->with('success', "Siswa berhasil ditambahkan. Login: {$student->name} / password123. Data Buku Induk lainnya bisa dilengkapi menyusul.");
     }
 
     public function update(UpdateStudentRequest $request, Student $student): RedirectResponse

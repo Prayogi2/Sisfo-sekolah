@@ -31,17 +31,19 @@ class DemoAcademicDataSeeder extends Seeder
                 ->create()
         );
 
-        // Tiap guru mengampu beberapa mapel.
-        $teachers->each(
-            fn (Teacher $teacher) => $teacher->subjects()->attach(
-                $subjects->random(3)->pluck('id')
-            )
-        );
-
         $classrooms = $teachers->map(
             fn (Teacher $teacher) => Classroom::factory()->create([
                 'homeroom_teacher_id' => $teacher->id,
             ])
+        );
+
+        // Tiap guru mengampu beberapa mapel, masing-masing di kedua kelas
+        // demo ini (contoh guru yang mengajar lebih dari satu kelas).
+        $teachers->each(
+            fn (Teacher $teacher) => $teacher->teachingAssignments()->createMany(
+                $subjects->random(3)->crossJoin($classrooms)
+                    ->map(fn (array $pair) => ['subject_id' => $pair[0]->id, 'classroom_id' => $pair[1]->id])
+            )
         );
 
         $studentsByClassroom = $classrooms->map(

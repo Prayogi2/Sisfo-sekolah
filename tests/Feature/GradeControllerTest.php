@@ -28,22 +28,22 @@ class GradeControllerTest extends TestCase
     }
 
     /**
-     * @return array{0: User, 1: Teacher, 2: Subject}
+     * @return array{0: User, 1: Teacher, 2: Subject, 3: Classroom}
      */
     private function guruTeaching(): array
     {
         $user = User::factory()->create(['role' => 'guru']);
         $teacher = Teacher::factory()->create(['user_id' => $user->id]);
         $subject = Subject::factory()->create();
-        $teacher->subjects()->attach($subject);
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
 
-        return [$user, $teacher, $subject];
+        return [$user, $teacher, $subject, $classroom];
     }
 
     public function test_guru_can_open_the_grade_sheet(): void
     {
-        [$user, , $subject] = $this->guruTeaching();
-        $classroom = Classroom::factory()->create();
+        [$user, , $subject, $classroom] = $this->guruTeaching();
         $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $response = $this->actingAs($user)->get(route('guru.laporan-nilai'));
@@ -65,10 +65,22 @@ class GradeControllerTest extends TestCase
         $response->assertDontSee($otherSubject->name);
     }
 
+    public function test_guru_only_sees_classrooms_they_teach_for_the_selected_subject(): void
+    {
+        [$user, , $subject, $ownClassroom] = $this->guruTeaching();
+        $otherClassroom = Classroom::factory()->create(['name' => 'Kelas Orang Lain']);
+
+        $response = $this->actingAs($user)->get(route('guru.laporan-nilai', ['subject_id' => $subject->id]));
+
+        $response->assertOk();
+        $response->assertSee($ownClassroom->name);
+        $response->assertDontSee('Kelas Orang Lain');
+    }
+
     public function test_guru_can_save_a_grade(): void
     {
-        [$user, , $subject] = $this->guruTeaching();
-        $student = Student::factory()->create();
+        [$user, , $subject, $classroom] = $this->guruTeaching();
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $response = $this->actingAs($user)->post(route('guru.laporan-nilai.simpan'), [
             'student_id' => $student->id,
@@ -92,8 +104,8 @@ class GradeControllerTest extends TestCase
 
     public function test_saving_a_grade_twice_updates_instead_of_duplicating(): void
     {
-        [$user, , $subject] = $this->guruTeaching();
-        $student = Student::factory()->create();
+        [$user, , $subject, $classroom] = $this->guruTeaching();
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $payload = [
             'student_id' => $student->id,
@@ -112,9 +124,9 @@ class GradeControllerTest extends TestCase
 
     public function test_guru_cannot_grade_a_subject_they_do_not_teach(): void
     {
-        [$user] = $this->guruTeaching();
+        [$user, , , $classroom] = $this->guruTeaching();
         $otherSubject = Subject::factory()->create();
-        $student = Student::factory()->create();
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $response = $this->actingAs($user)->post(route('guru.laporan-nilai.simpan'), [
             'student_id' => $student->id,
@@ -128,10 +140,27 @@ class GradeControllerTest extends TestCase
         $this->assertDatabaseCount('grades', 0);
     }
 
-    public function test_scores_must_be_within_zero_to_one_hundred(): void
+    public function test_guru_cannot_grade_a_student_in_a_classroom_they_do_not_teach(): void
     {
         [$user, , $subject] = $this->guruTeaching();
-        $student = Student::factory()->create();
+        $student = Student::factory()->create(['classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($user)->post(route('guru.laporan-nilai.simpan'), [
+            'student_id' => $student->id,
+            'subject_id' => $subject->id,
+            'academic_year' => Classroom::currentAcademicYear(),
+            'semester' => Semester::current()->value,
+            'assignment_score' => 85,
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseCount('grades', 0);
+    }
+
+    public function test_scores_must_be_within_zero_to_one_hundred(): void
+    {
+        [$user, , $subject, $classroom] = $this->guruTeaching();
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $response = $this->actingAs($user)->post(route('guru.laporan-nilai.simpan'), [
             'student_id' => $student->id,

@@ -7,6 +7,8 @@
         <h1 class="h3 mb-4 text-gray-800 fw-bold">Daftar Guru & Wali Kelas</h1>
         <p class="text-muted">Informasi data pengajar dan wali kelas MIS Nurul Falaq.</p>
 
+        <x-page-guide>Halaman ini hanya untuk melihat. Perubahan data guru dilakukan oleh admin lewat menu Data Guru miliknya.</x-page-guide>
+
         <div class="card border-0 shadow-sm">
             <div class="card-header py-3 bg-white">
                 <h6 class="m-0 fw-bold text-primary">Daftar Tenaga Pendidik</h6>

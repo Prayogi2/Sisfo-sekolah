@@ -33,7 +33,7 @@ class UserSeeder extends Seeder
 
         // 3. Akun Siswa
         User::create([
-            'name' => 'Siswa Teladan',
+            'name' => 'Budi',
             'email' => 'siswa@gmail.com',
             'username' => 'siswa',
             'password' => Hash::make('password123'),

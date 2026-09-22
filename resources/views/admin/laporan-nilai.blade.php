@@ -17,6 +17,8 @@
             </div>
         </div>
 
+        <x-page-guide>Nilai diisi guru lewat menunya sendiri; halaman ini hanya untuk memantau dan mengekspor rekapnya. Pilih kelas, mapel, tahun ajaran & semester di filter untuk mempersempit tampilan.</x-page-guide>
+
         <!-- Filter Laporan -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">

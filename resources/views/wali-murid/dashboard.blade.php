@@ -18,6 +18,8 @@
             @if($student)<a href="{{ route('wali.prestasi-pelanggaran') }}" class="btn btn-outline-primary"><i class="bi bi-award me-1"></i>Prestasi & Pelanggaran</a>@endif
         </div>
 
+        <x-page-guide>Ringkasan absensi, tagihan SPP, dan nilai kuis anak Anda. Gunakan menu di sisi kiri untuk melihat rincian tiap bagian atau mengajukan izin.</x-page-guide>
+
         @if(!$student)
             <div class="alert alert-info">Akun ini belum memiliki data anak. Hubungkan siswa terlebih dahulu untuk melihat ringkasan akademik.</div>
         @else

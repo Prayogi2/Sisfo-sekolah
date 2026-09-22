@@ -7,10 +7,17 @@
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Data Siswa</h1>
-            <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSiswa">
-                <i class="bi bi-person-plus-fill me-1"></i> Tambah Siswa
-            </button>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.data-siswa.import') }}" class="btn btn-outline-primary shadow-sm">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import Excel
+                </a>
+                <a href="{{ route('admin.data-siswa.create') }}" class="btn btn-primary shadow-sm">
+                    <i class="bi bi-person-plus-fill me-1"></i> Tambah Siswa
+                </a>
+            </div>
         </div>
+
+        <x-page-guide>Tambah siswa satu per satu, atau sekaligus banyak lewat <strong>Import Excel</strong>. Hanya identitas inti yang wajib diisi — data Buku Induk lainnya bisa dilengkapi menyusul.</x-page-guide>
 
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -26,6 +33,21 @@
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if (session('import_result'))
+            @php($importResult = session('import_result'))
+            <div class="alert {{ $importResult->hasErrors() ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
+                <p class="fw-semibold mb-1">Impor selesai: {{ $importResult->imported }} siswa berhasil ditambahkan{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal.' : '.' }}</p>
+                @if ($importResult->hasErrors())
+                    <ul class="mb-0 small">
+                        @foreach ($importResult->errors as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
@@ -139,61 +161,6 @@
                     </div>
                 @endif
             </div>
-        </div>
-    </div>
-
-    <!-- Modal Tambah Siswa -->
-    <div class="modal fade" id="modalTambahSiswa" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <form action="{{ route('admin.data-siswa.store') }}" method="POST">
-                @csrf
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Tambah Siswa Baru</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">NISN</label>
-                                <input type="text" name="nisn" class="form-control" placeholder="Masukkan NISN" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">NIS</label>
-                                <input type="text" name="nis" class="form-control" placeholder="Masukkan NIS" required>
-                            </div>
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold">Nama Lengkap</label>
-                                <input type="text" name="name" class="form-control" placeholder="Nama sesuai ijazah" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Jenis Kelamin</label>
-                                <select name="gender" class="form-select" required>
-                                    <option value="L">Laki-laki</option>
-                                    <option value="P">Perempuan</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Kelas</label>
-                                <select name="classroom_id" class="form-select">
-                                    <option value="">-- Belum Ada Kelas --</option>
-                                    @foreach ($classrooms as $classroom)
-                                        <option value="{{ $classroom->id }}">{{ $classroom->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold">Alamat</label>
-                                <textarea name="address" class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan Data</button>
-                    </div>
-                </div>
-            </form>
         </div>
     </div>
 

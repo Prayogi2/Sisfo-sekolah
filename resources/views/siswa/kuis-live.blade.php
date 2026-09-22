@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', $quiz->title)
 @section('content')
-<div class="container-fluid"><div class="card shadow-sm"><div class="card-body text-center"><h1 class="h3 fw-bold">{{ $quiz->title }}</h1><p class="text-muted">Tunggu guru menampilkan soal berikutnya.</p><div class="display-6 fw-bold mb-3" id="phase">Menunggu...</div><div class="h4 mb-4" id="question"></div><div class="row g-2" id="options"></div><div class="alert alert-info mt-4" id="score">Skor sementara: 0</div></div></div></div>
+<div class="container-fluid"><x-page-guide>Halaman ini otomatis memperbarui diri. Jangan tutup/refresh — tunggu soal muncul, lalu ketuk pilihan jawaban secepatnya sebelum guru lanjut ke soal berikutnya.</x-page-guide><div class="card shadow-sm"><div class="card-body text-center"><h1 class="h3 fw-bold">{{ $quiz->title }}</h1><p class="text-muted">Tunggu guru menampilkan soal berikutnya.</p><div class="display-6 fw-bold mb-3" id="phase">Menunggu...</div><div class="h4 mb-4" id="question"></div><div class="row g-2" id="options"></div><div class="alert alert-info mt-4" id="score">Skor sementara: 0</div></div></div></div>
 @endsection
 @push('scripts')
 <script>

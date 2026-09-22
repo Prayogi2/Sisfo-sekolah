@@ -8,6 +8,8 @@
         <h1 class="h3 mb-0 text-gray-800 fw-bold">Kritik & Saran dari Wali Murid</h1>
     </div>
 
+    <x-page-guide>Pesan yang dikirim wali murid lewat akun mereka muncul otomatis di sini — tidak perlu tindakan tambahan, ini hanya untuk dibaca.</x-page-guide>
+
     <div class="card shadow-sm">
         <div class="card-header py-3 bg-white"><h6 class="m-0 fw-bold text-primary">Daftar Pesan</h6></div>
         <div class="card-body p-0">

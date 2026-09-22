@@ -15,10 +15,10 @@ class Subject extends Model
     use HasFactory;
 
     /**
-     * The teachers assigned to teach this subject.
+     * The teachers assigned to teach this subject, in any classroom.
      */
     public function teachers(): BelongsToMany
     {
-        return $this->belongsToMany(Teacher::class, 'subject_teacher');
+        return $this->belongsToMany(Teacher::class, 'teaching_assignments')->distinct();
     }
 }

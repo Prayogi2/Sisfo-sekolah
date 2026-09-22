@@ -9,6 +9,8 @@
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Verifikasi Pembayaran SPP</h1>
         </div>
 
+        <x-page-guide>Periksa bukti bayar yang diunggah wali murid, lalu <strong>Setujui</strong> atau <strong>Tolak</strong>. Status tagihan berubah otomatis setelah disetujui.</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif

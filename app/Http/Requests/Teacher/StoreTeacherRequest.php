@@ -7,6 +7,7 @@ use App\Models\Teacher;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreTeacherRequest extends FormRequest
 {
@@ -27,8 +28,10 @@ class StoreTeacherRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255', 'unique:teachers,email'],
             'address' => ['nullable', 'string'],
-            'subject_ids' => ['array'],
-            'subject_ids.*' => ['integer', 'exists:subjects,id'],
+            'assignments' => ['array'],
+            'assignments.*.subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'assignments.*.classroom_ids' => ['required', 'array', 'min:1'],
+            'assignments.*.classroom_ids.*' => ['integer', 'exists:classrooms,id'],
         ];
     }
 
@@ -39,6 +42,19 @@ class StoreTeacherRequest extends FormRequest
             'nip.unique' => 'NIP/NUPTK sudah terdaftar.',
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.unique' => 'Email sudah dipakai guru lain.',
+            'assignments.*.subject_id.required' => 'Mata pelajaran wajib dipilih untuk setiap baris penugasan.',
+            'assignments.*.classroom_ids.required' => 'Pilih minimal satu kelas untuk setiap mata pelajaran yang diajarkan.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $subjectIds = collect($this->input('assignments', []))->pluck('subject_id')->filter();
+
+            if ($subjectIds->count() !== $subjectIds->unique()->count()) {
+                $validator->errors()->add('assignments', 'Setiap mata pelajaran hanya boleh dipilih sekali. Gabungkan kelasnya dalam satu baris.');
+            }
+        });
     }
 }

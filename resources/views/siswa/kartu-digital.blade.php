@@ -6,7 +6,7 @@
     <style>
         @media print {
             body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .sidebar, .topbar, .footer, .btn, .badge, .card:not(.digital-card) { display: none !important; }
+            .sidebar, .topbar, .footer, .btn, .badge, .alert, .card:not(.digital-card) { display: none !important; }
             .digital-card, .digital-card .card-header, .digital-card .card-footer { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .digital-card { display: block !important; max-width: 90mm; margin: 0 auto; }
         }
@@ -20,6 +20,8 @@
             <h1 class="h3 mb-0 text-gray-800">Absensi & Kartu Digital</h1>
             <span class="badge bg-success p-2"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i> Sistem Presensi Online</span>
         </div>
+
+        <x-page-guide>Tunjukkan kode QR ini ke petugas untuk scan absensi pagi & pulang di sekolah.</x-page-guide>
 
         <div class="row justify-content-center">
             <!-- Kolom Kartu Digital -->

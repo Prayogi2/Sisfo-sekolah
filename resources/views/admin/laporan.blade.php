@@ -9,6 +9,8 @@
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Pusat Laporan Sistem</h1>
         </div>
 
+        <x-page-guide>Pintu masuk ke semua laporan sekolah — absensi, nilai, SPP, dan prestasi/pelanggaran. Klik salah satu kartu untuk membuka rekapnya.</x-page-guide>
+
         <!-- Grid Menu Laporan -->
         <div class="row">
             <!-- Laporan Absensi -->

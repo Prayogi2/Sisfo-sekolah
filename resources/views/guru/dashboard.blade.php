@@ -21,6 +21,8 @@
         </div>
     </div>
 
+    <x-page-guide>Gunakan menu di sisi kiri: <strong>Bank Soal</strong> untuk membuat soal & kuis, <strong>Laporan Nilai</strong> untuk mengisi nilai, dan <strong>Approval Izin</strong> untuk menyetujui izin siswa di kelas yang Anda ajarkan.</x-page-guide>
+
     <!-- Stats Cards (Hampir sama dengan Admin, tapi fokus data Guru) -->
     <div class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">

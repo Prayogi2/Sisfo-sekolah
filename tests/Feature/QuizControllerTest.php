@@ -87,7 +87,7 @@ class QuizControllerTest extends TestCase
         $guruUser = User::factory()->create(['role' => 'guru']);
         $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
         $subject = Subject::factory()->create();
-        $teacher->subjects()->attach($subject);
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
 
         $this->actingAs($guruUser)->get(route('guru.bank-soal'))->assertOk();
     }
@@ -97,7 +97,7 @@ class QuizControllerTest extends TestCase
         $guruUser = User::factory()->create(['role' => 'guru']);
         $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
         $subject = Subject::factory()->create();
-        $teacher->subjects()->attach($subject);
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
@@ -321,6 +321,90 @@ class QuizControllerTest extends TestCase
         $response->assertRedirect(route('siswa.kuis'));
         $response->assertSessionHas('error');
         $this->assertDatabaseCount('quiz_attempts', 0);
+    }
+
+    public function test_guru_can_create_a_quiz_for_a_subject_and_classroom_they_teach(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Harian',
+            'duration_minutes' => 30,
+            'question_ids' => [$question->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('quizzes', ['title' => 'Kuis Harian', 'subject_id' => $subject->id, 'classroom_id' => $classroom->id, 'mode' => 'live']);
+    }
+
+    public function test_every_created_quiz_is_kahoot_mode_even_if_a_different_mode_is_submitted(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Mandiri Titipan',
+            'duration_minutes' => 30,
+            'mode' => 'async',
+            'question_ids' => [$question->id],
+        ]);
+
+        $quiz = Quiz::where('title', 'Kuis Mandiri Titipan')->firstOrFail();
+        $this->assertTrue($quiz->isLive());
+    }
+
+    public function test_guru_cannot_create_a_quiz_for_a_classroom_they_do_not_teach(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $taughtClassroom = Classroom::factory()->create();
+        $otherClassroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $taughtClassroom->id]);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $otherClassroom->id,
+            'title' => 'Kuis Titipan',
+            'duration_minutes' => 30,
+            'question_ids' => [$question->id],
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('quizzes', ['title' => 'Kuis Titipan']);
+    }
+
+    public function test_admin_can_create_a_quiz_for_any_classroom(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $response = $this->actingAs($admin)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Admin',
+            'duration_minutes' => 30,
+            'question_ids' => [$question->id],
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('quizzes', ['title' => 'Kuis Admin']);
     }
 
     public function test_guru_can_open_and_close_their_quiz(): void

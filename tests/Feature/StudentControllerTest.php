@@ -69,6 +69,82 @@ class StudentControllerTest extends TestCase
         $this->assertDatabaseHas('students', ['nisn' => '1234567890', 'name' => 'Budi Santoso']);
     }
 
+    public function test_admin_can_open_the_add_student_form(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->get(route('admin.data-siswa.create'));
+
+        $response->assertViewIs('admin.buku-induk-edit');
+        $response->assertSee('Tambah Siswa Baru');
+        $response->assertSee(route('admin.data-siswa.store'));
+    }
+
+    public function test_guru_is_forbidden_from_the_add_student_form(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($guru)->get(route('admin.data-siswa.create'))->assertForbidden();
+    }
+
+    public function test_admin_can_create_a_student_together_with_buku_induk_data(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-siswa.store'), [
+            'nisn' => '1234567890',
+            'nis' => '54321',
+            'name' => 'Budi Santoso',
+            'gender' => 'L',
+            'nik' => '3201010101010001',
+            'religion' => 'islam',
+            'kindergarten_origin' => 'TK Pelita',
+            'father_name' => 'Slamet Santoso',
+            'mother_name' => '',
+        ]);
+
+        $response->assertRedirect(route('admin.data-siswa'));
+        $student = Student::where('nisn', '1234567890')->firstOrFail();
+        $this->assertDatabaseHas('student_profiles', ['student_id' => $student->id, 'nik' => '3201010101010001', 'religion' => 'islam']);
+        $this->assertDatabaseHas('student_academic_records', ['student_id' => $student->id, 'kindergarten_origin' => 'TK Pelita']);
+        $this->assertSame(['Slamet Santoso'], $student->guardians()->pluck('name')->all());
+        $this->assertDatabaseHas('users', ['id' => $student->user_id, 'role' => 'siswa']);
+    }
+
+    public function test_creating_a_student_with_only_required_fields_leaves_buku_induk_to_be_completed_later(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.store'), [
+            'nisn' => '1234567890',
+            'nis' => '54321',
+            'name' => 'Budi Santoso',
+            'gender' => 'L',
+        ]);
+
+        $student = Student::where('nisn', '1234567890')->firstOrFail();
+        $this->assertSame('active', $student->status->value);
+        $this->assertDatabaseMissing('student_profiles', ['student_id' => $student->id]);
+        $this->assertDatabaseMissing('student_academic_records', ['student_id' => $student->id]);
+        $this->assertDatabaseCount('guardians', 0);
+    }
+
+    public function test_creating_a_student_rejects_an_invalid_buku_induk_value(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-siswa.store'), [
+            'nisn' => '1234567890',
+            'nis' => '54321',
+            'name' => 'Budi Santoso',
+            'gender' => 'L',
+            'religion' => 'bukan-agama',
+        ]);
+
+        $response->assertSessionHasErrors('religion');
+        $this->assertDatabaseMissing('students', ['nisn' => '1234567890']);
+    }
+
     public function test_creating_a_student_requires_unique_nisn(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

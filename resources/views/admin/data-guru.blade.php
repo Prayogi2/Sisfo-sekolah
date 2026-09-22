@@ -12,6 +12,8 @@
             </button>
         </div>
 
+        <x-page-guide>Saat menambah/mengedit guru, tetapkan juga mapel & kelas yang ia ajarkan — guru hanya bisa mengakses kelas yang dipilih di sini (untuk kuis dan nilai).</x-page-guide>
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
@@ -70,7 +72,7 @@
                             <tr>
                                 <th>NIP / NUPTK</th>
                                 <th>Nama Lengkap</th>
-                                <th>Mata Pelajaran</th>
+                                <th>Mata Pelajaran & Kelas Diajarkan</th>
                                 <th>Status</th>
                                 <th>Kontak</th>
                                 <th class="text-center">Aksi</th>
@@ -86,7 +88,7 @@
                                             <span class="fw-semibold text-dark">{{ $teacher->name }}</span>
                                         </div>
                                     </td>
-                                    <td>{{ $teacher->subjects->pluck('name')->join(', ') ?: '-' }}</td>
+                                    <td>{{ $teacher->assignmentSummary() ?: '-' }}</td>
                                     <td>
                                         @if ($teacher->homeroomClassrooms->isNotEmpty())
                                             <span class="badge bg-success-soft text-success" style="background-color: #e6f9ee;">Wali Kelas {{ $teacher->homeroomClassrooms->pluck('name')->join(', ') }}</span>
@@ -105,7 +107,7 @@
                                             data-phone="{{ $teacher->phone }}"
                                             data-email="{{ $teacher->email }}"
                                             data-address="{{ $teacher->address }}"
-                                            data-subject-ids="{{ $teacher->subjects->pluck('id')->join(',') }}"
+                                            data-assignments="{{ $teacher->teachingAssignments->groupBy('subject_id')->map(fn ($rows) => ['subject_id' => $rows->first()->subject_id, 'classroom_ids' => $rows->pluck('classroom_id')])->values()->toJson() }}"
                                         ><i class="bi bi-pencil-square text-warning"></i></button>
                                         <form action="{{ route('admin.data-guru.reset-password', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Reset password login {{ $teacher->name }}?');">
                                             @csrf
@@ -130,6 +132,30 @@
         </div>
     </div>
 
+    <!-- Template baris penugasan mapel + kelas (dipakai tambah & edit) -->
+    <template id="templateAssignmentRow">
+        <div class="row g-2 align-items-start mb-2 assignment-row">
+            <div class="col-md-5">
+                <select name="assignments[__INDEX__][subject_id]" class="form-select form-select-sm" required>
+                    <option value="">-- Pilih Mapel --</option>
+                    @foreach ($subjects as $subject)
+                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <select name="assignments[__INDEX__][classroom_ids][]" class="form-select form-select-sm" multiple required size="3">
+                    @foreach ($classrooms as $classroom)
+                        <option value="{{ $classroom->id }}">{{ $classroom->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-assignment-row" title="Hapus baris"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+    </template>
+
     <!-- Modal Tambah Guru -->
     <div class="modal fade" id="modalTambahGuru" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -151,18 +177,17 @@
                                     <option value="P">Perempuan</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Mata Pelajaran</label>
-                                <select name="subject_ids[]" class="form-select" multiple>
-                                    @foreach ($subjects as $subject)
-                                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
                             <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" class="form-control"></div>
                             <div class="col-md-6"><label class="form-label fw-semibold">Email</label><input type="email" name="email" class="form-control"></div>
                         </div>
-                        <p class="text-muted small mt-3 mb-0">Akun login guru (username = NIP) akan dibuat otomatis dengan password acak yang ditampilkan setelah data disimpan.</p>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-semibold mb-0">Mata Pelajaran & Kelas yang Diajarkan</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row"><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
+                        </div>
+                        <div class="assignment-rows"></div>
+                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (tahan Ctrl/Cmd untuk pilih lebih dari satu). Guru hanya akan bisa mengakses kelas yang dipilih di sini.</p>
+                        <p class="text-muted small mt-2 mb-0">Akun login guru (username = email) akan dibuat otomatis dengan password acak yang ditampilkan setelah data disimpan.</p>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -195,17 +220,16 @@
                                     <option value="P">Perempuan</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Mata Pelajaran</label>
-                                <select name="subject_ids[]" id="editGuruSubjects" class="form-select" multiple>
-                                    @foreach ($subjects as $subject)
-                                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
                             <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" id="editGuruPhone" class="form-control"></div>
                             <div class="col-md-6"><label class="form-label fw-semibold">Email</label><input type="email" name="email" id="editGuruEmail" class="form-control"></div>
                         </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-semibold mb-0">Mata Pelajaran & Kelas yang Diajarkan</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row"><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
+                        </div>
+                        <div class="assignment-rows"></div>
+                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (tahan Ctrl/Cmd untuk pilih lebih dari satu).</p>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -217,20 +241,61 @@
     </div>
 
     <script>
-        document.getElementById('modalEditGuru').addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            document.getElementById('formEditGuru').action = button.dataset.action;
-            document.getElementById('editGuruNip').value = button.dataset.nip;
-            document.getElementById('editGuruName').value = button.dataset.name;
-            document.getElementById('editGuruGender').value = button.dataset.gender;
-            document.getElementById('editGuruPhone').value = button.dataset.phone ?? '';
-            document.getElementById('editGuruEmail').value = button.dataset.email ?? '';
+        (function () {
+            const template = document.getElementById('templateAssignmentRow');
 
-            const selectedIds = (button.dataset.subjectIds ?? '').split(',').filter(Boolean);
-            const subjectSelect = document.getElementById('editGuruSubjects');
-            Array.from(subjectSelect.options).forEach(option => {
-                option.selected = selectedIds.includes(option.value);
+            function addAssignmentRow(container, subjectId, classroomIds) {
+                const index = container.children.length;
+                const fragment = template.content.cloneNode(true);
+                fragment.querySelectorAll('[name]').forEach((field) => {
+                    field.name = field.name.replace('__INDEX__', index);
+                });
+
+                const row = fragment.querySelector('.assignment-row');
+                if (subjectId) {
+                    row.querySelector('select[name$="[subject_id]"]').value = subjectId;
+                }
+                if (classroomIds && classroomIds.length) {
+                    const classroomSelect = row.querySelector('select[name$="[classroom_ids][]"]');
+                    Array.from(classroomSelect.options).forEach((option) => {
+                        option.selected = classroomIds.map(String).includes(option.value);
+                    });
+                }
+                row.querySelector('.remove-assignment-row').addEventListener('click', () => row.remove());
+
+                container.appendChild(fragment);
+            }
+
+            document.querySelectorAll('.add-assignment-row').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const container = button.closest('.modal-body').querySelector('.assignment-rows');
+                    addAssignmentRow(container, null, []);
+                });
             });
-        });
+
+            document.getElementById('modalTambahGuru').addEventListener('hidden.bs.modal', function () {
+                this.querySelector('form').reset();
+                this.querySelector('.assignment-rows').innerHTML = '';
+            });
+
+            document.getElementById('modalEditGuru').addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                document.getElementById('formEditGuru').action = button.dataset.action;
+                document.getElementById('editGuruNip').value = button.dataset.nip;
+                document.getElementById('editGuruName').value = button.dataset.name;
+                document.getElementById('editGuruGender').value = button.dataset.gender;
+                document.getElementById('editGuruPhone').value = button.dataset.phone ?? '';
+                document.getElementById('editGuruEmail').value = button.dataset.email ?? '';
+
+                const container = this.querySelector('.assignment-rows');
+                container.innerHTML = '';
+                const assignments = JSON.parse(button.dataset.assignments || '[]');
+                if (assignments.length === 0) {
+                    addAssignmentRow(container, null, []);
+                } else {
+                    assignments.forEach((assignment) => addAssignmentRow(container, assignment.subject_id, assignment.classroom_ids));
+                }
+            });
+        })();
     </script>
 @endsection

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Classroom;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\User;
@@ -42,21 +43,48 @@ class TeacherControllerTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $subject = Subject::factory()->create();
+        $classroomA = Classroom::factory()->create();
+        $classroomB = Classroom::factory()->create();
 
         $response = $this->actingAs($admin)->post(route('admin.data-guru.store'), [
             'nip' => '1234567890123456',
             'name' => 'Ustadz Fulan',
             'gender' => 'L',
-            'subject_ids' => [$subject->id],
+            'email' => 'fulan@guru.local',
+            'assignments' => [
+                ['subject_id' => $subject->id, 'classroom_ids' => [$classroomA->id, $classroomB->id]],
+            ],
         ]);
 
         $response->assertRedirect();
         $teacher = Teacher::where('nip', '1234567890123456')->firstOrFail();
 
         $this->assertNotNull($teacher->user_id);
-        $this->assertSame('1234567890123456', $teacher->user->username);
+        $this->assertSame('fulan@guru.local', $teacher->user->email);
         $this->assertTrue($teacher->user->hasRole('guru'));
         $this->assertTrue($teacher->subjects->contains($subject));
+        $this->assertTrue($teacher->teaches($subject->id, $classroomA->id));
+        $this->assertTrue($teacher->teaches($subject->id, $classroomB->id));
+    }
+
+    public function test_creating_a_teacher_rejects_the_same_subject_chosen_twice(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('admin.data-guru.store'), [
+            'nip' => '1234567890123456',
+            'name' => 'Ustadz Fulan',
+            'gender' => 'L',
+            'assignments' => [
+                ['subject_id' => $subject->id, 'classroom_ids' => [$classroom->id]],
+                ['subject_id' => $subject->id, 'classroom_ids' => [$classroom->id]],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('assignments');
+        $this->assertDatabaseMissing('teachers', ['nip' => '1234567890123456']);
     }
 
     public function test_guru_cannot_create_a_teacher(): void
@@ -73,19 +101,23 @@ class TeacherControllerTest extends TestCase
         $this->assertDatabaseMissing('teachers', ['nip' => '1234567890123456']);
     }
 
-    public function test_admin_can_update_a_teacher_and_resync_subjects(): void
+    public function test_admin_can_update_a_teacher_and_resync_assignments(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $teacher = Teacher::factory()->create();
         $oldSubject = Subject::factory()->create();
         $newSubject = Subject::factory()->create();
-        $teacher->subjects()->attach($oldSubject);
+        $oldClassroom = Classroom::factory()->create();
+        $newClassroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $oldSubject->id, 'classroom_id' => $oldClassroom->id]);
 
         $response = $this->actingAs($admin)->put(route('admin.data-guru.update', $teacher), [
             'nip' => $teacher->nip,
             'name' => 'Nama Baru',
             'gender' => $teacher->gender->value,
-            'subject_ids' => [$newSubject->id],
+            'assignments' => [
+                ['subject_id' => $newSubject->id, 'classroom_ids' => [$newClassroom->id]],
+            ],
         ]);
 
         $response->assertRedirect();
@@ -93,6 +125,8 @@ class TeacherControllerTest extends TestCase
         $this->assertSame('Nama Baru', $teacher->name);
         $this->assertTrue($teacher->subjects->contains($newSubject));
         $this->assertFalse($teacher->subjects->contains($oldSubject));
+        $this->assertTrue($teacher->teaches($newSubject->id, $newClassroom->id));
+        $this->assertFalse($teacher->teaches($oldSubject->id, $oldClassroom->id));
     }
 
     public function test_admin_can_reset_a_teachers_password(): void
