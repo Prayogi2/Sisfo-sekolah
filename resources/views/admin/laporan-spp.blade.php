@@ -7,12 +7,20 @@
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Pembayaran SPP</h1>
-            <form action="{{ route('admin.laporan-spp.generate') }}" method="POST">
-                @csrf
-                <button type="submit" class="btn btn-primary shadow-sm btn-sm">
-                    <i class="bi bi-receipt-cutoff me-1"></i> Buat Tagihan Bulan Ini
-                </button>
-            </form>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.laporan-spp.export.csv', request()->query()) }}" class="btn btn-outline-success shadow-sm btn-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </a>
+                <a href="{{ route('admin.laporan-spp.export.pdf', request()->query()) }}" target="_blank" class="btn btn-outline-danger shadow-sm btn-sm">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+                <form action="{{ route('admin.laporan-spp.generate') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-primary shadow-sm btn-sm">
+                        <i class="bi bi-receipt-cutoff me-1"></i> Buat Tagihan Bulan Ini
+                    </button>
+                </form>
+            </div>
         </div>
 
         @if (session('success'))

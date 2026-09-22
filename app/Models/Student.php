@@ -93,4 +93,19 @@ class Student extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function achievements(): HasMany
+    {
+        return $this->hasMany(StudentAchievement::class);
+    }
+
+    public function violations(): HasMany
+    {
+        return $this->hasMany(StudentViolation::class);
+    }
+
+    public function progressNotes(): HasMany
+    {
+        return $this->hasMany(StudentProgressNote::class);
+    }
 }

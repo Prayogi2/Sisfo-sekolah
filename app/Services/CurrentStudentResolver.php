@@ -23,6 +23,10 @@ class CurrentStudentResolver
      */
     public function choices(User $user): Collection
     {
+        if ($user->hasRole('siswa')) {
+            return $user->student ? new Collection([$user->student->load('classroom')]) : new Collection;
+        }
+
         return $user->guardian?->students()->with('classroom')->get()
             ?? new Collection;
     }

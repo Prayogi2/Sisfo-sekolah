@@ -72,7 +72,16 @@ class AttendanceScanner
     private function recordCheckOutOrDuplicate(Student $student, Attendance $attendance, CarbonInterface $now): AttendanceScanResult
     {
         if ($attendance->check_in_at && ! $attendance->check_out_at) {
-            $attendance->update(['check_out_at' => $now]);
+            $schedule = AttendanceSchedule::for($now, $student->classroom->grade_level);
+            $checkoutTime = $schedule?->check_out_time;
+            $departureStatus = $checkoutTime && $now->format('H:i:s') < $checkoutTime
+                ? 'early'
+                : 'on_time';
+
+            $attendance->update([
+                'check_out_at' => $now,
+                'departure_status' => $departureStatus,
+            ]);
 
             return new AttendanceScanResult($student, $attendance, 'check_out');
         }

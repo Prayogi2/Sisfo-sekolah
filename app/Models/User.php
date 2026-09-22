@@ -38,4 +38,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Guardian::class);
     }
+
+    public function student(): HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
 }

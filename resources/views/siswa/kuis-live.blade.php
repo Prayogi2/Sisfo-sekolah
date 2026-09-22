@@ -1,0 +1,12 @@
+@extends('layouts.app')
+@section('title', $quiz->title)
+@section('content')
+<div class="container-fluid"><div class="card shadow-sm"><div class="card-body text-center"><h1 class="h3 fw-bold">{{ $quiz->title }}</h1><p class="text-muted">Tunggu guru menampilkan soal berikutnya.</p><div class="display-6 fw-bold mb-3" id="phase">Menunggu...</div><div class="h4 mb-4" id="question"></div><div class="row g-2" id="options"></div><div class="alert alert-info mt-4" id="score">Skor sementara: 0</div></div></div></div>
+@endsection
+@push('scripts')
+<script>
+const stateUrl = @json(route('siswa.kuis.live.state', $quiz)); const answerUrl = @json(route('siswa.kuis.live.answer', $attempt)); let current = null;
+async function refresh() { const data = await fetch(stateUrl).then(response => response.json()); document.getElementById('phase').textContent = data.phase === 'finished' ? 'Selesai' : 'Soal ' + (data.index === null ? '-' : data.index + 1) + '/' + data.total; document.getElementById('score').textContent = data.show_score ? 'Skor sementara: ' + data.score : 'Skor akan ditampilkan sesuai pengaturan guru.'; if (!data.question || (current === data.question.id && data.phase === 'question')) return; current = data.question.id; document.getElementById('question').textContent = data.question.text; const media = data.question.media_url ? (data.question.media_type === 'video' ? '<video src="' + data.question.media_url + '" class="img-fluid rounded mb-3" controls></video>' : '<img src="' + data.question.media_url + '" class="img-fluid rounded mb-3" alt="Media soal">') : ''; document.getElementById('question').innerHTML = media + '<div>' + data.question.text + '</div>'; document.getElementById('options').innerHTML = Object.entries(data.question.options).map(([key, value]) => '<div class="col-md-6"><button class="btn btn-outline-primary w-100 py-3 option" data-key="' + key + '"><strong>' + key + '</strong> ' + value + '</button></div>').join(''); document.querySelectorAll('.option').forEach(button => button.onclick = async () => { await fetch(answerUrl, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content}, body:JSON.stringify({answer:button.dataset.key})}); document.querySelectorAll('.option').forEach(item => item.disabled = true); }); }
+refresh(); setInterval(refresh, 2500);
+</script>
+@endpush

@@ -17,7 +17,10 @@ class DatabaseSeeder extends Seeder
             AttendanceScheduleSeeder::class,
             SppSettingSeeder::class,
             GradeSettingSeeder::class,
+            SubjectSeeder::class,
             DemoAcademicDataSeeder::class,
+            MathQuestionBankSeeder::class,
+            SampleQrStudentSeeder::class,
         ]);
     }
 }

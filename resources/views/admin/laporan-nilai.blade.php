@@ -7,6 +7,14 @@
         <!-- Header -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Laporan Rekapitulasi Nilai Siswa</h1>
+            <div class="btn-group">
+                <a href="{{ route('admin.laporan-nilai.export.csv', request()->query()) }}" class="btn btn-outline-success shadow-sm btn-sm">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </a>
+                <a href="{{ route('admin.laporan-nilai.export.pdf', request()->query()) }}" target="_blank" class="btn btn-outline-danger shadow-sm btn-sm">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+            </div>
         </div>
 
         <!-- Filter Laporan -->

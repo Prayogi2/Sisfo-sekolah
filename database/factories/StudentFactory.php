@@ -24,7 +24,9 @@ class StudentFactory extends Factory
             'classroom_id' => null,
             'nisn' => fake()->unique()->numerify('##########'),
             'nis' => fake()->unique()->numerify('#####'),
-            'name' => fake()->name(),
+            // firstName + lastName, bukan name(), supaya siswa MI tidak
+            // kebagian gelar akademik seperti "S.Pd" dari faker.
+            'name' => fake()->firstName().' '.fake()->lastName(),
             'gender' => fake()->randomElement(Gender::cases()),
             'birth_place' => fake()->city(),
             'birth_date' => fake()->dateTimeBetween('-12 years', '-6 years'),

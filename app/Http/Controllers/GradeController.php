@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Policies\GradePolicy;
+use App\Services\ReportExportService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,6 +44,41 @@ class GradeController extends Controller
         $subjects = Subject::orderBy('name')->get();
 
         return view('admin.laporan-nilai', $this->gradeSheet($request, $subjects));
+    }
+
+    public function exportCsv(Request $request, ReportExportService $exporter)
+    {
+        $data = $this->gradeSheet($request, Subject::orderBy('name')->get());
+
+        $subject = $data['subjects']->firstWhere('id', $data['subjectId']);
+        $classroom = $data['classrooms']->firstWhere('id', $data['classroomId']);
+        $rows = $data['students']->map(function ($student) use ($data, $subject, $classroom) {
+            $grade = $data['grades']->get($student->id);
+            $finalScore = $grade?->finalScore($data['weight']);
+
+            return [
+                $data['academicYear'],
+                $data['semester']->value,
+                $subject?->name ?? '-',
+                $classroom?->name ?? '-',
+                $student->nisn,
+                $student->name,
+                $grade?->assignment_score ?? '-',
+                $grade?->quiz_score ?? '-',
+                $grade?->midterm_score ?? '-',
+                $grade?->final_score ?? '-',
+                $finalScore ?? '-',
+                $finalScore === null ? '-' : Grade::letterFor($finalScore),
+                $finalScore === null ? 'Belum Dinilai' : ($finalScore >= $data['passingScore'] ? 'Lulus' : 'Remedial'),
+            ];
+        });
+
+        return $exporter->xlsx('laporan-nilai-'.now()->format('Ymd-His').'.xlsx', ['Tahun Ajaran', 'Semester', 'Mata Pelajaran', 'Kelas', 'NISN', 'Nama Siswa', 'Tugas', 'Kuis', 'UTS', 'UAS', 'Nilai Akhir', 'Grade', 'Status'], $rows);
+    }
+
+    public function exportPdf(Request $request, ReportExportService $exporter)
+    {
+        return $exporter->pdf('admin.exports.laporan-nilai', $this->gradeSheet($request, Subject::orderBy('name')->get()), 'laporan-nilai-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function store(StoreGradeRequest $request): RedirectResponse

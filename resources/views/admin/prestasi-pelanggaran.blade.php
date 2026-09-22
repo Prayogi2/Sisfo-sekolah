@@ -3,187 +3,31 @@
 @section('title', 'Prestasi & Pelanggaran')
 
 @section('content')
-    <div class="container-fluid">
-        <!-- Page Heading -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800 fw-bold">Catatan Prestasi & Tata Tertib</h1>
-        </div>
-
-        <!-- Tabs -->
-        <ul class="nav nav-pills nav-fill bg-primary-soft p-2 rounded mb-4" id="kategoriTab" role="tablist" style="background-color: #e7f1ff;">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active fw-semibold" id="prestasi-tab" data-bs-toggle="pill" data-bs-target="#prestasi" type="button">
-                    <i class="bi bi-trophy-fill me-1"></i> Prestasi Siswa
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link fw-semibold" id="pelanggaran-tab" data-bs-toggle="pill" data-bs-target="#pelanggaran" type="button">
-                    <i class="bi bi-exclamation-octagon-fill me-1"></i> Pelanggaran Tata Tertib
-                </button>
-            </li>
-        </ul>
-
-        <div class="tab-content">
-            <!-- Tab Prestasi -->
-            <div class="tab-pane fade show active" id="prestasi" role="tabpanel">
-                <div class="row">
-                    <!-- Form Input Prestasi -->
-                    <div class="col-lg-4 mb-4">
-                        <div class="card shadow-sm sticky-top" style="top: 80px;">
-                            <div class="card-header text-white" style="background: linear-gradient(135deg, #0d6efd, #0a58ca);">
-                                <h6 class="m-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Input Prestasi Baru</h6>
-                            </div>
-                            <div class="card-body">
-                                <form>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Nama Siswa</label>
-                                        <select class="form-select">
-                                            <option>Ahmad Fauzi (VI)</option>
-                                            <option>Siti Aminah (V)</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Jenis Prestasi</label>
-                                        <select class="form-select">
-                                            <option>Akademik (Juara Olimpiade)</option>
-                                            <option>Non-Akademik (Olahraga/Seni)</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Nama Lomba / Event</label>
-                                        <input type="text" class="form-control" placeholder="Contoh: MTQ Tingkat Kabupaten">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Pencapaian</label>
-                                        <input type="text" class="form-control" placeholder="Contoh: Juara 1">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Benefit Diterima</label>
-                                        <input type="text" class="form-control" placeholder="Contoh: Sertifikat + Uang Saku">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">Simpan Prestasi</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Daftar Prestasi -->
-                    <div class="col-lg-8 mb-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header py-3 bg-white">
-                                <h6 class="m-0 fw-bold text-primary">Riwayat Prestasi Sekolah</h6>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="list-group list-group-flush">
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="bg-warning-soft p-3 rounded-3 me-3" style="background-color: #fff8e6;">
-                                            <i class="bi bi-trophy-fill fs-4 text-warning"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <span class="fw-bold text-dark">Juara 1 Lomba Tahfidz</span>
-                                            <p class="mb-0 text-muted small">Ahmad Fauzi (VI) • Tingkat Kabupaten • Benefit: Sertifikat & Uang Saku</p>
-                                        </div>
-                                        <button class="btn btn-sm btn-light"><i class="bi bi-trash text-danger"></i></button>
-                                    </div>
-                                    <div class="list-group-item d-flex align-items-center">
-                                        <div class="bg-warning-soft p-3 rounded-3 me-3" style="background-color: #fff8e6;">
-                                            <i class="bi bi-award-fill fs-4 text-warning"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <span class="fw-bold text-dark">Juara 2 Olimpiade Matematika</span>
-                                            <p class="mb-0 text-muted small">Siti Aminah (V) • Tingkat Kecamatan • Benefit: Sertifikat</p>
-                                        </div>
-                                        <button class="btn btn-sm btn-light"><i class="bi bi-trash text-danger"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab Pelanggaran -->
-            <div class="tab-pane fade" id="pelanggaran" role="tabpanel">
-                <div class="row">
-                    <!-- Form Input Pelanggaran -->
-                    <div class="col-lg-4 mb-4">
-                        <div class="card shadow-sm sticky-top" style="top: 80px;">
-                            <div class="card-header text-white bg-danger">
-                                <h6 class="m-0 fw-bold"><i class="bi bi-exclamation-octagon me-2"></i>Catat Pelanggaran Baru</h6>
-                            </div>
-                            <div class="card-body">
-                                <form>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Nama Siswa</label>
-                                        <select class="form-select">
-                                            <option>Budi Santoso (IV)</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Kategori Pelanggaran</label>
-                                        <select class="form-select">
-                                            <option>Ringan</option>
-                                            <option>Sedang</option>
-                                            <option>Berat</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Penjabaran / Detail</label>
-                                        <textarea class="form-control" rows="3" placeholder="Contoh: Terlambat masuk kelas 3x berturut-turut"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Dokumentasi Foto Bukti (Jika ada)</label>
-                                        <input type="file" class="form-control">
-                                    </div>
-                                    <button type="submit" class="btn btn-danger w-100">Simpan Catatan</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Daftar Pelanggaran -->
-                    <div class="col-lg-8 mb-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header py-3 bg-white">
-                                <h6 class="m-0 fw-bold text-danger">Riwayat Pelanggaran Siswa</h6>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0 align-middle">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>Tanggal</th>
-                                                <th>Siswa</th>
-                                                <th>Pelanggaran</th>
-                                                <th>Kategori</th>
-                                                <th>Bukti Foto</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>18 Mei 2024</td>
-                                                <td>Budi Santoso (IV)</td>
-                                                <td>Tidak memakai dasi saat upacara</td>
-                                                <td><span class="badge bg-warning-soft text-warning" style="background-color: #fff8e6;">Ringan</span></td>
-                                                <td class="text-muted">Tidak Ada</td>
-                                            </tr>
-                                            <tr>
-                                                <td>15 Mei 2024</td>
-                                                <td>Budi Santoso (IV)</td>
-                                                <td>Bermain gadget saat jam pelajaran</td>
-                                                <td><span class="badge bg-danger-soft text-danger" style="background-color: #ffeaea;">Sedang</span></td>
-                                                <td>
-                                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=50x50&data=Bukti" width="40" height="40" class="rounded border" alt="Bukti">
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container-fluid">
+    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    <div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1 fw-bold">Catatan Prestasi & Tata Tertib</h1><p class="text-muted mb-0">Kelola pencapaian dan catatan pelanggaran siswa.</p></div><div class="d-flex gap-2">@unless($isGuru)<a href="{{ route('admin.prestasi-pelanggaran.export.xlsx', request()->query()) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a><a href="{{ route('admin.prestasi-pelanggaran.export.pdf', request()->query()) }}" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>@endunless<form method="GET" class="d-flex gap-2"><input name="q" value="{{ $query }}" class="form-control" placeholder="Cari nama/NIS/NISN"><button class="btn btn-outline-primary">Cari</button></form></div></div>
+    <ul class="nav nav-pills nav-fill bg-primary-soft p-2 rounded mb-4" role="tablist" style="background-color:#e7f1ff"><li class="nav-item"><button class="nav-link active fw-semibold" data-bs-toggle="pill" data-bs-target="#prestasi" type="button"><i class="bi bi-trophy-fill me-1"></i> Prestasi</button></li><li class="nav-item"><button class="nav-link fw-semibold" data-bs-toggle="pill" data-bs-target="#pelanggaran" type="button"><i class="bi bi-exclamation-octagon-fill me-1"></i> Pelanggaran</button></li></ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="prestasi"><div class="row g-4"><div class="col-lg-4"><div class="card shadow-sm"><div class="card-header bg-primary text-white fw-bold">Input Prestasi Baru</div><div class="card-body">
+            <form action="{{ route($isGuru ? 'guru.prestasi-pelanggaran.prestasi.store' : 'admin.prestasi-pelanggaran.prestasi.store') }}" method="POST" enctype="multipart/form-data">@csrf
+                <div class="mb-3"><label class="form-label">Siswa</label><select name="student_id" class="form-select" required><option value="">Pilih siswa</option>@foreach($students as $student)<option value="{{ $student->id }}" @selected($studentId === $student->id)>{{ $student->name }}{{ $student->classroom ? ' ('.$student->classroom->name.')' : '' }}</option>@endforeach</select></div>
+                <div class="mb-3"><label class="form-label">Kategori</label><select name="category" class="form-select" required><option value="academic">Akademik</option><option value="non_academic">Non-akademik</option></select></div>
+                <div class="mb-3"><label class="form-label">Nama prestasi</label><input name="title" class="form-control" placeholder="Juara 1 Olimpiade" required></div>
+                <div class="row g-2"><div class="col-md-7 mb-3"><label class="form-label">Event</label><input name="event" class="form-control"></div><div class="col-md-5 mb-3"><label class="form-label">Tingkat</label><input name="level" class="form-control" placeholder="Kabupaten"></div></div>
+                <div class="row g-2"><div class="col-md-7 mb-3"><label class="form-label">Pencapaian</label><input name="achievement" class="form-control" placeholder="Juara 1"></div><div class="col-md-5 mb-3"><label class="form-label">Tanggal</label><input name="achieved_at" type="date" class="form-control"></div></div>
+                <div class="mb-3"><label class="form-label">Benefit</label><textarea name="benefit" class="form-control" rows="2" placeholder="Sertifikat, uang pembinaan"></textarea></div><div class="mb-3"><label class="form-label">Bukti (JPG, PNG, PDF)</label><input name="evidence" type="file" class="form-control" accept="image/jpeg,image/png,application/pdf"></div><button class="btn btn-primary w-100">Simpan Prestasi</button>
+            </form>
+        </div></div></div><div class="col-lg-8"><div class="card shadow-sm"><div class="card-header fw-bold text-primary">Riwayat Prestasi</div><div class="card-body p-0"><div class="list-group list-group-flush">
+            @forelse($achievements as $achievement)<div class="list-group-item d-flex align-items-start gap-3"><div class="bg-warning-subtle p-3 rounded"><i class="bi bi-trophy-fill fs-4 text-warning"></i></div><div class="flex-grow-1"><div class="fw-bold">{{ $achievement->title }}</div><div class="small text-muted">{{ $achievement->student->name }}{{ $achievement->student->classroom ? ' · '.$achievement->student->classroom->name : '' }} · {{ $achievement->category === 'academic' ? 'Akademik' : 'Non-akademik' }}</div><div class="small">{{ collect([$achievement->achievement, $achievement->event, $achievement->level])->filter()->join(' · ') }}</div>@if($achievement->benefit)<div class="small text-muted">Benefit: {{ $achievement->benefit }}</div>@endif</div><form method="POST" action="{{ route($isGuru ? 'guru.prestasi-pelanggaran.prestasi.destroy' : 'admin.prestasi-pelanggaran.prestasi.destroy', $achievement) }}" onsubmit="return confirm('Hapus catatan ini?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></div>@empty<div class="p-4 text-center text-muted">Belum ada catatan prestasi.</div>@endforelse
+        </div></div></div></div></div></div>
+        <div class="tab-pane fade" id="pelanggaran"><div class="row g-4"><div class="col-lg-4"><div class="card shadow-sm"><div class="card-header bg-danger text-white fw-bold">Catat Pelanggaran Baru</div><div class="card-body">
+            <form action="{{ route($isGuru ? 'guru.prestasi-pelanggaran.pelanggaran.store' : 'admin.prestasi-pelanggaran.pelanggaran.store') }}" method="POST" enctype="multipart/form-data">@csrf
+                <div class="mb-3"><label class="form-label">Siswa</label><select name="student_id" class="form-select" required><option value="">Pilih siswa</option>@foreach($students as $student)<option value="{{ $student->id }}">{{ $student->name }}{{ $student->classroom ? ' ('.$student->classroom->name.')' : '' }}</option>@endforeach</select></div><div class="mb-3"><label class="form-label">Kategori</label><select name="severity" class="form-select" required><option value="light">Ringan</option><option value="medium">Sedang</option><option value="severe">Berat</option></select></div><div class="mb-3"><label class="form-label">Jenis pelanggaran</label><input name="title" class="form-control" placeholder="Tidak memakai atribut lengkap" required></div><div class="mb-3"><label class="form-label">Tanggal kejadian</label><input name="occurred_at" type="date" class="form-control" value="{{ now()->toDateString() }}" required></div><div class="mb-3"><label class="form-label">Penjabaran</label><textarea name="description" class="form-control" rows="3" required></textarea></div><div class="mb-3"><label class="form-label">Tindakan pembinaan</label><textarea name="action_taken" class="form-control" rows="2"></textarea></div><div class="mb-3"><label class="form-label">Dokumentasi (JPG, PNG, PDF)</label><input name="evidence" type="file" class="form-control" accept="image/jpeg,image/png,application/pdf"></div><button class="btn btn-danger w-100">Simpan Pelanggaran</button>
+            </form>
+        </div></div></div><div class="col-lg-8"><div class="card shadow-sm"><div class="card-header fw-bold text-danger">Riwayat Pelanggaran</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0 align-middle"><thead class="table-light"><tr><th>Tanggal</th><th>Siswa</th><th>Pelanggaran</th><th>Kategori</th><th>Aksi</th></tr></thead><tbody>
+            @forelse($violations as $violation)<tr><td>{{ $violation->occurred_at->format('d/m/Y') }}</td><td>{{ $violation->student->name }}</td><td><div class="fw-semibold">{{ $violation->title }}</div><small class="text-muted">{{ $violation->description }}</small></td><td><span class="badge {{ $violation->severity === 'severe' ? 'bg-danger' : ($violation->severity === 'medium' ? 'bg-warning text-dark' : 'bg-secondary') }}">{{ ['light' => 'Ringan', 'medium' => 'Sedang', 'severe' => 'Berat'][$violation->severity] }}</span></td><td><form method="POST" action="{{ route($isGuru ? 'guru.prestasi-pelanggaran.pelanggaran.destroy' : 'admin.prestasi-pelanggaran.pelanggaran.destroy', $violation) }}" onsubmit="return confirm('Hapus catatan ini?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td></tr>@empty<tr><td colspan="5" class="text-center text-muted py-4">Belum ada catatan pelanggaran.</td></tr>@endforelse
+        </tbody></table></div></div></div></div></div></div>
     </div>
+</div>
 @endsection

@@ -252,6 +252,7 @@
                         <div class="col-6 col-md-3">
                             <label class="form-label fw-semibold">Nilai Kuis ({{ $weight->quiz_weight }}%)</label>
                             <input type="number" min="0" max="100" class="form-control" name="quiz_score" id="nilaiQuiz">
+                            <small class="text-muted">Terisi otomatis dari kuis CBT.</small>
                         </div>
                         <div class="col-6 col-md-3">
                             <label class="form-label fw-semibold">Nilai UTS ({{ $weight->midterm_weight }}%)</label>

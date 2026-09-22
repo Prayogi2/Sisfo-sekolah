@@ -4,141 +4,35 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Header Halaman -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h4 class="fw-bold mb-1">Manajemen Bank Soal & Kuis</h4>
-            <p class="text-muted mb-0">Kelola daftar kuis online, bank soal, dan durasi ujian untuk siswa.</p>
-        </div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahSoal">
-            <i class="bi bi-plus-lg me-1"></i> Buat Soal / Kuis Baru
-        </button>
-    </div>
+    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    <div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="fw-bold mb-1">Bank Soal & Kuis CBT</h4><p class="text-muted mb-0">Buat soal, susun kuis, dan publikasikan ke kelas.</p></div><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSoal"><i class="bi bi-plus-lg me-1"></i> Tambah Soal</button></div>
 
-    <!-- Alert Sukses -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+    <div class="card shadow-sm mb-4"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="fw-bold mb-0">Kuis yang Dibuat</h6><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalKuis">Buat Kuis Baru</button></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Judul</th><th>Mapel</th><th>Kelas</th><th>Soal</th><th>Durasi</th><th>Status</th><th class="text-center">Akses Siswa</th></tr></thead><tbody>@forelse($quizzes as $quiz)<tr><td class="fw-semibold">{{ $quiz->title }}</td><td>{{ $quiz->subject->name }}</td><td>{{ $quiz->classroom->name }}</td><td>{{ $quiz->questions_count ?? $quiz->questions->count() }}</td><td>{{ $quiz->duration_minutes }} menit</td><td><span class="badge {{ $quiz->is_published ? 'bg-success' : 'bg-secondary' }}">{{ $quiz->is_published ? 'Dipublikasikan' : 'Draft' }}</span></td>
+                    <td class="text-center">
+                        @if(! $quiz->is_published)
+                            <span class="text-muted small">Publikasikan dulu</span>
+                        @else
+                            @if($quiz->isLive())
+                                <a href="{{ route('guru.kuis.live', $quiz) }}" class="btn btn-sm btn-outline-primary mb-1"><i class="bi bi-broadcast me-1"></i> Panel Kahoot</a>
+                            @endif
+                            <form action="{{ route('guru.kuis.toggle-open', $quiz) }}" method="POST" class="d-inline">
+                                @csrf
+                                @if($quiz->is_open)
+                                    <button class="btn btn-sm btn-danger"><i class="bi bi-lock me-1"></i> Tutup Kuis</button>
+                                    <div class="small text-success mt-1"><i class="bi bi-broadcast"></i> Sedang dibuka</div>
+                                @else
+                                    <button class="btn btn-sm btn-success"><i class="bi bi-unlock me-1"></i> Buka Kuis</button>
+                                    <div class="small text-muted mt-1">Tertutup</div>
+                                @endif
+                            </form>
+                        @endif
+                    </td></tr>@empty<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kuis.</td></tr>@endforelse</tbody></table></div></div>
 
-    <!-- Tabel Daftar Bank Soal -->
-    <div class="card border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold mb-0"><i class="bi bi-journal-bookmark-fill text-primary me-2"></i> Daftar Kuis & Soal Aktif</h6>
-            <div class="input-group input-group-sm" style="width: 250px;">
-                <input type="text" class="form-control" placeholder="Cari soal/topik...">
-                <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>No</th>
-                            <th>Mata Pelajaran</th>
-                            <th>Judul Kuis / Topik</th>
-                            <th>Target Kelas</th>
-                            <th>Jumlah Soal</th>
-                            <th>Durasi</th>
-                            <th>Status</th>
-                            <th class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>Matematika</td>
-                            <td class="fw-semibold">Kuis Harian 1 - Operasi Hitung</td>
-                            <td><span class="badge bg-secondary">Kelas V-A</span></td>
-                            <td>10 Soal</td>
-                            <td>30 Menit</td>
-                            <td><span class="badge bg-success">Aktif</span></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-warning me-1"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>IPA Terpadu</td>
-                            <td class="fw-semibold">Evaluasi Bab 2 - Ekosistem</td>
-                            <td><span class="badge bg-secondary">Kelas VI-B</span></td>
-                            <td>15 Soal</td>
-                            <td>45 Menit</td>
-                            <td><span class="badge bg-success">Aktif</span></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-warning me-1"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    <div class="card shadow-sm"><div class="card-header bg-white"><h6 class="fw-bold mb-0">Bank Soal Saya</h6></div><div class="card-body"><div class="row g-3">@forelse($questions as $question)<div class="col-lg-6"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between"><span class="badge bg-primary">{{ $question->subject->name }}</span><span class="small text-muted">{{ $question->points }} poin</span></div><div class="fw-semibold mt-2">{{ $question->question }}</div>@if($question->media_path)@if($question->media_type === 'video')<video src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" controls></video>@else<img src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" alt="Media soal">@endif @endif<ol type="A" class="small text-muted mt-2 mb-0">@foreach($question->options as $option)<li>{{ $option }}</li>@endforeach</ol><div class="small text-success mt-2">Kunci: {{ $question->correct_answer }}</div></div></div>@empty<div class="col-12 text-center text-muted py-4">Belum ada soal. Tambahkan soal pertama.</div>@endforelse</div></div></div>
 </div>
 
-<!-- Modal Form Input Soal Baru -->
-<div class="modal fade" id="modalTambahSoal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Buat Soal / Kuis Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('guru.bank-soal.simpan') }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Mata Pelajaran</label>
-                            <select class="form-select" name="subject_id" required>
-                                <option value="">-- Pilih Mapel --</option>
-                                @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Target Kelas</label>
-                            <select class="form-select" name="kelas" required>
-                                <option value="V-A">Kelas V-A</option>
-                                <option value="VI-B">Kelas VI-B</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Judul Kuis / Topik Soal</label>
-                        <input type="text" class="form-control" name="question" placeholder="Tuliskan pertanyaan di sini..." required>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Durasi (Menit)</label>
-                            <input type="number" class="form-control" name="points" value="1" min="1" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Jumlah Soal</label>
-                            <input type="text" class="form-control" name="explanation" placeholder="Penjelasan jawaban (opsional)">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Pertanyaan Soal</label>
-                        <div class="row g-2">
-                            @foreach(['A', 'B', 'C', 'D'] as $option)
-                                <div class="col-md-6"><div class="input-group"><span class="input-group-text">{{ $option }}</span><input class="form-control" name="options[{{ $option }}]" required><span class="input-group-text"><input type="radio" name="correct_answer" value="{{ $option }}" required> Kunci</span></div></div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Soal</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="modalSoal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form action="{{ route('guru.bank-soal.simpan') }}" method="POST" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Tambah Soal Pilihan Ganda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label">Mata Pelajaran</label><select name="subject_id" class="form-select" required><option value="">Pilih mapel</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}">{{ $subject->name }}</option>@endforeach</select></div><div class="mb-3"><label class="form-label">Pertanyaan</label><textarea name="question" rows="3" class="form-control" required></textarea></div><div class="mb-3"><label class="form-label">Gambar / Video (opsional)</label><input type="file" name="media" class="form-control" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"><div class="form-text">Gambar atau video maksimal 50 MB.</div><div class="mb-3"></div><div class="row g-2">@foreach(['A','B','C','D'] as $letter)<div class="col-md-6"><div class="input-group"><span class="input-group-text">{{ $letter }}</span><input name="options[{{ $letter }}]" class="form-control" required><span class="input-group-text"><input type="radio" name="correct_answer" value="{{ $letter }}" required> Kunci</span></div></div>@endforeach</div><div class="mt-3"><label class="form-label">Penjelasan (opsional)</label><textarea name="explanation" rows="2" class="form-control"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan Soal</button></div></form></div></div></div>
+
+        <div class="modal fade" id="modalKuis" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form action="{{ route('guru.kuis.store') }}" method="POST">@csrf<div class="modal-header"><h5 class="modal-title">Buat Kuis CBT</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="row g-3"><div class="col-md-6"><label class="form-label">Judul</label><input name="title" class="form-control" required></div><div class="col-md-3"><label class="form-label">Mapel</label><select name="subject_id" class="form-select" required><option value="">Pilih</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}">{{ $subject->name }}</option>@endforeach</select></div><div class="col-md-3"><label class="form-label">Kelas</label><select name="classroom_id" class="form-select" required><option value="">Pilih</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}">{{ $classroom->name }}</option>@endforeach</select></div><div class="col-md-4"><label class="form-label">Durasi (menit)</label><input name="duration_minutes" type="number" min="1" max="600" value="30" class="form-control" required></div><div class="col-md-4"><label class="form-label">Mulai</label><input name="starts_at" type="datetime-local" class="form-control"></div><div class="col-md-4"><label class="form-label">Selesai</label><input name="ends_at" type="datetime-local" class="form-control"></div><div class="col-12"><label class="form-label">Deskripsi</label><textarea name="description" class="form-control" rows="2"></textarea></div><div class="col-md-6"><label class="form-label">Mode Kuis</label><select name="mode" class="form-select"><option value="async">Mandiri (siswa mulai sendiri)</option><option value="live">Kahoot (serentak dikendalikan guru)</option></select></div><div class="col-md-6 d-flex align-items-end"><label class="form-check mb-2"><input type="checkbox" name="show_score_per_question" value="1" class="form-check-input"><span class="form-check-label">Tampilkan skor tiap soal</span></label></div><div class="col-12"><label class="form-label">Pilih soal</label><div class="row g-2">@forelse($questions as $question)<div class="col-md-6"><label class="border rounded p-2 d-block"><input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="me-2">{{ \Illuminate\Support\Str::limit($question->question, 90) }} <small class="text-muted">({{ $question->subject->name }})</small></label></div>@empty<div class="text-muted">Buat soal terlebih dahulu.</div>@endforelse</div></div><div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="is_published" value="1"><span class="form-check-label">Publikasikan langsung</span></label></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan Kuis</button></div></form></div></div></div>
 @endsection

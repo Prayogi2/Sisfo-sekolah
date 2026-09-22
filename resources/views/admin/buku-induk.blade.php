@@ -20,6 +20,14 @@
                 <h1 class="h3 mb-0 text-gray-800 fw-bold">Buku Induk Siswa</h1>
                 <p class="text-muted mb-0">Rekam jejak lengkap data peserta didik MIS Nurul Falaq.</p>
             </div>
+            <div class="d-flex gap-2">
+                @if($student)
+                    <a href="{{ route('admin.buku-induk.student.download', $student) }}" target="_blank" class="btn btn-outline-primary"><i class="bi bi-download me-1"></i>Siswa Terpilih</a>
+                    <a href="{{ route('admin.buku-induk.student.export.xlsx', $student) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel Terpilih</a>
+                @endif
+                <a href="{{ route('admin.buku-induk.download') }}" target="_blank" class="btn btn-primary"><i class="bi bi-download me-1"></i>Semua Siswa</a>
+                <a href="{{ route('admin.buku-induk.export.xlsx') }}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel Semua</a>
+            </div>
         </div>
 
         <!-- Pilih Siswa -->
@@ -49,6 +57,53 @@
                         <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i> Tampilkan</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-people-fill me-2"></i>Daftar Nama Siswa</h6>
+                <span class="badge bg-primary-subtle text-primary">{{ $students->count() }} siswa</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">No</th>
+                                <th>Nama Siswa</th>
+                                <th>NISN</th>
+                                <th>Kelas</th>
+                                <th>Status</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($students as $option)
+                                <tr>
+                                    <td class="ps-3">{{ $loop->iteration }}</td>
+                                    <td class="fw-semibold">{{ $option->name }}</td>
+                                    <td>{{ $option->nisn }}</td>
+                                    <td>{{ $option->classroom?->name ?? 'Belum masuk kelas' }}</td>
+                                    <td><span class="badge {{ $option->status->value === 'active' ? 'bg-success' : 'bg-secondary' }}">{{ $option->status->label() }}</span></td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="bi bi-gear me-1"></i>Aksi
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="{{ route('admin.buku-induk', ['student' => $option->id, 'search' => $search]) }}"><i class="bi bi-eye me-2 text-primary"></i>Lihat Buku Induk</a></li>
+                                                <li><a class="dropdown-item" href="{{ route('admin.buku-induk.edit', $option) }}"><i class="bi bi-pencil-square me-2 text-warning"></i>Edit Buku Induk Lengkap</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada data siswa.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -166,10 +221,17 @@
                 <!-- Tab 3: Perkembangan Akademik -->
                 <div class="tab-pane fade" id="akademik" role="tabpanel">
                     <h6 class="text-primary fw-bold mb-3"><i class="bi bi-graph-up me-2"></i>Rekap Nilai &amp; Rapor</h6>
-                    <div class="alert alert-info mb-0">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Rekap nilai dan rapor belum tersedia. Modul penilaian belum memiliki data, sehingga tab ini akan terisi otomatis setelah modul nilai aktif.
-                    </div>
+                    @forelse($academicReports as $report)
+                        <div class="card border mb-4"><div class="card-header bg-light d-flex justify-content-between"><strong>Tahun Ajaran {{ $report['academic_year'] }} · Semester {{ $report['semester']->label() }}</strong><span class="text-primary fw-bold">Rata-rata: {{ $report['average'] ?? '-' }} · Peringkat: {{ $report['rank'] ? $report['rank'].' / '.$report['rank_total'] : '-' }}</span></div><div class="table-responsive"><table class="table table-sm table-bordered mb-0 align-middle"><thead><tr><th>Mapel</th><th>Tugas</th><th>Kuis</th><th>UTS</th><th>UAS</th><th>Nilai Akhir</th><th>Grade</th></tr></thead><tbody>@foreach($report['grades'] as $grade)<tr><td>{{ $grade['subject'] }}</td><td>{{ $grade['assignment'] ?? '-' }}</td><td>{{ $grade['quiz'] ?? '-' }}</td><td>{{ $grade['midterm'] ?? '-' }}</td><td>{{ $grade['final'] ?? '-' }}</td><td class="fw-bold">{{ $grade['final_score'] ?? '-' }}</td><td>{{ $grade['letter'] }}</td></tr>@endforeach</tbody></table></div></div>
+                    @empty
+                        <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Belum ada nilai yang tersimpan untuk siswa ini.</div>
+                    @endforelse
+                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-chat-left-text me-2"></i>Kenaikan Kelas & Catatan Perkembangan</h6>
+                    @forelse($student->progressNotes->sortByDesc('academic_year') as $note)
+                        <div class="border rounded p-3 mb-2"><div class="d-flex justify-content-between"><strong>{{ $note->academic_year }} · Semester {{ $note->semester->label() }}</strong><span class="badge {{ $note->promotion_status->badgeClass() }}">{{ $note->promotion_status->label() }}</span></div><div class="mt-2 text-muted">{{ $note->notes ?: 'Tidak ada catatan.' }}</div></div>
+                    @empty
+                        <div class="alert alert-light border">Belum ada catatan perkembangan. Tambahkan melalui menu Edit Buku Induk Lengkap.</div>
+                    @endforelse
                 </div>
 
                 <!-- Tab 4: Data Orang Tua / Wali -->
@@ -219,4 +281,43 @@
             </div>
         @endif
     </div>
+
+    <div class="modal fade" id="modalEditBukuInduk" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form id="formEditBukuInduk" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Data Siswa</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label fw-semibold">NISN</label><input type="text" name="nisn" id="bukuEditNisn" class="form-control" required></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">NIS</label><input type="text" name="nis" id="bukuEditNis" class="form-control" required></div>
+                            <div class="col-md-12"><label class="form-label fw-semibold">Nama Lengkap</label><input type="text" name="name" id="bukuEditName" class="form-control" required></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Jenis Kelamin</label><select name="gender" id="bukuEditGender" class="form-select" required><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Kelas</label><select name="classroom_id" id="bukuEditClassroomId" class="form-select"><option value="">-- Belum Ada Kelas --</option>@foreach ($students->pluck('classroom')->filter()->unique('id') as $classroom)<option value="{{ $classroom->id }}">{{ $classroom->name }}</option>@endforeach</select></div>
+                            <div class="col-md-12"><label class="form-label fw-semibold">Alamat</label><textarea name="address" id="bukuEditAddress" class="form-control" rows="2"></textarea></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-warning">Simpan Perubahan</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('modalEditBukuInduk')?.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            document.getElementById('formEditBukuInduk').action = button.dataset.action;
+            document.getElementById('bukuEditNisn').value = button.dataset.nisn;
+            document.getElementById('bukuEditNis').value = button.dataset.nis;
+            document.getElementById('bukuEditName').value = button.dataset.name;
+            document.getElementById('bukuEditGender').value = button.dataset.gender;
+            document.getElementById('bukuEditClassroomId').value = button.dataset.classroomId || '';
+            document.getElementById('bukuEditAddress').value = button.dataset.address || '';
+        });
+    </script>
 @endsection

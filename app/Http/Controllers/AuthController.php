@@ -2,81 +2,89 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    /**
-     * Menampilkan halaman form login.
-     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    /**
-     * Memproses autentikasi login multi-role.
-     */
     public function login(Request $request)
     {
-        // 1. Validasi Input dari Form
-        // Catatan: 'siswa' bukan role login yang valid — siswa tidak login sendiri,
-        // data siswa diakses lewat akun wali murid (lihat rencana Fase 0).
         $request->validate([
-            'login' => 'required|string',
-            'password' => 'required|string',
-            'role' => 'required|in:admin,guru,wali',
+            'identifier' => ['required', 'string', 'max:255'],
+            'password' => ['required', 'string'],
         ], [
-            'login.required' => 'Field login wajib diisi.',
-            'password.required' => 'Kata sandi wajib diisi.',
-            'role.required' => 'Peran/Role harus dipilih.',
-            'role.in' => 'Peran/Role tidak valid.',
+            'identifier.required' => 'Email atau nama wajib diisi.',
+            'password.required' => 'Password wajib diisi.',
         ]);
 
-        $input = $request->input('login');
-        $password = $request->input('password');
-        $role = $request->input('role');
-        $remember = $request->has('remember');
+        $identifier = $request->string('identifier')->toString();
+        $user = User::query()->where(function ($query) use ($identifier) {
+            $query->where(function ($query) use ($identifier) {
+                $query->whereIn('role', ['admin', 'guru'])->where('email', $identifier);
+            })->orWhere(function ($query) use ($identifier) {
+                $query->whereIn('role', ['wali', 'siswa'])->where('name', $identifier);
+            });
+        })->first();
 
-        // 2. Deteksi field login (email / username / nip / nisn)
-        $field = filter_var($input, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-
-        // Susun kredensial pencocokan
-        $credentials = [
-            $field => $input,
-            'password' => $password,
-            'role' => $role,
-        ];
-
-        // 3. Coba Autentikasi
-        if (Auth::attempt($credentials, $remember)) {
-            // Mencegah Session Fixation Attack
-            $request->session()->regenerate();
-
-            // Redirect pengguna ke dashboard sesuai role
-            return match ($role) {
-                'admin' => redirect()->route('admin.dashboard'),
-                'guru' => redirect()->route('guru.dashboard'),
-                'wali' => redirect()->route('wali.dashboard'),
-                default => redirect()->to('/'),
-            };
+        if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
+            return back()
+                ->with('error', 'Email/nama atau password salah.')
+                ->withInput($request->only('identifier'));
         }
 
-        // 4. Pengondisian jika login gagal
-        return back()
-            ->with('error', 'Kredensial atau role yang Anda pilih tidak cocok.')
-            ->withInput($request->only('login', 'role'));
+        Auth::login($user, $request->boolean('remember'));
+        $role = $user->role;
+
+        if (! in_array($role, ['admin', 'guru', 'wali', 'siswa'], true)) {
+            Auth::logout();
+
+            return back()
+                ->with('error', 'Akun ini tidak memiliki akses login.')
+                ->withInput($request->only('identifier'));
+        }
+
+        $request->session()->regenerate();
+
+        return match ($role) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'guru' => redirect()->route('guru.dashboard'),
+            'wali' => redirect()->route('wali.dashboard'),
+            'siswa' => redirect()->route('siswa.dashboard'),
+        };
     }
 
-    /**
-     * Memproses logout pengguna.
-     */
+    public function editPassword(): View
+    {
+        return view('auth.password');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ], [
+            'current_password.current_password' => 'Password saat ini salah.',
+            'password.confirmed' => 'Konfirmasi password tidak sama.',
+        ]);
+
+        $request->user()->update(['password' => $validated['password']]);
+
+        return back()->with('success', 'Password berhasil diubah.');
+    }
+
     public function logout(Request $request)
     {
         Auth::logout();
-
-        // Invalidate session dan regenerasi CSRF token
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

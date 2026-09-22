@@ -6,6 +6,9 @@ use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
 use App\Models\Attendance;
 use App\Models\AttendanceSchedule;
 use App\Models\LeaveRequest;
+use App\Models\Quiz;
+use App\Models\QuizAttempt;
+use App\Models\SppBill;
 use App\Models\Student;
 use App\Services\CurrentStudentResolver;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +19,66 @@ use Illuminate\View\View;
 class StudentPortalController extends Controller
 {
     use ResolvesCurrentStudent;
+
+    public function dashboard(CurrentStudentResolver $resolver): View|RedirectResponse
+    {
+        $student = $resolver->resolve(auth()->user());
+
+        if (! $student) {
+            return view('siswa.dashboard', [
+                'student' => null,
+                'today' => null,
+                'monthAttendances' => collect(),
+                'bills' => collect(),
+                'quizzes' => collect(),
+            ]);
+        }
+
+        $today = Attendance::query()
+            ->where('student_id', $student->id)
+            ->whereDate('date', today())
+            ->first();
+        $monthAttendances = Attendance::query()
+            ->where('student_id', $student->id)
+            ->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->get();
+        $bills = SppBill::with('payments')
+            ->where('student_id', $student->id)
+            ->latest('period')
+            ->get();
+        $quizzes = Quiz::with(['subject', 'attempts' => fn ($query) => $query->where('student_id', $student->id)])
+            ->where('classroom_id', $student->classroom_id)
+            ->where('is_published', true)
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('siswa.dashboard', compact('student', 'today', 'monthAttendances', 'bills', 'quizzes'));
+    }
+
+    public function guardianDashboard(CurrentStudentResolver $resolver): View
+    {
+        $student = $resolver->resolve(auth()->user());
+
+        if (! $student) {
+            return view('wali-murid.dashboard', [
+                'student' => null,
+                'history' => collect(),
+                'bills' => collect(),
+                'attempts' => collect(),
+            ]);
+        }
+
+        $history = $this->lastSevenDaysAttendance($student, days: 30);
+        $bills = SppBill::with('payments')->where('student_id', $student->id)->latest('period')->get();
+        $attempts = QuizAttempt::with('quiz.subject')
+            ->where('student_id', $student->id)
+            ->where('status', 'submitted')
+            ->latest('submitted_at')
+            ->get();
+
+        return view('wali-murid.dashboard', compact('student', 'history', 'bills', 'attempts'));
+    }
 
     public function digitalCard(CurrentStudentResolver $resolver): View|RedirectResponse
     {

@@ -2,6 +2,17 @@
 
 @section('title', 'Kartu Digital Siswa')
 
+@push('styles')
+    <style>
+        @media print {
+            body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .sidebar, .topbar, .footer, .btn, .badge, .card:not(.digital-card) { display: none !important; }
+            .digital-card, .digital-card .card-header, .digital-card .card-footer { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .digital-card { display: block !important; max-width: 90mm; margin: 0 auto; }
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="container-fluid">
         <!-- Page Heading -->
@@ -13,7 +24,7 @@
         <div class="row justify-content-center">
             <!-- Kolom Kartu Digital -->
             <div class="col-lg-5 col-md-12 mb-4">
-                <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card digital-card shadow-lg border-0 rounded-lg">
                     <div class="card-header bg-primary text-white text-center py-3">
                         <h5 class="mb-0">KARTU PELAJAR DIGITAL</h5>
                         <small>MIS Nurul Falaq</small>
@@ -35,7 +46,7 @@
                                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($student->qr_token) }}" alt="QR Code" width="200" height="200">
                             </div>
 
-                            <button class="btn btn-outline-primary w-100"><i class="bi bi-download me-2"></i> Unduh Kartu (PDF)</button>
+                            <button type="button" class="btn btn-outline-primary w-100" onclick="window.print()"><i class="bi bi-download me-2"></i> Unduh Kartu (PDF)</button>
                         </div>
                     </div>
                     <div class="card-footer text-muted text-center" style="font-size: 0.8rem;">

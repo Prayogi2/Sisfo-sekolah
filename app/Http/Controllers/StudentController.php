@@ -6,8 +6,10 @@ use App\Http\Requests\Student\StoreStudentRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Models\Classroom;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class StudentController extends Controller
@@ -36,14 +38,22 @@ class StudentController extends Controller
 
     public function store(StoreStudentRequest $request): RedirectResponse
     {
-        Student::create($request->validated());
+        $student = Student::create($request->validated());
+        $student->update(['user_id' => User::create([
+            'name' => $student->name,
+            'email' => $student->nisn.'@siswa.local',
+            'username' => $student->nisn,
+            'password' => 'password123',
+            'role' => 'siswa',
+        ])->id]);
 
-        return back()->with('success', 'Siswa baru berhasil ditambahkan.');
+        return back()->with('success', "Siswa berhasil ditambahkan. Login: {$student->name} / password123");
     }
 
     public function update(UpdateStudentRequest $request, Student $student): RedirectResponse
     {
         $student->update($request->validated());
+        $student->user?->update(['name' => $student->name]);
 
         return back()->with('success', 'Data siswa berhasil diperbarui.');
     }
@@ -55,5 +65,18 @@ class StudentController extends Controller
         $student->delete();
 
         return back()->with('success', 'Data siswa berhasil dihapus.');
+    }
+
+    public function qrCard(Student $student): View
+    {
+        Gate::authorize('view', $student);
+
+        if (! $student->qr_token) {
+            $student->forceFill(['qr_token' => Str::random(40)])->save();
+        }
+
+        $student->load('classroom');
+
+        return view('admin.kartu-siswa', compact('student'));
     }
 }

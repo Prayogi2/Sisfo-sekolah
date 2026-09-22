@@ -26,12 +26,16 @@ class ScanController extends Controller
         try {
             $result = $scanner->scan($request->string('qr_token'));
         } catch (AttendanceScanException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 422);
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'time' => now()->format('H:i:s'),
+            ], 422);
         }
 
         return response()->json([
             'event' => $result->event,
             'status' => $result->attendance->status->value,
+            'departure_status' => $result->attendance->departure_status,
             'student' => [
                 'name' => $result->student->name,
                 'classroom' => $result->student->classroom->name,

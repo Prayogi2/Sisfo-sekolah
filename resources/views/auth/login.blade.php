@@ -4,276 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NURFA.ID</title>
-    
-    <!-- KODE FAVICON AMAN -->
-    @php
-        $faviconPath = public_path('images/logo.png');
-        $faviconUrl = asset('images/logo.png');
-    @endphp
-    @if(file_exists($faviconPath))
-        <link rel="icon" type="image/png" href="{{ $faviconUrl }}" />
-    @else
-        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='20'%20fill='%230d6efd'/%3E%3Ctext%20x='50'%20y='68'%20font-size='50'%20text-anchor='middle'%20fill='white'%20font-family='Arial'%20font-weight='bold'%3ENF%3C/text%3E%3C/svg%3E" />
-    @endif
-    <!-- AKHIR KODE FAVICON -->
-
+    @php($logoPath = public_path('images/logo.png'))
+    @php($logoUrl = asset('images/logo.png'))
+    @if(file_exists($logoPath)) <link rel="icon" type="image/png" href="{{ $logoUrl }}"> @endif
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Nunito', 'Segoe UI', Roboto, sans-serif;
-            background-color: #f4f7fe;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .wrapper { display: flex; height: 100vh; }
-        .brand-panel {
-            flex: 1;
-            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-        .brand-panel::after {
-            content: ''; position: absolute; width: 300px; height: 300px;
-            border-radius: 50%; background: rgba(255,255,255,0.1); top: -50px; right: -50px;
-        }
-        .brand-panel::before {
-            content: ''; position: absolute; width: 200px; height: 200px;
-            border-radius: 50%; background: rgba(255,255,255,0.1); bottom: -50px; left: -50px;
-        }
-        .form-panel {
-            flex: 1; background-color: white; display: flex;
-            justify-content: center; align-items: center; padding: 40px;
-        }
+        body { margin: 0; min-height: 100vh; font-family: 'Nunito', 'Segoe UI', sans-serif; background: #f4f7fe; }
+        .wrapper { display: flex; min-height: 100vh; }
+        .brand-panel { position: relative; overflow: hidden; flex: 1; background: linear-gradient(140deg, #1273ff 0%, #0d6efd 45%, #0a4bb0 100%); color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; }
+        /* Tekstur geometris Islami + cahaya lembut, murni CSS/SVG (tanpa aset eksternal) */
+        .brand-pattern { position: absolute; inset: 0; opacity: .14; pointer-events: none; }
+        .brand-glow { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; }
+        .brand-glow-a { width: 340px; height: 340px; background: rgba(125, 196, 255, .55); top: -110px; left: -110px; }
+        .brand-glow-b { width: 320px; height: 320px; background: rgba(45, 212, 191, .38); bottom: -120px; right: -90px; }
+        .brand-content { position: relative; z-index: 1; width: 100%; max-width: 360px; }
+        .brand-logo-wrap { position: relative; display: inline-flex; margin-bottom: 26px; }
+        .brand-logo-wrap::after { content: ''; position: absolute; inset: -14px; border-radius: 50%; border: 1px dashed rgba(255,255,255,.45); animation: brand-spin 26s linear infinite; }
+        @keyframes brand-spin { to { transform: rotate(360deg); } }
+        .brand-divider { width: 54px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.65); margin: 18px auto 22px; }
+        .brand-feature { display: flex; align-items: center; gap: .7rem; text-align: left; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28); border-radius: 14px; padding: .6rem .85rem; margin-bottom: .6rem; font-size: .9rem; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .brand-feature i { font-size: 1.05rem; opacity: .95; }
+        /* min-width:0 supaya panel form boleh menyusut di layar sempit dan
+           isinya tidak meluber keluar layar HP. */
+        .form-panel { flex: 1; min-width: 0; background: #fff; display: flex; align-items: center; justify-content: center; padding: 40px; }
         .login-box { width: 100%; max-width: 400px; }
-        .logo-fallback {
-            background-color: white; color: #0d6efd; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; width: 80px; height: 80px; font-size: 2rem;
-            border: 4px solid rgba(255,255,255,0.5);
-        }
-        /* Style untuk Logo Kecil di Form Login */
-        .login-logo {
-            width: 70px; height: 70px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 3px solid #e7f1ff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .login-logo-fallback {
-            background-color: #0d6efd; color: white; font-weight: bold;
-            display: inline-flex; align-items: center; justify-content: center;
-            border-radius: 50%; width: 70px; height: 70px; font-size: 1.5rem;
-            box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
-        }
-        @media (max-width: 768px) {
-            .brand-panel { display: none; }
-            .wrapper { height: auto; min-height: 100vh; overflow: auto; }
-            body { overflow: auto; }
-        }
+        .login-logo { width: 78px; height: 78px; object-fit: cover; border-radius: 50%; border: 3px solid #e7f1ff; box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+        @media (max-width: 768px) { .brand-panel { display: none; } .form-panel { min-height: 100vh; padding: 24px; } }
+        @media (prefers-reduced-motion: reduce) { .brand-logo-wrap::after { animation: none; } }
     </style>
 </head>
 <body>
+    <div class="wrapper">
+        <div class="brand-panel">
+            <svg class="brand-pattern" width="100%" height="100%" aria-hidden="true" focusable="false">
+                <defs>
+                    <pattern id="nurfaTile" width="72" height="72" patternUnits="userSpaceOnUse">
+                        {{-- Rub el Hizb: dua persegi bertumpuk 45 derajat --}}
+                        <rect x="21" y="21" width="30" height="30" fill="none" stroke="#fff" stroke-width="1"/>
+                        <rect x="21" y="21" width="30" height="30" fill="none" stroke="#fff" stroke-width="1" transform="rotate(45 36 36)"/>
+                        <circle cx="36" cy="36" r="2.5" fill="#fff"/>
+                        <circle cx="0" cy="0" r="1.6" fill="#fff"/>
+                        <circle cx="72" cy="0" r="1.6" fill="#fff"/>
+                        <circle cx="0" cy="72" r="1.6" fill="#fff"/>
+                        <circle cx="72" cy="72" r="1.6" fill="#fff"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#nurfaTile)"/>
+            </svg>
+            <span class="brand-glow brand-glow-a"></span>
+            <span class="brand-glow brand-glow-b"></span>
 
-@php
-    // Cek ulang variabel untuk logo di body
-    $logoPath = public_path('images/logo.png');
-    $logoUrl = asset('images/logo.png');
-@endphp
-
-<div class="wrapper">
-    <!-- Brand Panel (Left) -->
-    <div class="brand-panel text-center">
-        @if(file_exists($logoPath))
-            <img src="{{ $logoUrl }}" alt="Logo" class="mb-4 rounded-circle shadow-lg p-3 bg-white" width="100" height="100" style="object-fit: cover;">
-        @else
-            <div class="logo-fallback mb-4 shadow-lg">NF</div>
-        @endif
-        <h1 class="fw-bold mb-3">NURFA.ID</h1>
-        <p class="mb-4" style="font-size: 1.1rem; opacity: 0.9;">Digital Platform Of<br>MIS Nurul Falaq</p>
-        <div class="mt-5" style="font-size: 0.8rem; opacity: 0.7;">&copy; 2024 NURFA.ID. All rights reserved.</div>
-    </div>
-
-    <!-- Form Panel (Right) -->
-    <div class="form-panel">
-        <div class="login-box">
-            <div class="text-center mb-4">
-                <h4 class="fw-bold text-dark">Selamat Datang</h4>
-                <p class="text-muted">Silakan masuk untuk melanjutkan</p>
-                
-                <!-- Logo di bawah kalimat Selamat Datang -->
-                <div class="mb-3 mt-3">
+            <div class="brand-content">
+                <div class="brand-logo-wrap">
                     @if(file_exists($logoPath))
-                        <img src="{{ $logoUrl }}" alt="Logo" class="login-logo">
+                        <img src="{{ $logoUrl }}" alt="Logo NURFA.ID" class="rounded-circle shadow-lg p-3 bg-white" width="110" height="110" style="object-fit: cover;">
                     @else
-                        <div class="login-logo-fallback">NF</div>
+                        <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:110px;height:110px;font-size:2.5rem;">NF</div>
                     @endif
                 </div>
+
+                <h1 class="fw-bold mb-1">NURFA.ID</h1>
+                <p class="mb-0 opacity-75">Digital Platform Of<br>MIS Nurul Falaq</p>
+                <div class="brand-divider"></div>
+
+                <div class="brand-feature"><i class="bi bi-qr-code-scan"></i><span>Presensi harian lewat scan QR</span></div>
+                <div class="brand-feature"><i class="bi bi-journal-check"></i><span>Nilai & rapor digital</span></div>
+                <div class="brand-feature"><i class="bi bi-cash-coin"></i><span>Pembayaran SPP daring</span></div>
+                <div class="brand-feature"><i class="bi bi-mortarboard-fill"></i><span>Kuis CBT & peringkat kelas</span></div>
             </div>
+        </div>
 
-            <!-- Role Tabs -->
-            <ul class="nav nav-pills nav-fill mb-4 bg-light p-2 rounded-3" id="roleTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill fw-semibold" id="admin-tab" data-bs-toggle="pill" data-bs-target="#admin" type="button"><i class="bi bi-shield-lock"></i> Admin</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-semibold" id="guru-tab" data-bs-toggle="pill" data-bs-target="#guru" type="button"><i class="bi bi-person-badge"></i> Guru</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-semibold" id="siswa-tab" data-bs-toggle="pill" data-bs-target="#siswa" type="button"><i class="bi bi-mortarboard"></i> Siswa</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-semibold" id="wali-tab" data-bs-toggle="pill" data-bs-target="#wali" type="button"><i class="bi bi-people"></i> Wali</button>
-                </li>
-            </ul>
-
-            <div class="tab-content" id="roleTabContent">
-                <!-- Form Admin -->
-                <div class="tab-pane fade show active" id="admin" role="tabpanel">
-                    <form action="{{ route('admin.dashboard') }}" method="GET">
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Username / Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-primary"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" placeholder="admin@nurfa.id" value="admin@nurfa.id">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Kata Sandi</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill text-primary"></i></span>
-                                <input type="password" class="form-control border-start-0 border-end-0 ps-0" placeholder="******" value="password">
-                                <span class="input-group-text bg-light border-start-0" style="cursor: pointer;"><i class="bi bi-eye-fill text-muted"></i></span>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <div class="form-check"><input class="form-check-input" type="checkbox" id="rememberAdmin" checked><label class="form-check-label text-muted small" for="rememberAdmin">Ingat saya</label></div>
-                            <a href="#" class="text-primary small text-decoration-none">Lupa sandi?</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Masuk sebagai Admin</button>
-                        
-                        <!-- Tombol Scan QR Publik -->
-                        <div class="mt-3 text-center">
-                            <small class="text-muted d-block mb-2">atau</small>
-                            <a href="{{ route('presensi.scan') }}" class="btn btn-outline-primary w-100 py-2 fw-bold shadow-sm">
-                                <i class="bi bi-qr-code-scan me-2"></i> Scan QR Kehadiran
-                            </a>
-                        </div>
-                    </form>
-                </div>
-                
-                <!-- Form Guru -->
-                <div class="tab-pane fade" id="guru" role="tabpanel">
-                     <form action="{{ route('guru.dashboard') }}" method="GET">
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">NIP / Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-primary"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" placeholder="Masukkan NIP">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Kata Sandi</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill text-primary"></i></span>
-                                <input type="password" class="form-control border-start-0 border-end-0 ps-0" placeholder="******">
-                                <span class="input-group-text bg-light border-start-0" style="cursor: pointer;"><i class="bi bi-eye-fill text-muted"></i></span>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <div class="form-check"><input class="form-check-input" type="checkbox" id="rememberGuru"><label class="form-check-label text-muted small" for="rememberGuru">Ingat saya</label></div>
-                            <a href="#" class="text-primary small text-decoration-none">Lupa sandi?</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Masuk sebagai Guru</button>
-                        
-                        <div class="mt-3 text-center">
-                            <small class="text-muted d-block mb-2">atau</small>
-                            <a href="{{ route('presensi.scan') }}" class="btn btn-outline-primary w-100 py-2 fw-bold shadow-sm">
-                                <i class="bi bi-qr-code-scan me-2"></i> Scan QR Kehadiran
-                            </a>
-                        </div>
-                    </form>
+        <div class="form-panel">
+            <div class="login-box">
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold text-dark mb-2">Selamat Datang</h3>
+                    <p class="text-muted mb-3">Admin/guru memakai email · wali/siswa memakai nama</p>
+                    @if(file_exists($logoPath))
+                        <img src="{{ $logoUrl }}" alt="Logo NURFA.ID" class="login-logo">
+                    @endif
                 </div>
 
-                <!-- Form Siswa -->
-                <div class="tab-pane fade" id="siswa" role="tabpanel">
-                     <form action="{{ route('siswa.jadwal') }}" method="GET">
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">NIS / NISN</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-primary"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" placeholder="Masukkan NIS">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Kata Sandi</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill text-primary"></i></span>
-                                <input type="password" class="form-control border-start-0 border-end-0 ps-0" placeholder="******">
-                                <span class="input-group-text bg-light border-start-0" style="cursor: pointer;"><i class="bi bi-eye-fill text-muted"></i></span>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <div class="form-check"><input class="form-check-input" type="checkbox" id="rememberSiswa"><label class="form-check-label text-muted small" for="rememberSiswa">Ingat saya</label></div>
-                            <a href="#" class="text-primary small text-decoration-none">Lupa sandi?</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Masuk sebagai Siswa</button>
-                        
-                        <div class="mt-3 text-center">
-                            <small class="text-muted d-block mb-2">atau</small>
-                            <a href="{{ route('presensi.scan') }}" class="btn btn-outline-primary w-100 py-2 fw-bold shadow-sm">
-                                <i class="bi bi-qr-code-scan me-2"></i> Scan QR Kehadiran
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                @if(session('error'))
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                @endif
+                @if($errors->any())
+                    <div class="alert alert-danger">{{ $errors->first() }}</div>
+                @endif
 
-                <!-- Form Wali Murid -->
-                <div class="tab-pane fade" id="wali" role="tabpanel">
-                     <form action="{{ route('wali.dashboard') }}" method="GET">
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">No. Induk Anak / Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-fill text-primary"></i></span>
-                                <input type="text" class="form-control border-start-0 ps-0" placeholder="Masukkan ID Anak">
-                            </div>
+                <form action="{{ url('/login') }}" method="POST">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="identifier" class="form-label fw-semibold">Email / Nama</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-person text-primary"></i></span>
+                            <input id="identifier" name="identifier" type="text" value="{{ old('identifier') }}" class="form-control" placeholder="Email admin/guru atau nama wali/siswa" autocomplete="username" required autofocus>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-semibold">Kata Sandi</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill text-primary"></i></span>
-                                <input type="password" class="form-control border-start-0 border-end-0 ps-0" placeholder="******">
-                                <span class="input-group-text bg-light border-start-0" style="cursor: pointer;"><i class="bi bi-eye-fill text-muted"></i></span>
-                            </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-lock text-primary"></i></span>
+                            <input id="password" name="password" type="password" class="form-control" placeholder="Masukkan password" autocomplete="current-password" required>
+                            <button type="button" class="btn btn-light border" id="togglePassword" aria-label="Tampilkan password"><i class="bi bi-eye"></i></button>
                         </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <div class="form-check"><input class="form-check-input" type="checkbox" id="rememberWali"><label class="form-check-label text-muted small" for="rememberWali">Ingat saya</label></div>
-                            <a href="#" class="text-primary small text-decoration-none">Lupa sandi?</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Masuk sebagai Wali Murid</button>
-                        
-                        <div class="mt-3 text-center">
-                            <small class="text-muted d-block mb-2">atau</small>
-                            <a href="{{ route('presensi.scan') }}" class="btn btn-outline-primary w-100 py-2 fw-bold shadow-sm">
-                                <i class="bi bi-qr-code-scan me-2"></i> Scan QR Kehadiran
-                            </a>
-                        </div>
-                    </form>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+                        <div class="form-check"><input id="remember" name="remember" type="checkbox" class="form-check-input"><label for="remember" class="form-check-label text-muted small">Ingat saya</label></div>
+                        <span class="text-muted small">Lupa password? Hubungi admin.</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Masuk</button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <div class="text-muted small mb-2">atau</div>
+                    <a href="{{ route('presensi.scan') }}" class="btn btn-outline-primary w-100 py-2 fw-bold"><i class="bi bi-qr-code-scan me-2"></i>Scan QR Kehadiran</a>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('togglePassword')?.addEventListener('click', function () {
+            const password = document.getElementById('password');
+            const icon = this.querySelector('i');
+            password.type = password.type === 'password' ? 'text' : 'password';
+            icon.classList.toggle('bi-eye');
+            icon.classList.toggle('bi-eye-slash');
+        });
+    </script>
 </body>
 </html>

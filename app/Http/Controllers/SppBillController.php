@@ -8,6 +8,7 @@ use App\Models\Classroom;
 use App\Models\Setting;
 use App\Models\SppBill;
 use App\Models\Student;
+use App\Services\ReportExportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -103,5 +104,47 @@ class SppBillController extends Controller
         }
 
         return back()->with('success', count($rows).' tagihan SPP periode '.$period->translatedFormat('F Y').' berhasil dibuat.');
+    }
+
+    public function exportCsv(Request $request, ReportExportService $exporter)
+    {
+        $bills = $this->filteredBills($request);
+
+        $rows = $bills->map(fn (SppBill $bill) => [
+            $bill->period->format('Y-m-d'), $bill->student->nisn, $bill->student->name,
+            $bill->student->classroom?->name ?? '-', $bill->amount, $bill->paidAmount(),
+            $bill->remainingAmount(), $bill->status()->value,
+        ]);
+
+        return $exporter->xlsx('laporan-spp-'.now()->format('Ymd-His').'.xlsx', ['Periode', 'NISN', 'Nama Siswa', 'Kelas', 'Tagihan', 'Dibayar', 'Sisa', 'Status'], $rows);
+    }
+
+    public function exportPdf(Request $request, ReportExportService $exporter)
+    {
+        return $exporter->pdf('admin.exports.laporan-spp', [
+            'bills' => $this->filteredBills($request),
+            'period' => $request->string('period', now()->startOfMonth()->toDateString())->toString(),
+        ], 'laporan-spp-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    private function filteredBills(Request $request)
+    {
+        $period = $request->string('period', now()->startOfMonth()->toDateString())->toString();
+        $classroomId = $request->integer('classroom_id') ?: null;
+        $status = $request->string('status')->toString();
+
+        $bills = SppBill::query()
+            ->with(['student.classroom', 'payments'])
+            ->where('period', $period)
+            ->when($classroomId, fn ($query) => $query->whereHas(
+                'student', fn ($query) => $query->where('classroom_id', $classroomId)
+            ))
+            ->get()
+            ->sortBy(fn (SppBill $bill) => $bill->student->name)
+            ->values();
+
+        return $status === ''
+            ? $bills
+            : $bills->filter(fn (SppBill $bill) => $bill->status()->value === $status)->values();
     }
 }

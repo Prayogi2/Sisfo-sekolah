@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('role', ['admin', 'guru', 'siswa', 'wali'])->default('siswa');
             $table->rememberToken();
             $table->timestamps();
-});
+        });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -15,38 +15,38 @@ class UserSeeder extends Seeder
     {
         // 1. Akun Admin
         User::create([
-            'name'     => 'Administrator',
-            'email'    => 'admin@gmail.com',
+            'name' => 'Administrator',
+            'email' => 'admin@gmail.com',
             'username' => 'admin',
             'password' => Hash::make('password123'), // Kata sandi untuk login
-            'role'     => 'admin',
+            'role' => 'admin',
         ]);
 
         // 2. Akun Guru
         User::create([
-            'name'     => 'Guru Pengajar',
-            'email'    => 'guru@gmail.com',
+            'name' => 'Guru Pengajar',
+            'email' => 'guru@gmail.com',
             'username' => 'guru',
             'password' => Hash::make('password123'),
-            'role'     => 'guru',
+            'role' => 'guru',
         ]);
 
         // 3. Akun Siswa
         User::create([
-            'name'     => 'Siswa Teladan',
-            'email'    => 'siswa@gmail.com',
+            'name' => 'Siswa Teladan',
+            'email' => 'siswa@gmail.com',
             'username' => 'siswa',
             'password' => Hash::make('password123'),
-            'role'     => 'siswa',
+            'role' => 'siswa',
         ]);
 
         // 4. Akun Wali Murid
         User::create([
-            'name'     => 'Wali Murid',
-            'email'    => 'wali@gmail.com',
+            'name' => 'Wali Murid',
+            'email' => 'wali@gmail.com',
             'username' => 'wali',
             'password' => Hash::make('password123'),
-            'role'     => 'wali',
+            'role' => 'wali',
         ]);
     }
 }

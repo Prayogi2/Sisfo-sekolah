@@ -22,7 +22,8 @@ class DemoAcademicDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $subjects = Subject::factory(3)->create();
+        // Mapel asli madrasah (lihat SubjectSeeder), bukan mapel acak.
+        $subjects = Subject::orderBy('id')->get();
 
         $teachers = collect(range(1, 2))->map(
             fn () => Teacher::factory()
@@ -30,10 +31,10 @@ class DemoAcademicDataSeeder extends Seeder
                 ->create()
         );
 
-        // Tiap guru mengampu 1-2 mapel.
+        // Tiap guru mengampu beberapa mapel.
         $teachers->each(
             fn (Teacher $teacher) => $teacher->subjects()->attach(
-                $subjects->random(2)->pluck('id')
+                $subjects->random(3)->pluck('id')
             )
         );
 
@@ -53,6 +54,13 @@ class DemoAcademicDataSeeder extends Seeder
         $studentsByClassroom->each(function (Student $student) {
             StudentProfile::factory()->create(['student_id' => $student->id]);
             StudentAcademicRecord::factory()->create(['student_id' => $student->id]);
+            $student->update(['user_id' => User::create([
+                'name' => $student->name,
+                'email' => $student->nisn.'@siswa.local',
+                'username' => $student->nisn,
+                'password' => 'password123',
+                'role' => 'siswa',
+            ])->id]);
         });
 
         // Keluarga 1: ayah & ibu sama-sama terhubung ke anak yang sama.

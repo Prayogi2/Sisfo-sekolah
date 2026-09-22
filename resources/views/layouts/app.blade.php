@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - NURFA.ID</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}" rel="stylesheet">
+    @stack('styles')
 </head>
 <body>
 
 @php
-    // Deteksi role otomatis berdasarkan prefix URL
-    $role = request()->segment(1); 
-    if($role == 'wali-murid') $role = 'wali';
-    if(empty($role) || !in_array($role, ['admin', 'guru', 'siswa', 'wali'])) $role = 'admin';
+    // Gunakan prefix URL pada halaman role, lalu fallback ke role akun.
+    $role = request()->segment(1);
+    if ($role === 'wali-murid') {
+        $role = 'wali';
+    }
+    if (! in_array($role, ['admin', 'guru', 'siswa', 'wali'], true)) {
+        $role = auth()->user()?->role ?? 'admin';
+    }
     
     $logoPath = public_path('images/logo.png');
     $logoUrl = asset('images/logo.png');
@@ -45,6 +51,7 @@
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
             <a href="{{ route('admin.data-mapel') }}" class="{{ request()->routeIs('admin.data-mapel') ? 'active' : '' }}"><i class="bi bi-book-half"></i> Kelola Mapel</a>
+            <a href="{{ route('admin.akun') }}" class="{{ request()->routeIs('admin.akun') ? 'active' : '' }}"><i class="bi bi-key-fill"></i> Kelola Akun & Password</a>
             
             <div class="menu-title">Akademik & Keuangan</div>
             <a href="{{ route('admin.verifikasi-spp') }}" class="{{ request()->routeIs('admin.verifikasi-spp') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill"></i> Verifikasi SPP</a>
@@ -67,6 +74,7 @@
             <a href="{{ route('guru.data-guru') }}" class="{{ request()->routeIs('guru.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('guru.approval-izin') }}" class="{{ request()->routeIs('guru.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Approval Izin & Sakit</a>
             <a href="{{ route('guru.bank-soal') }}" class="{{ request()->routeIs('guru.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Manajemen Bank Soal & Kuis</a>
+            <a href="{{ route('guru.prestasi-pelanggaran') }}" class="{{ request()->routeIs('guru.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
 
             <div class="menu-title">Laporan</div>
             <a href="{{ route('guru.laporan-nilai') }}" class="{{ request()->routeIs('guru.laporan-nilai') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph-fill"></i> Laporan Nilai</a>
@@ -86,6 +94,7 @@
             <a href="{{ route('wali.izin') }}" class="{{ request()->routeIs('wali.izin') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Pemantauan Absensi & Izin</a>
             <a href="{{ route('wali.spp') }}" class="{{ request()->routeIs('wali.spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status Pembayaran SPP</a>
             <a href="{{ route('wali.kuis') }}" class="{{ request()->routeIs('wali.kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis & Ranking</a>
+            <a href="{{ route('wali.prestasi-pelanggaran') }}" class="{{ request()->routeIs('wali.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
             <a href="{{ route('wali.kritik-saran') }}" class="{{ request()->routeIs('wali.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
         @endif
 
@@ -144,11 +153,14 @@
                     <i class="bi bi-chevron-down ms-2 small"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
-                    <li><h6 class="dropdown-header">Switch Role (Testing)</h6></li>
+                    <li><h6 class="dropdown-header">Akses Role</h6></li>
                     <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-shield-lock me-2"></i> Admin</a></li>
                     <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Guru</a></li>
-                    <li><a class="dropdown-item" href="{{ route('siswa.dashboard') }}"><i class="bi bi-mortarboard me-2"></i> Siswa</a></li>
                     <li><a class="dropdown-item" href="{{ route('wali.dashboard') }}"><i class="bi bi-people me-2"></i> Wali Murid</a></li>
+                    @if(auth()->user()->hasRole('admin'))
+                        <li><a class="dropdown-item" href="{{ route('admin.akun') }}"><i class="bi bi-key me-2"></i> Kelola Password</a></li>
+                    @endif
+                    <li><a class="dropdown-item" href="{{ route('account.password.edit') }}"><i class="bi bi-shield-lock me-2"></i> Ganti Password</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST">
@@ -171,6 +183,89 @@
         Copyright &copy; 2024 <strong>NURFA.ID</strong> - Digital Platform MIS Nurul Falaq. <br>
         <small>Versi 1.0.0 | Laravel 11</small>
     </footer>
+</div>
+
+@php
+    $mobileMenus = match ($role) {
+        'admin' => [
+            ['route' => 'admin.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
+            ['route' => 'admin.buku-induk', 'icon' => 'bi-journal-bookmark-fill', 'label' => 'Siswa'],
+            ['route' => 'admin.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Guru'],
+            ['route' => 'admin.pembagian-kelas', 'icon' => 'bi-diagram-3-fill', 'label' => 'Kelas'],
+            ['route' => 'admin.data-mapel', 'icon' => 'bi-book-half', 'label' => 'Mapel'],
+            ['route' => 'admin.verifikasi-spp', 'icon' => 'bi-credit-card-2-front-fill', 'label' => 'SPP'],
+            ['route' => 'admin.approval-izin', 'icon' => 'bi-envelope-paper-heart', 'label' => 'Izin'],
+            ['route' => 'admin.bank-soal', 'icon' => 'bi-file-earmark-play-fill', 'label' => 'Kuis'],
+            ['route' => 'admin.prestasi-pelanggaran', 'icon' => 'bi-trophy-fill', 'label' => 'Prestasi'],
+            ['route' => 'admin.kritik-saran', 'icon' => 'bi-chat-square-text-fill', 'label' => 'Saran'],
+            ['route' => 'admin.laporan', 'icon' => 'bi-bar-chart-fill', 'label' => 'Laporan'],
+            ['route' => 'admin.laporan-absensi', 'icon' => 'bi-clock-history', 'label' => 'Absensi'],
+            ['route' => 'admin.laporan-spp', 'icon' => 'bi-cash-stack', 'label' => 'Laporan SPP'],
+            ['route' => 'admin.laporan-nilai', 'icon' => 'bi-file-earmark-bar-graph-fill', 'label' => 'Laporan Nilai'],
+            ['route' => 'admin.akun', 'icon' => 'bi-key-fill', 'label' => 'Akun'],
+        ],
+        'guru' => [
+            ['route' => 'guru.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
+            ['route' => 'guru.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Guru'],
+            ['route' => 'guru.approval-izin', 'icon' => 'bi-envelope-paper-heart', 'label' => 'Izin'],
+            ['route' => 'guru.bank-soal', 'icon' => 'bi-file-earmark-play-fill', 'label' => 'Kuis'],
+            ['route' => 'guru.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
+            ['route' => 'guru.laporan-nilai', 'icon' => 'bi-bar-chart-fill', 'label' => 'Nilai'],
+        ],
+        'siswa' => [
+            ['route' => 'siswa.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
+            ['route' => 'siswa.kartu-digital', 'icon' => 'bi-qr-code-scan', 'label' => 'Kartu'],
+            ['route' => 'siswa.absensi', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
+            ['route' => 'siswa.kuis', 'icon' => 'bi-mortarboard-fill', 'label' => 'Kuis'],
+            ['route' => 'siswa.spp', 'icon' => 'bi-credit-card-2-front-fill', 'label' => 'SPP'],
+        ],
+        default => [
+            ['route' => 'wali.dashboard', 'icon' => 'bi-house-door-fill', 'label' => 'Beranda'],
+            ['route' => 'wali.izin', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
+            ['route' => 'wali.spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
+            ['route' => 'wali.kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Kuis'],
+            ['route' => 'wali.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
+            ['route' => 'wali.kritik-saran', 'icon' => 'bi-chat-square-text-fill', 'label' => 'Saran'],
+        ],
+    };
+@endphp
+
+@php
+    $primaryMobileMenus = array_slice($mobileMenus, 0, 4);
+    $moreMobileMenus = array_slice($mobileMenus, 4);
+@endphp
+
+<nav class="bottom-nav" aria-label="Navigasi mobile">
+    @foreach ($primaryMobileMenus as $menu)
+        <a href="{{ route($menu['route']) }}" class="bottom-nav-item {{ request()->routeIs($menu['route']) ? 'active' : '' }}">
+            <i class="bi {{ $menu['icon'] }}"></i>
+            <span>{{ $menu['label'] }}</span>
+        </a>
+    @endforeach
+    <button type="button" class="bottom-nav-item bottom-nav-more" data-bs-toggle="offcanvas" data-bs-target="#mobileMoreMenu" aria-controls="mobileMoreMenu">
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <span>Menu Lainnya</span>
+    </button>
+</nav>
+
+<div class="offcanvas offcanvas-bottom mobile-more-menu" tabindex="-1" id="mobileMoreMenu" aria-labelledby="mobileMoreMenuLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="mobileMoreMenuLabel">Menu Lainnya</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Tutup"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="mobile-more-grid">
+            @foreach ($moreMobileMenus as $menu)
+                <a href="{{ route($menu['route']) }}" class="mobile-more-item {{ request()->routeIs($menu['route']) ? 'active' : '' }}">
+                    <i class="bi {{ $menu['icon'] }}"></i>
+                    <span>{{ $menu['label'] }}</span>
+                </a>
+            @endforeach
+            <a href="{{ route('account.password.edit') }}" class="mobile-more-item">
+                <i class="bi bi-shield-lock-fill"></i><span>Ganti Password</span>
+            </a>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

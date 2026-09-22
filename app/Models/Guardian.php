@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'user_id',
     'name',
     'relationship',
+    'gender',
     'phone',
     'occupation',
     'monthly_income',

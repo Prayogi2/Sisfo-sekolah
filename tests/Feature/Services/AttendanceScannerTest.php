@@ -125,6 +125,18 @@ class AttendanceScannerTest extends TestCase
 
         $this->assertSame('check_out', $result->event);
         $this->assertNotNull($result->attendance->check_out_at);
+        $this->assertSame('on_time', $result->attendance->departure_status);
+    }
+
+    public function test_scan_before_scheduled_dismissal_is_recorded_as_early_departure(): void
+    {
+        $student = $this->studentInGrade(3);
+        $this->scanner->scan($student->qr_token, now()->parse('2024-05-20 07:00:00'));
+
+        $result = $this->scanner->scan($student->qr_token, now()->parse('2024-05-20 14:19:00'));
+
+        $this->assertSame('check_out', $result->event);
+        $this->assertSame('early', $result->attendance->departure_status);
     }
 
     public function test_third_scan_of_the_day_is_treated_as_duplicate(): void

@@ -107,6 +107,7 @@
                                             data-birth-date="{{ $student->birth_date?->translatedFormat('d F Y') ?? '-' }}"
                                             data-address="{{ $student->address ?? '-' }}"
                                         ><i class="bi bi-eye text-primary"></i></button>
+                                        <a href="{{ route('admin.data-siswa.kartu-qr', $student) }}" class="btn btn-sm btn-light" title="Cetak Kartu QR" target="_blank"><i class="bi bi-qr-code text-success"></i></a>
                                         <button type="button" class="btn btn-sm btn-light" title="Edit"
                                             data-bs-toggle="modal" data-bs-target="#modalEditSiswa"
                                             data-action="{{ route('admin.data-siswa.update', $student) }}"

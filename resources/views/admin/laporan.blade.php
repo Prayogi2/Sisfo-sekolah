@@ -20,7 +20,12 @@
                                 <i class="bi bi-clipboard2-data-fill fs-2 text-primary"></i>
                             </div>
                             <h5 class="fw-bold text-dark">Laporan Absensi</h5>
-                            <p class="text-muted small mb-0">Rekap harian/bulanan, status hadir, & kontrol mode keterlambatan.</p>
+                            <p class="text-muted small mb-2">Rekap harian/bulanan, status hadir, & kontrol mode keterlambatan.</p>
+                            <div class="small">
+                                <span class="badge bg-success-soft text-success" style="background-color:#e6f9ee;">Hadir hari ini: {{ $attendance['hadir'] }}/{{ $attendance['total_siswa'] }}</span>
+                                <span class="badge bg-warning-soft text-warning" style="background-color:#fff8e6;">Telat: {{ $attendance['telat'] }}</span>
+                                <span class="badge bg-primary-soft text-primary" style="background-color:#e7f1ff;">Izin: {{ $attendance['izin'] }}</span>
+                            </div>
                         </div>
                     </div>
                 </a>
@@ -35,7 +40,11 @@
                                 <i class="bi bi-journal-text fs-2 text-success"></i>
                             </div>
                             <h5 class="fw-bold text-dark">Laporan Nilai</h5>
-                            <p class="text-muted small mb-0">Rekap nilai mata pelajaran, perkembangan akademik, & draf raport.</p>
+                            <p class="text-muted small mb-2">Rekap nilai mata pelajaran, perkembangan akademik, & draf raport.</p>
+                            <div class="small">
+                                <span class="badge bg-primary-soft text-primary" style="background-color:#e7f1ff;">Rata-rata: {{ $grades['rata_rata'] ?? '-' }}</span>
+                                <span class="badge bg-secondary-soft text-secondary" style="background-color:#eef0f3;">{{ $grades['dinilai'] }} nilai · {{ $grades['mapel'] }} mapel</span>
+                            </div>
                         </div>
                     </div>
                 </a>
@@ -50,7 +59,14 @@
                                 <i class="bi bi-cash-stack fs-2 text-warning"></i>
                             </div>
                             <h5 class="fw-bold text-dark">Laporan SPP</h5>
-                            <p class="text-muted small mb-0">Rekap tagihan, status lunas/cicil, tunggakan, & transaksi VA.</p>
+                            <p class="text-muted small mb-2">Rekap tagihan, status lunas/cicil, & tunggakan bulan berjalan.</p>
+                            <div class="small">
+                                <span class="badge bg-success-soft text-success" style="background-color:#e6f9ee;">Diterima: Rp {{ number_format($spp['diterima'], 0, ',', '.') }}</span>
+                                <span class="badge bg-danger-soft text-danger" style="background-color:#ffeaea;">Tunggakan: Rp {{ number_format($spp['tunggakan'], 0, ',', '.') }}</span>
+                                @if($spp['menunggu_verifikasi'] > 0)
+                                    <span class="badge bg-warning-soft text-warning" style="background-color:#fff8e6;">{{ $spp['menunggu_verifikasi'] }} bukti menunggu verifikasi</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </a>

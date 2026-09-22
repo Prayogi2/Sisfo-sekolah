@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChildSelectionController;
@@ -8,15 +10,18 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeWeightController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\ReportHubController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\SppBillController;
 use App\Http\Controllers\SppPaymentController;
+use App\Http\Controllers\StudentConductController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
-use App\Http\Controllers\QuizController;
+use App\Http\Controllers\TeacherDashboardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,12 +38,16 @@ Route::get('/', function () {
 // Guest Routes (Hanya bisa diakses jika BELUM login)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::get('/presensi/scan', [ScanController::class, 'index'])->name('presensi.scan');
+Route::post('/presensi/scan', [ScanController::class, 'store'])->name('presensi.scan.store');
 
 // Authenticated Routes (Hanya bisa diakses jika SUDAH login)
 Route::middleware('auth')->group(function () {
 
     // Proses Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/akun/password', [AuthController::class, 'editPassword'])->name('account.password.edit');
+    Route::put('/akun/password', [AuthController::class, 'updatePassword'])->name('account.password.update');
 
     /*
     |--------------------------------------------------------------------------
@@ -46,11 +55,18 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
+        Route::get('/akun', [AccountController::class, 'index'])->name('akun');
+        Route::post('/akun/{user}/reset-password', [AccountController::class, 'resetPassword'])->name('akun.reset-password');
         Route::get('/buku-induk', [StudentRecordController::class, 'index'])->name('buku-induk');
+        Route::get('/buku-induk/download', [StudentRecordController::class, 'download'])->name('buku-induk.download');
+        Route::get('/buku-induk/{student}/download', [StudentRecordController::class, 'download'])->name('buku-induk.student.download');
+        Route::get('/buku-induk/export/xlsx', [StudentRecordController::class, 'exportXlsx'])->name('buku-induk.export.xlsx');
+        Route::get('/buku-induk/{student}/export/xlsx', [StudentRecordController::class, 'exportXlsx'])->name('buku-induk.student.export.xlsx');
+        Route::get('/buku-induk/{student}/edit', [StudentRecordController::class, 'edit'])->name('buku-induk.edit');
+        Route::put('/buku-induk/{student}', [StudentRecordController::class, 'update'])->name('buku-induk.update');
         Route::get('/data-siswa', [StudentController::class, 'index'])->name('data-siswa');
+        Route::get('/data-siswa/{student}/kartu-qr', [StudentController::class, 'qrCard'])->name('data-siswa.kartu-qr');
         Route::post('/data-siswa', [StudentController::class, 'store'])->name('data-siswa.store');
         Route::put('/data-siswa/{student}', [StudentController::class, 'update'])->name('data-siswa.update');
         Route::delete('/data-siswa/{student}', [StudentController::class, 'destroy'])->name('data-siswa.destroy');
@@ -79,19 +95,27 @@ Route::middleware('auth')->group(function () {
         Route::get('/kritik-saran', [FeedbackController::class, 'index'])->name('kritik-saran');
         Route::get('/bank-soal', [QuizController::class, 'questionBank'])->name('bank-soal');
         Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
-        Route::get('/prestasi-pelanggaran', function () {
-            return view('admin.prestasi-pelanggaran');
-        })->name('prestasi-pelanggaran');
+        Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'index'])->name('prestasi-pelanggaran');
+        Route::post('/prestasi-pelanggaran/prestasi', [StudentConductController::class, 'storeAchievement'])->name('prestasi-pelanggaran.prestasi.store');
+        Route::delete('/prestasi-pelanggaran/prestasi/{achievement}', [StudentConductController::class, 'destroyAchievement'])->name('prestasi-pelanggaran.prestasi.destroy');
+        Route::post('/prestasi-pelanggaran/pelanggaran', [StudentConductController::class, 'storeViolation'])->name('prestasi-pelanggaran.pelanggaran.store');
+        Route::delete('/prestasi-pelanggaran/pelanggaran/{violation}', [StudentConductController::class, 'destroyViolation'])->name('prestasi-pelanggaran.pelanggaran.destroy');
+        Route::get('/prestasi-pelanggaran/export/xlsx', [StudentConductController::class, 'exportXlsx'])->name('prestasi-pelanggaran.export.xlsx');
+        Route::get('/prestasi-pelanggaran/export/pdf', [StudentConductController::class, 'exportPdf'])->name('prestasi-pelanggaran.export.pdf');
 
         // Laporan Admin
-        Route::get('/laporan', function () {
-            return view('admin.laporan');
-        })->name('laporan');
+        Route::get('/laporan', ReportHubController::class)->name('laporan');
         Route::get('/laporan-absensi', [AttendanceController::class, 'report'])->name('laporan-absensi');
+        Route::get('/laporan-absensi/export/csv', [AttendanceController::class, 'exportCsv'])->name('laporan-absensi.export.csv');
+        Route::get('/laporan-absensi/export/pdf', [AttendanceController::class, 'exportPdf'])->name('laporan-absensi.export.pdf');
         Route::post('/laporan-absensi/toggle-late-blocking', [ScanController::class, 'toggleLateBlocking'])->name('laporan-absensi.toggle-late-blocking');
         Route::get('/laporan-spp', [SppBillController::class, 'report'])->name('laporan-spp');
+        Route::get('/laporan-spp/export/csv', [SppBillController::class, 'exportCsv'])->name('laporan-spp.export.csv');
+        Route::get('/laporan-spp/export/pdf', [SppBillController::class, 'exportPdf'])->name('laporan-spp.export.pdf');
         Route::post('/laporan-spp/generate', [SppBillController::class, 'generate'])->name('laporan-spp.generate');
         Route::get('/laporan-nilai', [GradeController::class, 'report'])->name('laporan-nilai');
+        Route::get('/laporan-nilai/export/csv', [GradeController::class, 'exportCsv'])->name('laporan-nilai.export.csv');
+        Route::get('/laporan-nilai/export/pdf', [GradeController::class, 'exportPdf'])->name('laporan-nilai.export.pdf');
         Route::put('/data-mapel/{subject}/bobot-nilai', [GradeWeightController::class, 'update'])->name('data-mapel.bobot-nilai');
     });
 
@@ -100,10 +124,8 @@ Route::middleware('auth')->group(function () {
     | 2. MODUL GURU
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:guru')->prefix('guru')->name('guru.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('guru.dashboard');
-        })->name('dashboard');
+    Route::middleware('role:admin|guru')->prefix('guru')->name('guru.')->group(function () {
+        Route::get('/dashboard', TeacherDashboardController::class)->name('dashboard');
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
         Route::get('/approval-izin', [LeaveRequestController::class, 'index'])->name('approval-izin');
         Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
@@ -115,6 +137,16 @@ Route::middleware('auth')->group(function () {
         Route::put('/bank-soal/{question}', [QuizController::class, 'updateQuestion'])->name('bank-soal.update');
         Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
         Route::post('/kuis', [QuizController::class, 'storeQuiz'])->name('kuis.store');
+        Route::post('/kuis/{quiz}/buka-tutup', [QuizController::class, 'toggleOpen'])->name('kuis.toggle-open');
+        Route::get('/kuis/{quiz}/live', [QuizController::class, 'liveHost'])->name('kuis.live');
+        Route::post('/kuis/{quiz}/live/mulai', [QuizController::class, 'startLive'])->name('kuis.live.start');
+        Route::post('/kuis/{quiz}/live/berikutnya', [QuizController::class, 'advanceLive'])->name('kuis.live.next');
+        Route::post('/kuis/{quiz}/live/selesai', [QuizController::class, 'finishLive'])->name('kuis.live.finish');
+        Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'index'])->name('prestasi-pelanggaran');
+        Route::post('/prestasi-pelanggaran/prestasi', [StudentConductController::class, 'storeAchievement'])->name('prestasi-pelanggaran.prestasi.store');
+        Route::delete('/prestasi-pelanggaran/prestasi/{achievement}', [StudentConductController::class, 'destroyAchievement'])->name('prestasi-pelanggaran.prestasi.destroy');
+        Route::post('/prestasi-pelanggaran/pelanggaran', [StudentConductController::class, 'storeViolation'])->name('prestasi-pelanggaran.pelanggaran.store');
+        Route::delete('/prestasi-pelanggaran/pelanggaran/{violation}', [StudentConductController::class, 'destroyViolation'])->name('prestasi-pelanggaran.pelanggaran.destroy');
 
         // Laporan & Input Nilai
         Route::get('/laporan-nilai', [GradeController::class, 'index'])->name('laporan-nilai');
@@ -126,15 +158,16 @@ Route::middleware('auth')->group(function () {
     | 3. MODUL SISWA (diakses lewat akun Wali Murid, siswa tidak login sendiri)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:wali')->prefix('siswa')->name('siswa.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('siswa.dashboard');
-        })->name('dashboard');
+    Route::middleware('role:wali|siswa')->prefix('siswa')->name('siswa.')->group(function () {
+        Route::get('/dashboard', [StudentPortalController::class, 'dashboard'])->name('dashboard');
         Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
         Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
         Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');
         Route::get('/kuis-cbt', [QuizController::class, 'available'])->name('kuis');
         Route::get('/kuis-cbt/{quiz}', [QuizController::class, 'start'])->name('kuis.start');
+        Route::get('/kuis-cbt/{quiz}/live', [QuizController::class, 'liveStart'])->name('kuis.live');
+        Route::get('/kuis-cbt/{quiz}/live/state', [QuizController::class, 'liveState'])->name('kuis.live.state');
+        Route::post('/kuis-cbt/attempt/{attempt}/live-jawaban', [QuizController::class, 'liveAnswer'])->name('kuis.live.answer');
         Route::post('/kuis-cbt/attempt/{attempt}/jawaban', [QuizController::class, 'answer'])->name('kuis.answer');
         Route::post('/kuis-cbt/attempt/{attempt}/kumpulkan', [QuizController::class, 'submit'])->name('kuis.submit');
         Route::get('/riwayat-absensi', [StudentPortalController::class, 'attendanceHistory'])->name('absensi');
@@ -155,16 +188,15 @@ Route::middleware('auth')->group(function () {
     | 4. PORTAL WALI MURID
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:wali')->prefix('wali-murid')->name('wali.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('wali-murid.dashboard');
-        })->name('dashboard');
+    Route::middleware('role:admin|wali')->prefix('wali-murid')->name('wali.')->group(function () {
+        Route::get('/dashboard', [StudentPortalController::class, 'guardianDashboard'])->name('dashboard');
         Route::get('/absensi-izin', [StudentPortalController::class, 'guardianAttendance'])->name('izin');
         Route::post('/absensi-izin', [LeaveRequestController::class, 'store'])->name('izin.store');
         Route::get('/kritik-saran', [FeedbackController::class, 'create'])->name('kritik-saran');
         Route::post('/kritik-saran', [FeedbackController::class, 'store'])->name('kritik-saran.store');
         Route::get('/status-spp', [SppPaymentController::class, 'guardianStatus'])->name('spp');
         Route::get('/hasil-kuis', [QuizController::class, 'results'])->name('kuis');
+        Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'guardianIndex'])->name('prestasi-pelanggaran');
     });
 
     /*
