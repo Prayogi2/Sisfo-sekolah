@@ -28,23 +28,30 @@ class QuizController extends Controller
     {
         abort_unless($request->user()->hasRole(['admin', 'guru']), 403);
 
-        $teacher = $request->user()->hasRole('guru') ? $this->teacherFor($request) : null;
+        $isGuru = $request->user()->hasRole('guru');
+        $teacher = $isGuru ? $this->teacherFor($request) : null;
 
         $subjects = Subject::query()
             ->when(
-                $teacher !== null,
+                $isGuru,
                 fn ($query) => $query->whereHas('teachers', fn ($query) => $query->where('user_id', $request->user()->id))
             )
             ->orderBy('name')
             ->get();
-        $questions = QuizQuestion::with('subject')->when($request->user()->hasRole('guru'), fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
-        $quizzes = Quiz::with(['subject', 'classroom', 'questions'])->when($request->user()->hasRole('guru'), fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
+        $questions = QuizQuestion::with('subject')->when($isGuru, fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
+        $quizzes = Quiz::with(['subject', 'classroom', 'questions'])->when($isGuru, fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
 
         // Kelas yang boleh dipilih guru saat membuat kuis: gabungan semua
         // kelas dari semua mapel yang ia ajarkan. Pasangan mapel+kelas yang
         // sebenarnya valid dikirim lewat $subjectClassroomMap untuk
         // menyaring pilihan kelas di formulir sesuai mapel yang dipilih.
-        $classrooms = $teacher !== null ? $teacher->classrooms()->orderBy('name')->get() : Classroom::orderBy('name')->get();
+        // Guru tanpa profil guru sama sekali tidak melihat kelas apa pun —
+        // hanya admin yang unrestricted.
+        $classrooms = match (true) {
+            $teacher !== null => $teacher->classrooms()->orderBy('name')->get(),
+            $isGuru => collect(),
+            default => Classroom::orderBy('name')->get(),
+        };
         $subjectClassroomMap = $teacher !== null
             ? $teacher->teachingAssignments->groupBy('subject_id')->map(fn ($rows) => $rows->pluck('classroom_id'))
             : collect();
@@ -408,7 +415,6 @@ class QuizController extends Controller
     {
         abort_unless(
             $request->user()->hasRole('admin')
-            || ! $this->guruHasTeacherProfile($request)
             || Subject::whereKey($subjectId)->whereHas('teachers', fn ($query) => $query->where('user_id', $request->user()->id))->exists(),
             403
         );
@@ -416,7 +422,9 @@ class QuizController extends Controller
 
     /**
      * Kuis punya kelas, bukan cuma mapel: guru hanya boleh membuat kuis di
-     * kelas yang benar-benar ia ajarkan untuk mapel tersebut.
+     * kelas yang benar-benar ia ajarkan untuk mapel tersebut. Guru tanpa
+     * profil guru (belum ditugaskan mapel/kelas apa pun) tidak dibolehkan
+     * sama sekali, bukan malah dibiarkan bebas.
      */
     private function authorizeClassroom(Request $request, int $subjectId, int $classroomId): void
     {
@@ -424,16 +432,10 @@ class QuizController extends Controller
 
         abort_unless(
             $request->user()->hasRole('admin')
-            || $teacher === null
-            || $teacher->teaches($subjectId, $classroomId),
+            || ($teacher !== null && $teacher->teaches($subjectId, $classroomId)),
             403,
             'Anda tidak mengajar mata pelajaran ini di kelas tersebut.'
         );
-    }
-
-    private function guruHasTeacherProfile(Request $request): bool
-    {
-        return $this->teacherFor($request) !== null;
     }
 
     private function teacherFor(Request $request): ?Teacher

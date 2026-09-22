@@ -44,10 +44,8 @@ class GradePolicy
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if ($teacher === null) {
-            return true;
-        }
-
-        return $classroomId !== null && $teacher->teaches($subjectId, $classroomId);
+        // Guru tanpa profil guru (belum ditugaskan mapel/kelas apa pun)
+        // tidak boleh menilai apa pun, bukan malah dibiarkan bebas.
+        return $teacher !== null && $classroomId !== null && $teacher->teaches($subjectId, $classroomId);
     }
 }

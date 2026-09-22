@@ -157,6 +157,28 @@ class GradeControllerTest extends TestCase
         $this->assertDatabaseCount('grades', 0);
     }
 
+    public function test_guru_without_a_teacher_profile_sees_no_classrooms_and_cannot_grade(): void
+    {
+        $user = User::factory()->create(['role' => 'guru']);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create(['name' => 'Kelas Siapapun']);
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
+
+        $indexResponse = $this->actingAs($user)->get(route('guru.laporan-nilai'));
+        $indexResponse->assertOk();
+        $indexResponse->assertDontSee('Kelas Siapapun');
+
+        $storeResponse = $this->actingAs($user)->post(route('guru.laporan-nilai.simpan'), [
+            'student_id' => $student->id,
+            'subject_id' => $subject->id,
+            'academic_year' => Classroom::currentAcademicYear(),
+            'semester' => Semester::current()->value,
+            'assignment_score' => 85,
+        ]);
+        $storeResponse->assertForbidden();
+        $this->assertDatabaseCount('grades', 0);
+    }
+
     public function test_scores_must_be_within_zero_to_one_hundred(): void
     {
         [$user, , $subject, $classroom] = $this->guruTeaching();

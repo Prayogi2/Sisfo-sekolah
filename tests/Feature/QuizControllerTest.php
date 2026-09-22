@@ -131,6 +131,54 @@ class QuizControllerTest extends TestCase
         $this->assertDatabaseCount('quiz_questions', 0);
     }
 
+    public function test_guru_without_a_teacher_profile_sees_no_subjects_or_classrooms_in_the_question_bank(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        Subject::factory()->create(['name' => 'Mapel Siapapun']);
+        Classroom::factory()->create(['name' => 'Kelas Siapapun']);
+
+        $response = $this->actingAs($guruUser)->get(route('guru.bank-soal'));
+
+        $response->assertOk();
+        $response->assertDontSee('Mapel Siapapun');
+        $response->assertDontSee('Kelas Siapapun');
+    }
+
+    public function test_guru_without_a_teacher_profile_cannot_add_a_question_for_any_subject(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $subject = Subject::factory()->create();
+
+        $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
+            'subject_id' => $subject->id,
+            'question' => 'Soal titipan.',
+            'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
+            'correct_answer' => 'A',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseCount('quiz_questions', 0);
+    }
+
+    public function test_guru_without_a_teacher_profile_cannot_create_any_quiz(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Titipan',
+            'duration_minutes' => 30,
+            'question_ids' => [$question->id],
+        ]);
+
+        $response->assertForbidden();
+        $this->assertDatabaseMissing('quizzes', ['title' => 'Kuis Titipan']);
+    }
+
     public function test_student_sees_published_quizzes_for_their_own_classroom_only(): void
     {
         $classroom = Classroom::factory()->create();

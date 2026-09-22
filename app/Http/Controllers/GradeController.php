@@ -130,10 +130,13 @@ class GradeController extends Controller
 
         // Guru hanya boleh melihat kelas yang ia ajarkan untuk mapel yang
         // sedang dipilih, bukan sembarang kelas dari mapel lain yang
-        // kebetulan juga ia ajarkan.
-        $classrooms = $teacher !== null && $subjectId
-            ? $teacher->classroomsForSubject($subjectId)
-            : Classroom::orderBy('name')->get();
+        // kebetulan juga ia ajarkan. Guru tanpa profil guru sama sekali
+        // tidak melihat kelas apa pun — hanya admin yang unrestricted.
+        $classrooms = match (true) {
+            $teacher !== null && $subjectId => $teacher->classroomsForSubject($subjectId),
+            $user->hasRole('guru') => collect(),
+            default => Classroom::orderBy('name')->get(),
+        };
 
         $classroomId = $request->integer('classroom_id') ?: $classrooms->first()?->id;
 

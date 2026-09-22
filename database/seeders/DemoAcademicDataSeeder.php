@@ -46,6 +46,25 @@ class DemoAcademicDataSeeder extends Seeder
             )
         );
 
+        // Akun demo guru@gmail.com (dibuat UserSeeder, login pakai email)
+        // ditugaskan mengajar hanya satu mapel di satu kelas, supaya benar-
+        // benar mendemokan pembatasan akses guru (bank soal, kuis, nilai)
+        // per mapel+kelas — bukan akun tanpa batasan sama sekali. NIP diisi
+        // eksplisit (bukan acak dari factory) karena TeacherObserver
+        // menyamakan username login guru dengan NIP-nya.
+        if ($demoGuruUser = User::where('email', 'guru@gmail.com')->first()) {
+            $demoTeacher = Teacher::factory()->create([
+                'user_id' => $demoGuruUser->id,
+                'nip' => '1000000001',
+                'name' => $demoGuruUser->name,
+                'email' => $demoGuruUser->email,
+            ]);
+            $demoTeacher->teachingAssignments()->create([
+                'subject_id' => $subjects->first()->id,
+                'classroom_id' => $classrooms->first()->id,
+            ]);
+        }
+
         $studentsByClassroom = $classrooms->map(
             fn (Classroom $classroom) => Student::factory(3)->create([
                 'classroom_id' => $classroom->id,
