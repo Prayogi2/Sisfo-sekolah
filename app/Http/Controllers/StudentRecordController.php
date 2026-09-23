@@ -131,12 +131,12 @@ class StudentRecordController extends Controller
         Gate::authorize('update', $student);
 
         $data = $request->validate([
-            'nisn' => ['required', 'string', 'max:20', Rule::unique('students', 'nisn')->ignore($student)],
+            'nisn' => ['required', 'digits:10', Rule::unique('students', 'nisn')->ignore($student)],
             'nis' => ['required', 'string', 'max:20', Rule::unique('students', 'nis')->ignore($student)],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:L,P'],
             'birth_place' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
             'classroom_id' => ['nullable', 'exists:classrooms,id'],
             'status' => ['required', Rule::enum(StudentStatus::class)],
             'address' => ['nullable', 'string'],
@@ -146,7 +146,7 @@ class StudentRecordController extends Controller
             'progress_semester' => ['required', Rule::enum(Semester::class)],
             'promotion_status' => ['required', Rule::enum(PromotionStatus::class)],
             'progress_notes' => ['nullable', 'string', 'max:5000'],
-        ] + $recordWriter->rules($student));
+        ] + $recordWriter->rules($student), $recordWriter->messages());
 
         $student->update(collect($data)->only([
             'nisn', 'nis', 'name', 'gender', 'birth_place', 'birth_date',

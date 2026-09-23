@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Student;
+use App\Models\StudentAcademicRecord;
 use App\Models\StudentAchievement;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -61,6 +62,24 @@ class StudentConductControllerTest extends TestCase
         $this->actingAs($siswa)->post(route('admin.prestasi-pelanggaran.prestasi.store'), [
             'student_id' => $student->id, 'category' => 'academic', 'title' => 'Tidak sah',
         ])->assertForbidden();
+    }
+
+    public function test_siswa_sees_their_academic_numbers_read_only(): void
+    {
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id, 'birth_place' => 'Cianjur']);
+        StudentAcademicRecord::factory()->create([
+            'student_id' => $student->id,
+            'report_book_serial_number' => 'RPT-0042',
+            'exam_number' => '2-26-05-01-001-002-3',
+            'graduation_certificate_number' => 'MI-26-0012345',
+        ]);
+
+        $response = $this->actingAs($siswa)->get(route('siswa.prestasi-pelanggaran'));
+
+        $response->assertOk();
+        $response->assertSee(['Cianjur', $student->nisn, 'RPT-0042', '2-26-05-01-001-002-3', 'MI-26-0012345']);
+        $response->assertDontSee('name="exam_number"', false);
     }
 
     public function test_siswa_only_sees_their_own_conduct(): void

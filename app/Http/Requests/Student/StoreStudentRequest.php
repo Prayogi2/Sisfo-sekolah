@@ -23,13 +23,13 @@ class StoreStudentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nisn' => ['required', 'string', 'max:20', 'unique:students,nisn'],
+            'nisn' => ['required', 'digits:10', 'unique:students,nisn'],
             'nis' => ['required', 'string', 'max:20', 'unique:students,nis'],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::enum(Gender::class)],
             'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
             'birth_place' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
             'address' => ['nullable', 'string'],
             'parent_name' => ['nullable', 'string', 'max:255'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
@@ -39,7 +39,7 @@ class StoreStudentRequest extends FormRequest
 
     public function messages(): array
     {
-        return [
+        return app(StudentRecordWriter::class)->messages() + [
             'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah terdaftar.',
             'nis.required' => 'NIS wajib diisi.',

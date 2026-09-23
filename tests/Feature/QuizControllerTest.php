@@ -91,6 +91,30 @@ class QuizControllerTest extends TestCase
     }
 
     /**
+     * Modal "Buat Kuis Baru" tidak boleh ikut tertampung di dalam modal
+     * "Tambah Soal" (akibat tag div yang tidak tertutup): kalau begitu,
+     * modalnya tersembunyi dan yang muncul hanya backdrop gelap.
+     */
+    public function test_quiz_modal_is_not_nested_inside_the_question_modal(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $html = $this->actingAs($guruUser)->get(route('guru.bank-soal'))->assertOk()->getContent();
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $quizModal = $document->getElementById('modalKuis');
+
+        $this->assertNotNull($quizModal);
+        for ($ancestor = $quizModal->parentNode; $ancestor instanceof \DOMElement; $ancestor = $ancestor->parentNode) {
+            $this->assertNotSame('modalSoal', $ancestor->getAttribute('id'));
+        }
+    }
+
+    /**
      * Sebelum guru punya soal sendiri, checklist "Pilih soal" di modal Buat
      * Kuis Baru kosong sehingga tombol Simpan Kuis harus dinonaktifkan dan
      * diberi penjelasan, bukan malah gagal submit tanpa keterangan jelas.
