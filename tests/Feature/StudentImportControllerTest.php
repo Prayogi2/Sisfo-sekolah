@@ -92,7 +92,8 @@ class StudentImportControllerTest extends TestCase
         $response->assertRedirect(route('admin.data-siswa'));
         $this->assertDatabaseHas('students', ['nisn' => '1111111111', 'name' => 'Budi Santoso', 'classroom_id' => $classroom->id]);
         $this->assertDatabaseHas('students', ['nisn' => '2222222222', 'name' => 'Siti Aminah', 'gender' => 'P', 'classroom_id' => null]);
-        $this->assertDatabaseHas('users', ['username' => '1111111111', 'role' => 'siswa']);
+        // Username akun login pakai NIS (bukan NISN) kalau NIS-nya terisi.
+        $this->assertDatabaseHas('users', ['username' => '2024001', 'role' => 'siswa']);
 
         $result = session('import_result');
         $this->assertSame(2, $result->imported);
