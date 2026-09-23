@@ -115,10 +115,10 @@ class TeacherDashboardControllerTest extends TestCase
         $response->assertViewHas('stats', fn (array $stats) => $stats['izin_pending'] === 0);
     }
 
-    public function test_wali_cannot_open_the_teacher_dashboard(): void
+    public function test_siswa_cannot_open_the_teacher_dashboard(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $this->actingAs($wali)->get(route('guru.dashboard'))->assertForbidden();
+        $this->actingAs($siswa)->get(route('guru.dashboard'))->assertForbidden();
     }
 }

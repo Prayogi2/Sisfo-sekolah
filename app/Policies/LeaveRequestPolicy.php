@@ -18,11 +18,6 @@ class LeaveRequestPolicy
         return $user->hasRole('admin') || $user->hasRole('guru');
     }
 
-    public function create(User $user): bool
-    {
-        return $user->hasRole('wali');
-    }
-
     /**
      * Approve/reject: admin bisa untuk semua, guru hanya untuk siswa
      * di kelas yang dia jadi wali kelasnya.

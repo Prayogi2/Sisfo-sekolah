@@ -17,10 +17,19 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
             <div>
                 <h1 class="h3 mb-1 fw-bold">{{ $student ? 'Selamat datang, '.$student->name : 'Dashboard Siswa' }}</h1>
-                <p class="text-muted mb-0">{{ $student?->classroom?->name ?? 'Pilih anak untuk melihat data akademik' }} · {{ now()->translatedFormat('l, d F Y') }}</p>
+                <p class="text-muted mb-0">{{ $student ? ($student->classroom?->name ?? 'Belum masuk kelas') : 'Akun ini belum terhubung ke data siswa' }} · {{ now()->translatedFormat('l, d F Y') }}</p>
             </div>
-            @if($student)<a href="{{ route('siswa.kartu-digital') }}" class="btn btn-outline-primary"><i class="bi bi-qr-code me-1"></i>Kartu Digital</a>@endif
+            @if($student)
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('siswa.kartu-digital') }}" class="btn btn-outline-primary"><i class="bi bi-qr-code me-1"></i>Kartu Digital</a>
+                    <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="btn btn-outline-primary"><i class="bi bi-award me-1"></i>Prestasi & Pelanggaran</a>
+                </div>
+            @endif
         </div>
+
+        @unless($student)
+            <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>Akun kamu belum terhubung ke data siswa. Hubungi admin sekolah agar datamu bisa ditampilkan.</div>
+        @endunless
 
         <x-page-guide>Ringkasan absensi, tagihan, dan kuis hari ini. Kerjakan kuis lewat menu Kuis setelah absen pagi.</x-page-guide>
 
@@ -33,7 +42,7 @@
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="mb-0 fw-bold text-primary">Kuis CBT</h6><a href="{{ route('siswa.kuis') }}" class="small">Lihat semua</a></div>
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="mb-0 fw-bold text-primary">Kuis CBT</h6><div class="small"><a href="{{ route('siswa.hasil-kuis') }}" class="me-3">Hasil kuis</a><a href="{{ route('siswa.kuis') }}">Lihat semua</a></div></div>
                     <div class="list-group list-group-flush">
                         @forelse($quizzes as $quiz)
                             @php($attempt = $quiz->attempts->first())
@@ -58,7 +67,7 @@
                     @forelse($bills->take(3) as $bill)
                         <div class="d-flex justify-content-between border-bottom py-2"><span>{{ $bill->period->translatedFormat('F Y') }}</span><span class="fw-semibold">Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}</span></div>
                     @empty <p class="text-muted mb-0">Belum ada tagihan.</p> @endforelse
-                    <a href="{{ route('siswa.spp') }}" class="btn btn-primary btn-sm w-100 mt-3">Buka pembayaran SPP</a>
+                    <a href="{{ route('siswa.status-spp') }}" class="btn btn-primary btn-sm w-100 mt-3">Lihat status SPP</a>
                 </div></div>
             </div>
         </div>

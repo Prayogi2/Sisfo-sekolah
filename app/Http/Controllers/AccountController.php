@@ -12,7 +12,7 @@ class AccountController extends Controller
     public function index(): View
     {
         $users = User::query()
-            ->whereIn('role', ['guru', 'wali', 'siswa'])
+            ->whereIn('role', ['guru', 'siswa'])
             ->orderBy('role')->orderBy('name')->get();
 
         return view('admin.akun', compact('users'));
@@ -20,7 +20,7 @@ class AccountController extends Controller
 
     public function resetPassword(User $user, UserPasswordResetter $resetter): RedirectResponse
     {
-        abort_unless(in_array($user->role, ['guru', 'wali', 'siswa'], true), 404);
+        abort_unless(in_array($user->role, ['guru', 'siswa'], true), 404);
 
         return back()->with('success', "Password baru untuk {$user->name}: ".$resetter->reset($user));
     }

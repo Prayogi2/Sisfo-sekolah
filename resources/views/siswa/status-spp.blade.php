@@ -12,7 +12,7 @@
             </div>
         </div>
 
-        <x-page-guide>Rekap tagihan & riwayat pembayaran anak Anda. Klik <strong>Upload Bukti Transfer</strong> untuk mengirim bukti bayar — status berubah menjadi Lunas setelah admin memverifikasi.</x-page-guide>
+        <x-page-guide>Rekap tagihan & riwayat pembayaran SPP kamu. Klik <strong>Upload Bukti Transfer</strong> untuk mengirim bukti bayar — status berubah menjadi Lunas setelah admin memverifikasi.</x-page-guide>
 
         @php
             $totalTagihan = $bills->sum('amount');

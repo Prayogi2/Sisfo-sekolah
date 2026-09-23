@@ -195,11 +195,11 @@ class GradeControllerTest extends TestCase
         $response->assertSessionHasErrors('assignment_score');
     }
 
-    public function test_wali_is_forbidden_from_the_grade_sheet(): void
+    public function test_siswa_is_forbidden_from_the_grade_sheet(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $this->actingAs($wali)->get(route('guru.laporan-nilai'))->assertForbidden();
+        $this->actingAs($siswa)->get(route('guru.laporan-nilai'))->assertForbidden();
     }
 
     public function test_admin_can_view_the_grade_report(): void

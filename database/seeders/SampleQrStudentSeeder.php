@@ -18,16 +18,11 @@ class SampleQrStudentSeeder extends Seeder
     public function run(): void
     {
         $classroom = Classroom::query()->firstOrFail();
-        $waliUser = User::query()->where('username', 'wali')->firstOrFail();
         $studentUser = User::query()->where('username', 'siswa')->firstOrFail();
 
         $guardian = Guardian::updateOrCreate(
-            ['user_id' => $waliUser->id],
-            [
-                'name' => $waliUser->name,
-                'relationship' => GuardianRelationship::Guardian,
-                'phone' => '081234567890',
-            ],
+            ['name' => 'Wali Murid Demo', 'relationship' => GuardianRelationship::Guardian],
+            ['phone' => '081234567890'],
         );
 
         $student = Student::updateOrCreate(
@@ -53,6 +48,5 @@ class SampleQrStudentSeeder extends Seeder
         $this->command?->info("Siswa demo QR siap: {$student->name}");
         $this->command?->info('Token QR: '.self::QR_TOKEN);
         $this->command?->info("Login siswa: {$student->name} / password123");
-        $this->command?->info('Login wali: wali@gmail.com / password123');
     }
 }

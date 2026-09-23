@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\GuardianRelationship;
-use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -21,74 +19,24 @@ class StudentPortalControllerTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
-    public function test_wali_with_a_single_child_sees_the_digital_card_directly(): void
+    public function test_siswa_sees_their_own_digital_card(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id]);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kartu-digital'));
+        $response = $this->actingAs($siswa)->get(route('siswa.kartu-digital'));
 
         $response->assertOk();
         $response->assertSee($student->name);
         $response->assertSee($student->qr_token);
     }
 
-    public function test_wali_with_multiple_children_is_redirected_to_pilih_anak(): void
+    public function test_siswa_without_student_data_is_sent_back_to_the_dashboard(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create([
-            'user_id' => $wali->id,
-            'relationship' => GuardianRelationship::Guardian,
-        ]);
-        $guardian->students()->attach(Student::factory(2)->create());
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kartu-digital'));
-
-        $response->assertRedirect(route('pilih-anak.index'));
-    }
-
-    public function test_after_selecting_a_child_the_wali_can_access_the_page(): void
-    {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create([
-            'user_id' => $wali->id,
-            'relationship' => GuardianRelationship::Guardian,
-        ]);
-        $students = Student::factory(2)->create();
-        $guardian->students()->attach($students);
-
-        $this->actingAs($wali)->get(route('siswa.kartu-digital'));
-        $this->actingAs($wali)->get(route('pilih-anak.select', $students->first()));
-        $response = $this->actingAs($wali)->get(route('siswa.kartu-digital'));
-
-        $response->assertOk();
-        $response->assertSee($students->first()->name);
-    }
-
-    public function test_wali_cannot_select_a_child_that_is_not_theirs(): void
-    {
-        $wali = User::factory()->create(['role' => 'wali']);
-        Guardian::factory()->create(['user_id' => $wali->id]);
-        $otherStudent = Student::factory()->create();
-
-        $response = $this->actingAs($wali)->get(route('pilih-anak.select', $otherStudent));
-
-        $response->assertForbidden();
-    }
-
-    public function test_guardian_attendance_page_shows_the_current_childs_history(): void
-    {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
-
-        $response = $this->actingAs($wali)->get(route('wali.izin'));
-
-        $response->assertOk();
-        $response->assertSee($student->name);
+        $this->actingAs($siswa)->get(route('siswa.kartu-digital'))->assertRedirect(route('siswa.dashboard'));
+        $this->actingAs($siswa)->get(route('siswa.dashboard'))->assertOk()->assertSee('belum terhubung ke data siswa');
     }
 
     public function test_admin_is_forbidden_from_the_student_portal(): void

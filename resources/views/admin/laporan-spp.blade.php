@@ -23,7 +23,7 @@
             </div>
         </div>
 
-        <x-page-guide><strong>Buat Tagihan Bulan Ini</strong> membuat tagihan SPP untuk siswa yang belum ditagih bulan berjalan. Pembayaran wali murid diverifikasi lewat menu <strong>Verifikasi Pembayaran SPP</strong>.</x-page-guide>
+        <x-page-guide><strong>Buat Tagihan Bulan Ini</strong> membuat tagihan SPP untuk siswa yang belum ditagih bulan berjalan. Pembayaran siswa diverifikasi lewat menu <strong>Verifikasi Pembayaran SPP</strong>.</x-page-guide>
 
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>

@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Str;
 
 /**
- * Reset password akun (guru/wali) atas permintaan admin. Password lama
+ * Reset password akun (guru/siswa) atas permintaan admin. Password lama
  * tidak pernah ditampilkan (tetap di-hash) — admin hanya diberi password
  * baru satu kali untuk disampaikan manual ke pemilik akun.
  */

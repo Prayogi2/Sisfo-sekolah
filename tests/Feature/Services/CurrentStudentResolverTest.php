@@ -2,14 +2,11 @@
 
 namespace Tests\Feature\Services;
 
-use App\Enums\GuardianRelationship;
-use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\CurrentStudentResolver;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class CurrentStudentResolverTest extends TestCase
@@ -26,62 +23,26 @@ class CurrentStudentResolverTest extends TestCase
         $this->resolver = new CurrentStudentResolver;
     }
 
-    private function waliUser(): User
+    public function test_resolves_the_student_linked_to_a_siswa_account(): void
     {
-        return User::factory()->create(['role' => 'wali']);
+        $user = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $user->id]);
+
+        $this->assertSame($student->id, $this->resolver->resolve($user)?->id);
     }
 
-    public function test_returns_empty_choices_for_wali_without_children(): void
+    public function test_returns_null_for_a_siswa_account_without_student_data(): void
     {
-        $user = $this->waliUser();
+        $user = User::factory()->create(['role' => 'siswa']);
 
-        $this->assertTrue($this->resolver->choices($user)->isEmpty());
         $this->assertNull($this->resolver->resolve($user));
     }
 
-    public function test_auto_resolves_the_only_child_without_needing_a_selection(): void
+    public function test_returns_null_for_non_siswa_accounts(): void
     {
-        $user = $this->waliUser();
-        $guardian = Guardian::factory()->create(['user_id' => $user->id]);
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
-
-        $resolved = $this->resolver->resolve($user);
-
-        $this->assertNotNull($resolved);
-        $this->assertSame($student->id, $resolved->id);
-    }
-
-    public function test_returns_null_for_multiple_children_until_one_is_selected(): void
-    {
-        $user = $this->waliUser();
-        $guardian = Guardian::factory()->create([
-            'user_id' => $user->id,
-            'relationship' => GuardianRelationship::Guardian,
-        ]);
-        $studentA = Student::factory()->create();
-        $studentB = Student::factory()->create();
-        $guardian->students()->attach([$studentA->id, $studentB->id]);
+        $user = User::factory()->create(['role' => 'guru']);
+        Student::factory()->create(['user_id' => $user->id]);
 
         $this->assertNull($this->resolver->resolve($user));
-
-        $selected = $this->resolver->select($user, $studentB->id);
-
-        $this->assertSame($studentB->id, $selected->id);
-        $this->assertSame($studentB->id, $this->resolver->resolve($user)->id);
-    }
-
-    public function test_cannot_select_a_student_that_does_not_belong_to_the_guardian(): void
-    {
-        $user = $this->waliUser();
-        Guardian::factory()->create(['user_id' => $user->id]);
-        $otherStudent = Student::factory()->create();
-
-        try {
-            $this->resolver->select($user, $otherStudent->id);
-            $this->fail('Expected an HttpException with status 403 to be thrown.');
-        } catch (HttpException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
-        }
     }
 }

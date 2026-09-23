@@ -7,7 +7,6 @@ use App\Enums\Semester;
 use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\Grade;
-use App\Models\Guardian;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
@@ -30,11 +29,10 @@ class QuizLeaderboardTest extends TestCase
         $this->seed(RoleSeeder::class);
     }
 
-    private function waliFor(Student $student): User
+    private function siswaAccountFor(Student $student): User
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $guardian->students()->attach($student);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student->update(['user_id' => $siswa->id]);
 
         Attendance::factory()->create([
             'student_id' => $student->id,
@@ -43,7 +41,7 @@ class QuizLeaderboardTest extends TestCase
             'status' => AttendanceStatus::Present,
         ]);
 
-        return $wali;
+        return $siswa;
     }
 
     public function test_leaderboard_is_ordered_by_average_score(): void
@@ -64,7 +62,7 @@ class QuizLeaderboardTest extends TestCase
             ]);
         }
 
-        $response = $this->actingAs($this->waliFor($middle))->get(route('siswa.kuis'));
+        $response = $this->actingAs($this->siswaAccountFor($middle))->get(route('siswa.kuis'));
 
         $response->assertOk();
         $response->assertSeeInOrder(['Siswa Terbaik', 'Siswa Tengah', 'Siswa Terakhir']);
@@ -90,7 +88,7 @@ class QuizLeaderboardTest extends TestCase
             'score' => 100,
         ]);
 
-        $response = $this->actingAs($this->waliFor($student))->get(route('siswa.kuis'));
+        $response = $this->actingAs($this->siswaAccountFor($student))->get(route('siswa.kuis'));
 
         $response->assertOk();
         $response->assertDontSee('Siswa Kelas Lain');
@@ -110,7 +108,7 @@ class QuizLeaderboardTest extends TestCase
             'quiz_id' => $quiz->id, 'student_id' => $working->id, 'status' => 'in_progress', 'score' => null,
         ]);
 
-        $response = $this->actingAs($this->waliFor($student))->get(route('siswa.kuis'));
+        $response = $this->actingAs($this->siswaAccountFor($student))->get(route('siswa.kuis'));
 
         $response->assertDontSee('Masih Mengerjakan');
     }
@@ -126,7 +124,7 @@ class QuizLeaderboardTest extends TestCase
             'score' => 88,
         ]);
 
-        $response = $this->actingAs($this->waliFor($student))->get(route('siswa.kuis'));
+        $response = $this->actingAs($this->siswaAccountFor($student))->get(route('siswa.kuis'));
 
         $response->assertSee('Anda');
     }

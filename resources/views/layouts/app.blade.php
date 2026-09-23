@@ -15,10 +15,7 @@
 @php
     // Gunakan prefix URL pada halaman role, lalu fallback ke role akun.
     $role = request()->segment(1);
-    if ($role === 'wali-murid') {
-        $role = 'wali';
-    }
-    if (! in_array($role, ['admin', 'guru', 'siswa', 'wali'], true)) {
+    if (! in_array($role, ['admin', 'guru', 'siswa'], true)) {
         $role = auth()->user()?->role ?? 'admin';
     }
     
@@ -82,22 +79,21 @@
 
         {{-- MENU SISWA --}}
         @elseif($role == 'siswa')
-            <div class="menu-title">Menu Siswa</div>
+            <div class="menu-title">Menu Utama</div>
             <a href="{{ route('siswa.dashboard') }}" class="{{ request()->routeIs('siswa.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard Siswa</a>
-            <a href="{{ route('siswa.kartu-digital') }}" class="{{ request()->routeIs('siswa.kartu-digital') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Absensi & Kartu Digital</a>
-            <a href="{{ route('siswa.spp') }}" class="{{ request()->routeIs('siswa.spp') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill"></i> Pembayaran SPP</a>
-            <a href="{{ route('siswa.kuis') }}" class="{{ request()->routeIs('siswa.kuis') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill"></i> Kuis & Ranking</a>
 
-        {{-- MENU WALI MURID --}}
-        @elseif($role == 'wali')
-            <div class="menu-title">Portal Wali Murid</div>
-            <a href="{{ route('wali.dashboard') }}" class="{{ request()->routeIs('wali.dashboard') ? 'active' : '' }}"><i class="bi bi-house-door-fill"></i> Dashboard & Performa Anak</a>
-            <a href="{{ route('wali.izin') }}" class="{{ request()->routeIs('wali.izin') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Pemantauan Absensi & Izin</a>
-            <a href="{{ route('wali.spp') }}" class="{{ request()->routeIs('wali.spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status Pembayaran SPP</a>
+            <div class="menu-title">Absensi</div>
+            <a href="{{ route('siswa.kartu-digital') }}" class="{{ request()->routeIs('siswa.kartu-digital') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Kartu Digital</a>
+            <a href="{{ route('siswa.absensi') }}" class="{{ request()->routeIs('siswa.absensi') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Riwayat Absensi</a>
+
+            <div class="menu-title">Akademik</div>
+            <a href="{{ route('siswa.kuis') }}" class="{{ request()->routeIs('siswa.kuis*') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill"></i> Kuis & Ranking</a>
+            <a href="{{ route('siswa.hasil-kuis') }}" class="{{ request()->routeIs('siswa.hasil-kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis</a>
+            <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="{{ request()->routeIs('siswa.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
+
+            <div class="menu-title">Keuangan</div>
+            <a href="{{ route('siswa.status-spp') }}" class="{{ request()->routeIs('siswa.status-spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status SPP</a>
             <a href="{{ route('siswa.spp') }}" class="{{ request()->routeIs('siswa.spp') ? 'active' : '' }}"><i class="bi bi-upload"></i> Bayar / Upload Bukti SPP</a>
-            <a href="{{ route('wali.kuis') }}" class="{{ request()->routeIs('wali.kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis & Ranking</a>
-            <a href="{{ route('wali.prestasi-pelanggaran') }}" class="{{ request()->routeIs('wali.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
-            <a href="{{ route('wali.kritik-saran') }}" class="{{ request()->routeIs('wali.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
         @endif
 
         <div class="menu-title">Aksi</div>
@@ -155,11 +151,10 @@
                     <i class="bi bi-chevron-down ms-2 small"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
-                    <li><h6 class="dropdown-header">Akses Role</h6></li>
-                    <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-shield-lock me-2"></i> Admin</a></li>
-                    <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Guru</a></li>
-                    <li><a class="dropdown-item" href="{{ route('wali.dashboard') }}"><i class="bi bi-people me-2"></i> Wali Murid</a></li>
                     @if(auth()->user()->hasRole('admin'))
+                        <li><h6 class="dropdown-header">Akses Role</h6></li>
+                        <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-shield-lock me-2"></i> Admin</a></li>
+                        <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Guru</a></li>
                         <li><a class="dropdown-item" href="{{ route('admin.akun') }}"><i class="bi bi-key me-2"></i> Kelola Password</a></li>
                     @endif
                     <li><a class="dropdown-item" href="{{ route('account.password.edit') }}"><i class="bi bi-shield-lock me-2"></i> Ganti Password</a></li>
@@ -214,20 +209,15 @@
             ['route' => 'guru.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
             ['route' => 'guru.laporan-nilai', 'icon' => 'bi-bar-chart-fill', 'label' => 'Nilai'],
         ],
-        'siswa' => [
+        default => [
             ['route' => 'siswa.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
             ['route' => 'siswa.kartu-digital', 'icon' => 'bi-qr-code-scan', 'label' => 'Kartu'],
-            ['route' => 'siswa.absensi', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
             ['route' => 'siswa.kuis', 'icon' => 'bi-mortarboard-fill', 'label' => 'Kuis'],
-            ['route' => 'siswa.spp', 'icon' => 'bi-credit-card-2-front-fill', 'label' => 'SPP'],
-        ],
-        default => [
-            ['route' => 'wali.dashboard', 'icon' => 'bi-house-door-fill', 'label' => 'Beranda'],
-            ['route' => 'wali.izin', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
-            ['route' => 'wali.spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
-            ['route' => 'wali.kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Kuis'],
-            ['route' => 'wali.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
-            ['route' => 'wali.kritik-saran', 'icon' => 'bi-chat-square-text-fill', 'label' => 'Saran'],
+            ['route' => 'siswa.status-spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
+            ['route' => 'siswa.absensi', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
+            ['route' => 'siswa.hasil-kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Hasil Kuis'],
+            ['route' => 'siswa.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
+            ['route' => 'siswa.spp', 'icon' => 'bi-upload', 'label' => 'Bayar SPP'],
         ],
     };
 @endphp

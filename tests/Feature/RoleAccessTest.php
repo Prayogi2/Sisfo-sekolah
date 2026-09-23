@@ -28,7 +28,6 @@ class RoleAccessTest extends TestCase
             'admin dashboard' => ['/admin/dashboard'],
             'guru dashboard' => ['/guru/dashboard'],
             'siswa dashboard' => ['/siswa/dashboard'],
-            'wali dashboard' => ['/wali-murid/dashboard'],
             'scan qr' => ['/scan-qr'],
         ];
     }
@@ -57,7 +56,7 @@ class RoleAccessTest extends TestCase
     {
         return [
             'guru' => ['guru'],
-            'wali' => ['wali'],
+            'siswa' => ['siswa'],
         ];
     }
 
@@ -80,27 +79,26 @@ class RoleAccessTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_wali_is_forbidden_from_guru_dashboard(): void
+    public function test_siswa_is_forbidden_from_guru_dashboard(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $response = $this->actingAs($wali)->get('/guru/dashboard');
+        $response = $this->actingAs($siswa)->get('/guru/dashboard');
 
         $response->assertForbidden();
     }
 
-    public function test_wali_can_access_siswa_and_wali_dashboards(): void
+    public function test_siswa_can_access_siswa_dashboard(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $this->actingAs($wali)->get('/siswa/dashboard')->assertOk();
-        $this->actingAs($wali)->get('/wali-murid/dashboard')->assertOk();
+        $this->actingAs($siswa)->get('/siswa/dashboard')->assertOk();
     }
 
     /**
      * @return array<string, array{string}>
      */
-    public static function nonWaliRoles(): array
+    public static function nonSiswaRoles(): array
     {
         return [
             'admin' => ['admin'],
@@ -108,14 +106,21 @@ class RoleAccessTest extends TestCase
         ];
     }
 
-    #[DataProvider('nonWaliRoles')]
-    public function test_non_wali_role_is_forbidden_from_siswa_dashboard(string $role): void
+    #[DataProvider('nonSiswaRoles')]
+    public function test_non_siswa_role_is_forbidden_from_siswa_dashboard(string $role): void
     {
         $user = User::factory()->create(['role' => $role]);
 
         $response = $this->actingAs($user)->get('/siswa/dashboard');
 
         $response->assertForbidden();
+    }
+
+    public function test_the_old_wali_portal_no_longer_exists(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->get('/wali-murid/dashboard')->assertNotFound();
     }
 
     public function test_admin_and_guru_can_access_scan_qr(): void
@@ -127,11 +132,11 @@ class RoleAccessTest extends TestCase
         $this->actingAs($guru)->get('/scan-qr')->assertOk();
     }
 
-    public function test_wali_is_forbidden_from_scan_qr(): void
+    public function test_siswa_is_forbidden_from_scan_qr(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $response = $this->actingAs($wali)->get('/scan-qr');
+        $response = $this->actingAs($siswa)->get('/scan-qr');
 
         $response->assertForbidden();
     }

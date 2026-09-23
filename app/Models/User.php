@@ -31,14 +31,6 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * The guardian profile linked to this account, if any (role: wali).
-     */
-    public function guardian(): HasOne
-    {
-        return $this->hasOne(Guardian::class);
-    }
-
     public function student(): HasOne
     {
         return $this->hasOne(Student::class);

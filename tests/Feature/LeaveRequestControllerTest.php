@@ -5,15 +5,12 @@ namespace Tests\Feature;
 use App\Enums\AttendanceStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Models\Classroom;
-use App\Models\Guardian;
 use App\Models\LeaveRequest;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LeaveRequestControllerTest extends TestCase
@@ -25,54 +22,6 @@ class LeaveRequestControllerTest extends TestCase
         parent::setUp();
 
         $this->seed(RoleSeeder::class);
-    }
-
-    public function test_wali_can_submit_a_leave_request_with_an_attachment(): void
-    {
-        Storage::fake('public');
-
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
-
-        $response = $this->actingAs($wali)->post(route('wali.izin.store'), [
-            'type' => 'sakit',
-            'start_date' => now()->toDateString(),
-            'end_date' => now()->addDay()->toDateString(),
-            'reason' => 'Demam tinggi',
-            'attachment' => UploadedFile::fake()->create('surat.pdf', 100),
-        ]);
-
-        $response->assertRedirect();
-        $this->assertDatabaseHas('leave_requests', [
-            'student_id' => $student->id,
-            'guardian_id' => $guardian->id,
-            'status' => LeaveRequestStatus::Pending->value,
-        ]);
-
-        $leaveRequest = LeaveRequest::first();
-        Storage::disk('public')->assertExists($leaveRequest->attachment_path);
-    }
-
-    public function test_leave_request_requires_an_attachment(): void
-    {
-        Storage::fake('public');
-
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
-
-        $response = $this->actingAs($wali)->post(route('wali.izin.store'), [
-            'type' => 'sakit',
-            'start_date' => now()->toDateString(),
-            'end_date' => now()->toDateString(),
-            'reason' => 'Demam tinggi',
-        ]);
-
-        $response->assertSessionHasErrors('attachment');
-        $this->assertDatabaseCount('leave_requests', 0);
     }
 
     public function test_admin_can_view_all_leave_requests(): void
@@ -103,12 +52,12 @@ class LeaveRequestControllerTest extends TestCase
         $response->assertDontSee($otherStudent->name);
     }
 
-    public function test_wali_cannot_approve_a_leave_request(): void
+    public function test_siswa_cannot_approve_a_leave_request(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
         $leaveRequest = LeaveRequest::factory()->create();
 
-        $response = $this->actingAs($wali)->post(route('admin.approval-izin.approve', $leaveRequest));
+        $response = $this->actingAs($siswa)->post(route('admin.approval-izin.approve', $leaveRequest));
 
         $response->assertForbidden();
     }

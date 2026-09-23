@@ -22,7 +22,7 @@ class UserPasswordResetterTest extends TestCase
 
     public function test_reset_sets_a_new_hashed_password_and_returns_the_plain_value(): void
     {
-        $user = User::factory()->create(['role' => 'wali']);
+        $user = User::factory()->create(['role' => 'siswa']);
         $oldHash = $user->password;
 
         $newPassword = (new UserPasswordResetter)->reset($user);

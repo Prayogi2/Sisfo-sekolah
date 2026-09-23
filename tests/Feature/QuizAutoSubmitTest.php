@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
 use App\Models\Classroom;
-use App\Models\Guardian;
 use App\Models\Quiz;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
@@ -38,10 +37,8 @@ class QuizAutoSubmitTest extends TestCase
     private function abandonedAttempt(int $correctAnswers = 1, int $durationMinutes = 30): array
     {
         $classroom = Classroom::factory()->create();
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
-        $guardian->students()->attach($student);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id, 'classroom_id' => $classroom->id]);
 
         Attendance::factory()->create([
             'student_id' => $student->id,
@@ -84,7 +81,7 @@ class QuizAutoSubmitTest extends TestCase
             ]);
         }
 
-        return [$wali, $attempt, $quiz];
+        return [$siswa, $attempt, $quiz];
     }
 
     public function test_the_scheduled_command_submits_abandoned_attempts(): void
@@ -125,9 +122,9 @@ class QuizAutoSubmitTest extends TestCase
 
     public function test_opening_the_quiz_list_finalises_the_students_expired_attempt(): void
     {
-        [$wali, $attempt] = $this->abandonedAttempt();
+        [$siswa, $attempt] = $this->abandonedAttempt();
 
-        $this->actingAs($wali)->get(route('siswa.kuis'))->assertOk();
+        $this->actingAs($siswa)->get(route('siswa.kuis'))->assertOk();
 
         $this->assertSame('submitted', $attempt->fresh()->status);
         $this->assertSame('50.00', $attempt->fresh()->score);
@@ -135,9 +132,9 @@ class QuizAutoSubmitTest extends TestCase
 
     public function test_reopening_an_expired_quiz_submits_it_instead_of_letting_work_continue(): void
     {
-        [$wali, $attempt, $quiz] = $this->abandonedAttempt();
+        [$siswa, $attempt, $quiz] = $this->abandonedAttempt();
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
 
         $response->assertRedirect(route('siswa.kuis'));
         $this->assertSame('submitted', $attempt->fresh()->status);
@@ -145,9 +142,9 @@ class QuizAutoSubmitTest extends TestCase
 
     public function test_submitting_late_is_scored_at_the_deadline(): void
     {
-        [$wali, $attempt] = $this->abandonedAttempt();
+        [$siswa, $attempt] = $this->abandonedAttempt();
 
-        $this->actingAs($wali)->post(route('siswa.kuis.submit', $attempt))->assertRedirect();
+        $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt))->assertRedirect();
 
         $this->assertSame('submitted', $attempt->fresh()->status);
         $this->assertSame('50.00', $attempt->fresh()->score);

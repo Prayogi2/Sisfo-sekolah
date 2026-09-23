@@ -85,19 +85,13 @@ class DemoAcademicDataSeeder extends Seeder
         });
 
         // Keluarga 1: ayah & ibu sama-sama terhubung ke anak yang sama.
-        $ayah = Guardian::factory()
-            ->for(User::factory()->state(['role' => 'wali']))
-            ->create(['relationship' => GuardianRelationship::Father]);
-        $ibu = Guardian::factory()
-            ->for(User::factory()->state(['role' => 'wali']))
-            ->create(['relationship' => GuardianRelationship::Mother]);
+        $ayah = Guardian::factory()->create(['relationship' => GuardianRelationship::Father]);
+        $ibu = Guardian::factory()->create(['relationship' => GuardianRelationship::Mother]);
         $ayah->students()->attach($studentsByClassroom[0]->id);
         $ibu->students()->attach($studentsByClassroom[0]->id);
 
         // Keluarga 2: satu wali untuk dua anak (kakak-adik beda kelas).
-        $wali = Guardian::factory()
-            ->for(User::factory()->state(['role' => 'wali']))
-            ->create(['relationship' => GuardianRelationship::Guardian]);
+        $wali = Guardian::factory()->create(['relationship' => GuardianRelationship::Guardian]);
         $wali->students()->attach([
             $studentsByClassroom[1]->id,
             $studentsByClassroom[3]->id,

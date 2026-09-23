@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\StudentAchievement;
 use App\Models\User;
@@ -48,35 +47,33 @@ class StudentConductControllerTest extends TestCase
         $this->assertDatabaseHas('student_violations', ['student_id' => $student->id, 'title' => 'Terlambat']);
     }
 
-    public function test_guru_can_record_conduct_but_wali_cannot(): void
+    public function test_guru_can_record_conduct_but_siswa_cannot(): void
     {
         $guru = User::factory()->create(['role' => 'guru']);
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
         $student = Student::factory()->create();
 
         $this->actingAs($guru)->post(route('guru.prestasi-pelanggaran.pelanggaran.store'), [
             'student_id' => $student->id, 'severity' => 'medium', 'title' => 'Gadget', 'description' => 'Menggunakan gadget saat pelajaran.', 'occurred_at' => '2026-09-21',
         ])->assertRedirect();
 
-        $this->actingAs($wali)->get(route('admin.prestasi-pelanggaran'))->assertForbidden();
-        $this->actingAs($wali)->post(route('admin.prestasi-pelanggaran.prestasi.store'), [
+        $this->actingAs($siswa)->get(route('admin.prestasi-pelanggaran'))->assertForbidden();
+        $this->actingAs($siswa)->post(route('admin.prestasi-pelanggaran.prestasi.store'), [
             'student_id' => $student->id, 'category' => 'academic', 'title' => 'Tidak sah',
         ])->assertForbidden();
     }
 
-    public function test_guardian_can_only_see_the_selected_child_conduct(): void
+    public function test_siswa_only_sees_their_own_conduct(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $child = Student::factory()->create(['name' => 'Anak Wali']);
-        $other = Student::factory()->create(['name' => 'Anak Lain']);
-        $guardian->students()->attach($child);
-        StudentAchievement::create(['student_id' => $child->id, 'category' => 'academic', 'title' => 'Prestasi Anak']);
-        StudentAchievement::create(['student_id' => $other->id, 'category' => 'academic', 'title' => 'Rahasia Anak Lain']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id]);
+        $other = Student::factory()->create(['name' => 'Siswa Lain']);
+        StudentAchievement::create(['student_id' => $student->id, 'category' => 'academic', 'title' => 'Prestasi Sendiri']);
+        StudentAchievement::create(['student_id' => $other->id, 'category' => 'academic', 'title' => 'Rahasia Siswa Lain']);
 
-        $this->actingAs($wali)->get(route('wali.prestasi-pelanggaran'))
+        $this->actingAs($siswa)->get(route('siswa.prestasi-pelanggaran'))
             ->assertOk()
-            ->assertSee('Prestasi Anak')
-            ->assertDontSee('Rahasia Anak Lain');
+            ->assertSee('Prestasi Sendiri')
+            ->assertDontSee('Rahasia Siswa Lain');
     }
 }

@@ -63,7 +63,7 @@ class SppPaymentController extends Controller
     }
 
     /**
-     * Halaman pembayaran SPP anak (wali): tagihan, riwayat, & form upload bukti.
+     * Halaman pembayaran SPP siswa: tagihan, riwayat, & form upload bukti.
      */
     public function create(Request $request, CurrentStudentResolver $resolver): View|RedirectResponse
     {
@@ -87,10 +87,9 @@ class SppPaymentController extends Controller
             return $student;
         }
 
-        // Wali mengunggah dari akunnya sendiri; siswa yang login sendiri
-        // belum punya baris Guardian, jadi diarahkan ke wali pertama yang
-        // terhubung ke akunnya.
-        $guardian = $user->guardian ?? $student->guardians()->first();
+        // Pembayaran tetap dicatat atas nama orang tua/wali pertama siswa
+        // di Buku Induk.
+        $guardian = $student->guardians()->first();
         abort_unless($guardian, 422, 'Akun ini belum terhubung dengan data wali. Hubungi admin untuk melengkapi data orang tua/wali di Buku Induk terlebih dahulu.');
 
         // Tagihan harus benar-benar milik anak yang sedang dipilih.
@@ -112,9 +111,9 @@ class SppPaymentController extends Controller
     }
 
     /**
-     * Halaman status SPP (portal wali) — hanya menampilkan, tanpa form upload.
+     * Halaman status SPP siswa — hanya menampilkan, tanpa form upload.
      */
-    public function guardianStatus(Request $request, CurrentStudentResolver $resolver): View|RedirectResponse
+    public function status(Request $request, CurrentStudentResolver $resolver): View|RedirectResponse
     {
         $student = $this->resolveStudentOrRedirect($request->user(), $resolver);
 
@@ -124,7 +123,7 @@ class SppPaymentController extends Controller
 
         $bills = $this->billsFor($student->id);
 
-        return view('wali-murid.status-spp', compact('student', 'bills'));
+        return view('siswa.status-spp', compact('student', 'bills'));
     }
 
     /**

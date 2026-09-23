@@ -31,7 +31,7 @@ class AuthController extends Controller
             $query->where(function ($query) use ($identifier) {
                 $query->whereIn('role', ['admin', 'guru'])->where('email', $identifier);
             })->orWhere(function ($query) use ($identifier) {
-                $query->whereIn('role', ['wali', 'siswa'])->where('name', $identifier);
+                $query->where('role', 'siswa')->where('name', $identifier);
             });
         })->first();
 
@@ -44,7 +44,7 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $role = $user->role;
 
-        if (! in_array($role, ['admin', 'guru', 'wali', 'siswa'], true)) {
+        if (! in_array($role, ['admin', 'guru', 'siswa'], true)) {
             Auth::logout();
 
             return back()
@@ -57,7 +57,6 @@ class AuthController extends Controller
         return match ($role) {
             'admin' => redirect()->route('admin.dashboard'),
             'guru' => redirect()->route('guru.dashboard'),
-            'wali' => redirect()->route('wali.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
         };
     }
@@ -84,6 +83,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

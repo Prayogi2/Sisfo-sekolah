@@ -79,7 +79,7 @@
             <div class="login-box">
                 <div class="text-center mb-4">
                     <h3 class="fw-bold text-dark mb-2">Selamat Datang</h3>
-                    <p class="text-muted mb-3">Admin/guru memakai email · wali/siswa memakai nama</p>
+                    <p class="text-muted mb-3">Admin/guru memakai email · siswa memakai nama</p>
                     @if(file_exists($logoPath))
                         <img src="{{ $logoUrl }}" alt="Logo NURFA.ID" class="login-logo">
                     @endif
@@ -98,7 +98,7 @@
                         <label for="identifier" class="form-label fw-semibold">Email / Nama</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="bi bi-person text-primary"></i></span>
-                            <input id="identifier" name="identifier" type="text" value="{{ old('identifier') }}" class="form-control" placeholder="Email admin/guru atau nama wali/siswa" autocomplete="username" required autofocus>
+                            <input id="identifier" name="identifier" type="text" value="{{ old('identifier') }}" class="form-control" placeholder="Email admin/guru atau nama siswa" autocomplete="username" required autofocus>
                         </div>
                     </div>
                     <div class="mb-3">

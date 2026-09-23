@@ -10,9 +10,4 @@ class FeedbackPolicy
     {
         return $user->hasRole('admin');
     }
-
-    public function create(User $user): bool
-    {
-        return $user->hasRole('wali');
-    }
 }

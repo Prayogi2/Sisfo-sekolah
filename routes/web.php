@@ -4,7 +4,6 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ChildSelectionController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GradeController;
@@ -160,14 +159,17 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | 3. MODUL SISWA (diakses lewat akun Wali Murid, siswa tidak login sendiri)
+    | 3. MODUL SISWA
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:wali|siswa')->prefix('siswa')->name('siswa.')->group(function () {
+    Route::middleware('role:siswa')->prefix('siswa')->name('siswa.')->group(function () {
         Route::get('/dashboard', [StudentPortalController::class, 'dashboard'])->name('dashboard');
         Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
+        Route::get('/status-spp', [SppPaymentController::class, 'status'])->name('status-spp');
         Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
         Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');
+        Route::get('/hasil-kuis', [QuizController::class, 'results'])->name('hasil-kuis');
+        Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'studentIndex'])->name('prestasi-pelanggaran');
         Route::get('/kuis-cbt', [QuizController::class, 'available'])->name('kuis');
         Route::get('/kuis-cbt/{quiz}', [QuizController::class, 'start'])->name('kuis.start');
         Route::get('/kuis-cbt/{quiz}/live', [QuizController::class, 'liveStart'])->name('kuis.live');
@@ -180,33 +182,7 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Pilih Anak (wali dengan >1 anak, dipakai sebelum akses halaman siswa.*)
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role:wali')->prefix('pilih-anak')->name('pilih-anak.')->group(function () {
-        Route::get('/', [ChildSelectionController::class, 'index'])->name('index');
-        Route::get('/{student}', [ChildSelectionController::class, 'select'])->name('select');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 4. PORTAL WALI MURID
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role:admin|wali')->prefix('wali-murid')->name('wali.')->group(function () {
-        Route::get('/dashboard', [StudentPortalController::class, 'guardianDashboard'])->name('dashboard');
-        Route::get('/absensi-izin', [StudentPortalController::class, 'guardianAttendance'])->name('izin');
-        Route::post('/absensi-izin', [LeaveRequestController::class, 'store'])->name('izin.store');
-        Route::get('/kritik-saran', [FeedbackController::class, 'create'])->name('kritik-saran');
-        Route::post('/kritik-saran', [FeedbackController::class, 'store'])->name('kritik-saran.store');
-        Route::get('/status-spp', [SppPaymentController::class, 'guardianStatus'])->name('spp');
-        Route::get('/hasil-kuis', [QuizController::class, 'results'])->name('kuis');
-        Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'guardianIndex'])->name('prestasi-pelanggaran');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | 5. UMUM / SISTEM (pos presensi, dioperasikan admin/guru piket)
+    | 4. UMUM / SISTEM (pos presensi, dioperasikan admin/guru piket)
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin|guru')->group(function () {

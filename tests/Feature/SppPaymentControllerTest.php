@@ -27,26 +27,31 @@ class SppPaymentControllerTest extends TestCase
     }
 
     /**
+     * Akun siswa beserta data orang tua/wali-nya di Buku Induk.
+     *
      * @return array{0: User, 1: Guardian, 2: Student}
      */
-    private function waliWithChild(): array
+    private function siswaWithGuardian(): array
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
-        $student = Student::factory()->create();
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id]);
+        $guardian = Guardian::factory()->create();
         $guardian->students()->attach($student);
 
-        return [$wali, $guardian, $student];
+        return [$siswa, $guardian, $student];
     }
 
-    public function test_wali_can_upload_a_payment_proof(): void
+    /**
+     * Pembayaran tetap dicatat atas nama orang tua/wali siswa di Buku Induk.
+     */
+    public function test_siswa_can_upload_a_payment_proof_recorded_under_their_guardian(): void
     {
         Storage::fake('public');
 
-        [$wali, $guardian, $student] = $this->waliWithChild();
+        [$siswa, $guardian, $student] = $this->siswaWithGuardian();
         $bill = SppBill::factory()->create(['student_id' => $student->id]);
 
-        $response = $this->actingAs($wali)->post(route('siswa.spp.store'), [
+        $response = $this->actingAs($siswa)->post(route('siswa.spp.store'), [
             'spp_bill_id' => $bill->id,
             'amount' => 350000,
             'proof' => UploadedFile::fake()->image('bukti.jpg'),
@@ -67,10 +72,10 @@ class SppPaymentControllerTest extends TestCase
     {
         Storage::fake('public');
 
-        [$wali, , $student] = $this->waliWithChild();
+        [$siswa, , $student] = $this->siswaWithGuardian();
         $bill = SppBill::factory()->create(['student_id' => $student->id]);
 
-        $response = $this->actingAs($wali)->post(route('siswa.spp.store'), [
+        $response = $this->actingAs($siswa)->post(route('siswa.spp.store'), [
             'spp_bill_id' => $bill->id,
             'amount' => 350000,
         ]);
@@ -79,14 +84,14 @@ class SppPaymentControllerTest extends TestCase
         $this->assertDatabaseCount('spp_payments', 0);
     }
 
-    public function test_wali_cannot_pay_a_bill_belonging_to_another_student(): void
+    public function test_siswa_cannot_pay_a_bill_belonging_to_another_student(): void
     {
         Storage::fake('public');
 
-        [$wali] = $this->waliWithChild();
+        [$siswa] = $this->siswaWithGuardian();
         $otherBill = SppBill::factory()->create();
 
-        $response = $this->actingAs($wali)->post(route('siswa.spp.store'), [
+        $response = $this->actingAs($siswa)->post(route('siswa.spp.store'), [
             'spp_bill_id' => $otherBill->id,
             'amount' => 350000,
             'proof' => UploadedFile::fake()->image('bukti.jpg'),
@@ -156,12 +161,12 @@ class SppPaymentControllerTest extends TestCase
         $this->assertSame(SppBillStatus::Pending, $bill->fresh()->load('payments')->status());
     }
 
-    public function test_wali_cannot_verify_payments(): void
+    public function test_siswa_cannot_verify_payments(): void
     {
-        [$wali] = $this->waliWithChild();
+        [$siswa] = $this->siswaWithGuardian();
         $payment = SppPayment::factory()->create();
 
-        $this->actingAs($wali)->post(route('admin.verifikasi-spp.approve', $payment))->assertForbidden();
+        $this->actingAs($siswa)->post(route('admin.verifikasi-spp.approve', $payment))->assertForbidden();
     }
 
     public function test_admin_can_view_the_verification_page(): void
@@ -172,50 +177,21 @@ class SppPaymentControllerTest extends TestCase
         $this->actingAs($admin)->get(route('admin.verifikasi-spp'))->assertOk();
     }
 
-    public function test_wali_sees_the_spp_pages_for_their_child(): void
+    public function test_siswa_sees_their_own_spp_pages(): void
     {
-        [$wali, , $student] = $this->waliWithChild();
+        [$siswa, , $student] = $this->siswaWithGuardian();
         SppBill::factory()->create(['student_id' => $student->id]);
 
-        $this->actingAs($wali)->get(route('siswa.spp'))->assertOk()->assertSee($student->name);
-        $this->actingAs($wali)->get(route('wali.spp'))->assertOk()->assertSee($student->name);
+        $this->actingAs($siswa)->get(route('siswa.spp'))->assertOk()->assertSee($student->name);
+        $this->actingAs($siswa)->get(route('siswa.status-spp'))->assertOk()->assertSee($student->name);
     }
 
     public function test_status_spp_page_links_to_the_upload_page(): void
     {
-        [$wali, , $student] = $this->waliWithChild();
+        [$siswa, , $student] = $this->siswaWithGuardian();
         SppBill::factory()->create(['student_id' => $student->id]);
 
-        $this->actingAs($wali)->get(route('wali.spp'))->assertSee(route('siswa.spp'), false);
-    }
-
-    /**
-     * Siswa yang login sendiri (bukan wali) tidak punya baris Guardian di
-     * akunnya sendiri — pembayaran harus tetap tercatat ke wali anak itu.
-     */
-    public function test_student_account_can_upload_a_payment_proof_using_their_linked_guardian(): void
-    {
-        Storage::fake('public');
-
-        $guardian = Guardian::factory()->create();
-        $student = Student::factory()->create();
-        $guardian->students()->attach($student);
-        $studentUser = User::factory()->create(['role' => 'siswa']);
-        $student->update(['user_id' => $studentUser->id]);
-        $bill = SppBill::factory()->create(['student_id' => $student->id]);
-
-        $response = $this->actingAs($studentUser)->post(route('siswa.spp.store'), [
-            'spp_bill_id' => $bill->id,
-            'amount' => 350000,
-            'proof' => UploadedFile::fake()->image('bukti.jpg'),
-        ]);
-
-        $response->assertRedirect();
-        $this->assertDatabaseHas('spp_payments', [
-            'spp_bill_id' => $bill->id,
-            'guardian_id' => $guardian->id,
-            'amount' => 350000,
-        ]);
+        $this->actingAs($siswa)->get(route('siswa.status-spp'))->assertSee(route('siswa.spp'), false);
     }
 
     public function test_student_account_without_any_guardian_gets_a_friendly_error_instead_of_a_crash(): void

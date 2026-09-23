@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
 use App\Models\Classroom;
-use App\Models\Guardian;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
@@ -29,20 +28,19 @@ class QuizControllerTest extends TestCase
     }
 
     /**
-     * Wali murid + anaknya yang sudah punya kelas. Secara bawaan anaknya
-     * dianggap sudah scan presensi hari ini, karena kuis memang hanya bisa
+     * Akun siswa yang sudah punya kelas. Secara bawaan siswanya dianggap
+     * sudah scan presensi hari ini, karena kuis memang hanya bisa
      * dikerjakan setelah absen.
      *
      * @return array{0: User, 1: Student}
      */
-    private function waliWithChildInClassroom(?Classroom $classroom = null, bool $checkedIn = true): array
+    private function siswaInClassroom(?Classroom $classroom = null, bool $checkedIn = true): array
     {
-        $wali = User::factory()->create(['role' => 'wali']);
-        $guardian = Guardian::factory()->create(['user_id' => $wali->id]);
+        $siswa = User::factory()->create(['role' => 'siswa']);
         $student = Student::factory()->create([
+            'user_id' => $siswa->id,
             'classroom_id' => ($classroom ?? Classroom::factory()->create())->id,
         ]);
-        $guardian->students()->attach($student);
 
         if ($checkedIn) {
             Attendance::factory()->create([
@@ -53,7 +51,7 @@ class QuizControllerTest extends TestCase
             ]);
         }
 
-        return [$wali, $student];
+        return [$siswa, $student];
     }
 
     /**
@@ -182,7 +180,7 @@ class QuizControllerTest extends TestCase
     public function test_student_sees_published_quizzes_for_their_own_classroom_only(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom);
+        [$siswa, $student] = $this->siswaInClassroom($classroom);
 
         $ownQuiz = $this->quizWithQuestions($classroom);
         $otherQuiz = $this->quizWithQuestions(Classroom::factory()->create());
@@ -191,7 +189,7 @@ class QuizControllerTest extends TestCase
             'title' => 'Kuis Draft Rahasia',
         ]);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis'));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis'));
 
         $response->assertOk();
         $response->assertSee($ownQuiz->title);
@@ -202,11 +200,11 @@ class QuizControllerTest extends TestCase
     public function test_starting_a_quiz_creates_one_attempt_and_reusing_it_does_not_duplicate(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom);
+        [$siswa, $student] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertOk();
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertOk();
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertOk();
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertOk();
 
         $this->assertDatabaseCount('quiz_attempts', 1);
         $this->assertDatabaseHas('quiz_attempts', [
@@ -218,23 +216,23 @@ class QuizControllerTest extends TestCase
 
     public function test_student_cannot_start_a_quiz_from_another_classroom(): void
     {
-        [$wali] = $this->waliWithChildInClassroom();
+        [$siswa] = $this->siswaInClassroom();
         $foreignQuiz = $this->quizWithQuestions(Classroom::factory()->create());
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $foreignQuiz))->assertForbidden();
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $foreignQuiz))->assertForbidden();
     }
 
     public function test_answering_saves_the_answer_and_marks_it_correct(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $question = $quiz->questions()->first();
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
 
-        $response = $this->actingAs($wali)->post(route('siswa.kuis.answer', $attempt), [
+        $response = $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
             'answer' => 'A',
         ]);
@@ -252,14 +250,14 @@ class QuizControllerTest extends TestCase
     public function test_a_wrong_answer_earns_no_points(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $question = $quiz->questions()->first();
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
 
-        $this->actingAs($wali)->post(route('siswa.kuis.answer', $attempt), [
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
             'answer' => 'B',
         ]);
@@ -274,23 +272,23 @@ class QuizControllerTest extends TestCase
     public function test_submitting_scores_the_attempt(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom, questionCount: 2);
         $questions = $quiz->questions()->get();
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
 
-        $this->actingAs($wali)->post(route('siswa.kuis.answer', $attempt), [
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $questions[0]->id,
             'answer' => 'A',
         ]);
-        $this->actingAs($wali)->post(route('siswa.kuis.answer', $attempt), [
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $questions[1]->id,
             'answer' => 'C',
         ]);
 
-        $this->actingAs($wali)->post(route('siswa.kuis.submit', $attempt))->assertRedirect();
+        $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt))->assertRedirect();
 
         $attempt->refresh();
         $this->assertSame('submitted', $attempt->status);
@@ -302,31 +300,31 @@ class QuizControllerTest extends TestCase
     public function test_a_submitted_quiz_cannot_be_submitted_again(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
 
-        $this->actingAs($wali)->post(route('siswa.kuis.submit', $attempt));
-        $response = $this->actingAs($wali)->post(route('siswa.kuis.submit', $attempt));
+        $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt));
+        $response = $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt));
 
         $response->assertStatus(422);
     }
 
-    public function test_a_wali_cannot_answer_another_childs_attempt(): void
+    public function test_a_siswa_cannot_answer_another_students_attempt(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $question = $quiz->questions()->first();
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
 
-        [$otherWali] = $this->waliWithChildInClassroom($classroom);
+        [$otherSiswa] = $this->siswaInClassroom($classroom);
 
-        $response = $this->actingAs($otherWali)->post(route('siswa.kuis.answer', $attempt), [
+        $response = $this->actingAs($otherSiswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
             'answer' => 'A',
         ]);
@@ -337,16 +335,16 @@ class QuizControllerTest extends TestCase
     public function test_answers_are_rejected_after_the_time_limit_has_passed(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $quiz->update(['duration_minutes' => 10]);
         $question = $quiz->questions()->first();
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
         $attempt->update(['started_at' => now()->subMinutes(11)]);
 
-        $response = $this->actingAs($wali)->post(route('siswa.kuis.answer', $attempt), [
+        $response = $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
             'answer' => 'A',
         ]);
@@ -360,11 +358,11 @@ class QuizControllerTest extends TestCase
     public function test_student_cannot_start_a_quiz_the_teacher_has_not_opened(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $quiz->update(['is_open' => false]);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
 
         $response->assertRedirect(route('siswa.kuis'));
         $response->assertSessionHas('error');
@@ -492,24 +490,24 @@ class QuizControllerTest extends TestCase
     public function test_opening_the_quiz_alone_is_not_enough_without_attendance(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
         // Kuis dibuka guru, tapi siswanya belum absen pagi.
         $this->assertTrue($quiz->fresh()->is_open);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
         $this->assertDatabaseCount('quiz_attempts', 0);
     }
 
     public function test_quiz_list_shows_waiting_for_teacher_when_not_opened(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
         $quiz->update(['is_open' => false]);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis'));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis'));
 
         $response->assertOk();
         $response->assertSee('Belum Dibuka Guru');
@@ -519,10 +517,10 @@ class QuizControllerTest extends TestCase
     public function test_student_cannot_start_a_quiz_before_checking_in_today(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
 
         $response->assertRedirect(route('siswa.kuis'));
         $response->assertSessionHas('error');
@@ -532,7 +530,7 @@ class QuizControllerTest extends TestCase
     public function test_student_can_start_a_quiz_after_checking_in_today(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa, $student] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
         Attendance::factory()->create([
@@ -542,14 +540,14 @@ class QuizControllerTest extends TestCase
             'status' => AttendanceStatus::Present,
         ]);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertOk();
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertOk();
         $this->assertDatabaseCount('quiz_attempts', 1);
     }
 
     public function test_being_late_still_counts_as_checked_in(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa, $student] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
         Attendance::factory()->create([
@@ -559,13 +557,13 @@ class QuizControllerTest extends TestCase
             'status' => AttendanceStatus::Late,
         ]);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertOk();
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertOk();
     }
 
     public function test_an_excused_absence_does_not_unlock_the_quiz(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa, $student] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
         // Izin yang disetujui tidak punya jam scan masuk.
@@ -577,14 +575,14 @@ class QuizControllerTest extends TestCase
             'status' => AttendanceStatus::Excused,
         ]);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
         $this->assertDatabaseCount('quiz_attempts', 0);
     }
 
     public function test_yesterdays_attendance_does_not_unlock_todays_quiz(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali, $student] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa, $student] = $this->siswaInClassroom($classroom, checkedIn: false);
         $quiz = $this->quizWithQuestions($classroom);
 
         Attendance::factory()->create([
@@ -594,16 +592,16 @@ class QuizControllerTest extends TestCase
             'status' => AttendanceStatus::Present,
         ]);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz))->assertRedirect(route('siswa.kuis'));
     }
 
     public function test_quiz_list_warns_when_the_student_has_not_checked_in(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom, checkedIn: false);
+        [$siswa] = $this->siswaInClassroom($classroom, checkedIn: false);
         $this->quizWithQuestions($classroom);
 
-        $response = $this->actingAs($wali)->get(route('siswa.kuis'));
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis'));
 
         $response->assertOk();
         $response->assertSee('Belum absen hari ini.');
@@ -611,17 +609,17 @@ class QuizControllerTest extends TestCase
         $response->assertDontSee('Mulai Kuis');
     }
 
-    public function test_guardian_can_see_submitted_quiz_results(): void
+    public function test_siswa_can_see_their_submitted_quiz_results(): void
     {
         $classroom = Classroom::factory()->create();
-        [$wali] = $this->waliWithChildInClassroom($classroom);
+        [$siswa] = $this->siswaInClassroom($classroom);
         $quiz = $this->quizWithQuestions($classroom);
 
-        $this->actingAs($wali)->get(route('siswa.kuis.start', $quiz));
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
         $attempt = QuizAttempt::first();
-        $this->actingAs($wali)->post(route('siswa.kuis.submit', $attempt));
+        $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt));
 
-        $response = $this->actingAs($wali)->get(route('wali.kuis'));
+        $response = $this->actingAs($siswa)->get(route('siswa.hasil-kuis'));
 
         $response->assertOk();
         $response->assertSee($quiz->title);

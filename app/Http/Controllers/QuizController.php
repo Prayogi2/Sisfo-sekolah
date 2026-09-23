@@ -284,6 +284,7 @@ class QuizController extends Controller
             'answer' => $answer?->answer,
             'score' => $this->liveScore($attempt, $questions),
             'show_score' => $quiz->show_score_per_question,
+            'correct_count' => $attempt->answers()->where('is_correct', true)->count(),
         ]);
     }
 
@@ -408,7 +409,7 @@ class QuizController extends Controller
         }
         $attempts = QuizAttempt::with(['quiz.subject', 'quiz.classroom'])->where('student_id', $student->id)->where('status', 'submitted')->latest('submitted_at')->get();
 
-        return view('wali-murid.hasil-kuis', compact('student', 'attempts'));
+        return view('siswa.hasil-kuis', compact('student', 'attempts'));
     }
 
     private function authorizeSubject(Request $request, int $subjectId): void
@@ -486,11 +487,7 @@ class QuizController extends Controller
 
     private function assertAttemptOwner(Request $request, QuizAttempt $attempt): void
     {
-        abort_unless(
-            ($request->user()->hasRole('siswa') && $request->user()->student?->is($attempt->student))
-            || $request->user()->guardian()->whereHas('students', fn ($query) => $query->whereKey($attempt->student_id))->exists(),
-            403
-        );
+        abort_unless($request->user()->hasRole('siswa') && $request->user()->student?->is($attempt->student), 403);
     }
 
     private function liveScore(QuizAttempt $attempt, Collection $questions): float

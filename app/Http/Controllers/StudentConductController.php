@@ -116,17 +116,16 @@ class StudentConductController extends Controller
         return $exporter->pdf('admin.exports.laporan-prestasi-pelanggaran', compact('achievements', 'violations'), 'laporan-prestasi-pelanggaran-'.now()->format('Ymd-His').'.pdf');
     }
 
-    public function guardianIndex(Request $request, CurrentStudentResolver $resolver): View|RedirectResponse
+    public function studentIndex(Request $request, CurrentStudentResolver $resolver): View|RedirectResponse
     {
         $student = $this->resolveStudentOrRedirect($request->user(), $resolver);
         if ($student instanceof RedirectResponse) {
             return $student;
         }
-        $student->load('classroom');
         $achievements = $student->achievements()->latest('achieved_at')->latest()->get();
         $violations = $student->violations()->latest('occurred_at')->latest()->get();
 
-        return view('wali-murid.prestasi-pelanggaran', compact('student', 'achievements', 'violations'));
+        return view('siswa.prestasi-pelanggaran', compact('student', 'achievements', 'violations'));
     }
 
     private function authorizeStaff(Request $request): void

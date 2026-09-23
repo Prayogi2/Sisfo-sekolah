@@ -32,11 +32,11 @@ class ScanControllerTest extends TestCase
         $this->actingAs($guru)->get(route('scan-qr'))->assertOk();
     }
 
-    public function test_wali_is_forbidden_from_the_scan_page(): void
+    public function test_siswa_is_forbidden_from_the_scan_page(): void
     {
-        $wali = User::factory()->create(['role' => 'wali']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
 
-        $this->actingAs($wali)->get(route('scan-qr'))->assertForbidden();
+        $this->actingAs($siswa)->get(route('scan-qr'))->assertForbidden();
     }
 
     public function test_scanning_a_valid_token_records_attendance(): void

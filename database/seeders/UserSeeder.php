@@ -39,14 +39,5 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password123'),
             'role' => 'siswa',
         ]);
-
-        // 4. Akun Wali Murid
-        User::create([
-            'name' => 'Wali Murid',
-            'email' => 'wali@gmail.com',
-            'username' => 'wali',
-            'password' => Hash::make('password123'),
-            'role' => 'wali',
-        ]);
     }
 }

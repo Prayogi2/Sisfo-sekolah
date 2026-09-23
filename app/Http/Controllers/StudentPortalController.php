@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
 use App\Models\Attendance;
 use App\Models\AttendanceSchedule;
-use App\Models\LeaveRequest;
 use App\Models\Quiz;
-use App\Models\QuizAttempt;
 use App\Models\SppBill;
 use App\Models\Student;
 use App\Services\CurrentStudentResolver;
@@ -56,30 +54,6 @@ class StudentPortalController extends Controller
         return view('siswa.dashboard', compact('student', 'today', 'monthAttendances', 'bills', 'quizzes'));
     }
 
-    public function guardianDashboard(CurrentStudentResolver $resolver): View
-    {
-        $student = $resolver->resolve(auth()->user());
-
-        if (! $student) {
-            return view('wali-murid.dashboard', [
-                'student' => null,
-                'history' => collect(),
-                'bills' => collect(),
-                'attempts' => collect(),
-            ]);
-        }
-
-        $history = $this->lastSevenDaysAttendance($student, days: 30);
-        $bills = SppBill::with('payments')->where('student_id', $student->id)->latest('period')->get();
-        $attempts = QuizAttempt::with('quiz.subject')
-            ->where('student_id', $student->id)
-            ->where('status', 'submitted')
-            ->latest('submitted_at')
-            ->get();
-
-        return view('wali-murid.dashboard', compact('student', 'history', 'bills', 'attempts'));
-    }
-
     public function digitalCard(CurrentStudentResolver $resolver): View|RedirectResponse
     {
         $student = $this->resolveStudentOrRedirect(auth()->user(), $resolver);
@@ -109,24 +83,6 @@ class StudentPortalController extends Controller
         $history = $this->lastSevenDaysAttendance($student, days: 30);
 
         return view('siswa.absensi', compact('student', 'history'));
-    }
-
-    public function guardianAttendance(CurrentStudentResolver $resolver): View|RedirectResponse
-    {
-        $student = $this->resolveStudentOrRedirect(auth()->user(), $resolver);
-
-        if ($student instanceof RedirectResponse) {
-            return $student;
-        }
-
-        $history = $this->lastSevenDaysAttendance($student);
-
-        $leaveRequests = LeaveRequest::query()
-            ->where('student_id', $student->id)
-            ->latest()
-            ->get();
-
-        return view('wali-murid.absensi-izin', compact('student', 'history', 'leaveRequests'));
     }
 
     /**

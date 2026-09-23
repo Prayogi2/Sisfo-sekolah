@@ -13,12 +13,11 @@ class SppPaymentPolicy
     }
 
     /**
-     * Baik wali maupun siswa yang login sendiri boleh mengunggah bukti
-     * bayar (route & halamannya sama-sama terbuka untuk kedua role ini).
+     * Siswa mengunggah bukti bayar dari akunnya sendiri.
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(['wali', 'siswa']);
+        return $user->hasRole('siswa');
     }
 
     /**

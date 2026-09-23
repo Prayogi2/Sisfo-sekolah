@@ -4,12 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\LeaveRequestStatus;
-use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
-use App\Http\Requests\LeaveRequest\StoreLeaveRequestRequest;
 use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\LeaveRequest;
-use App\Services\CurrentStudentResolver;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
@@ -19,8 +16,6 @@ use Illuminate\View\View;
 
 class LeaveRequestController extends Controller
 {
-    use ResolvesCurrentStudent;
-
     public function index(Request $request): View
     {
         Gate::authorize('viewAny', LeaveRequest::class);
@@ -42,28 +37,6 @@ class LeaveRequestController extends Controller
         $view = $user->hasRole('admin') ? 'admin.approval-izin' : 'guru.approval-izin';
 
         return view($view, compact('leaveRequests'));
-    }
-
-    public function store(StoreLeaveRequestRequest $request, CurrentStudentResolver $resolver): RedirectResponse
-    {
-        $user = $request->user();
-        $student = $this->resolveStudentOrRedirect($user, $resolver);
-
-        if ($student instanceof RedirectResponse) {
-            return $student;
-        }
-
-        $path = $request->file('attachment')->store('lampiran-izin', 'public');
-
-        LeaveRequest::create([
-            ...$request->validated(),
-            'student_id' => $student->id,
-            'guardian_id' => $user->guardian->id,
-            'attachment_path' => $path,
-            'status' => LeaveRequestStatus::Pending,
-        ]);
-
-        return back()->with('success', 'Pengajuan izin berhasil dikirim, menunggu persetujuan wali kelas.');
     }
 
     public function approve(Request $request, LeaveRequest $leaveRequest): RedirectResponse
