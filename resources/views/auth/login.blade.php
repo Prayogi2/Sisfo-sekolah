@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NURFA.ID</title>
+    <x-favicon />
     @php($logoPath = public_path('images/logo.png'))
     @php($logoUrl = asset('images/logo.png'))
     @if(file_exists($logoPath)) <link rel="icon" type="image/png" href="{{ $logoUrl }}"> @endif

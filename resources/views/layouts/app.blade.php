@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') - NURFA.ID</title>
+    <x-favicon />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}" rel="stylesheet">
@@ -57,6 +58,7 @@
             <a href="{{ route('admin.bank-soal') }}" class="{{ request()->routeIs('admin.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Bank Soal Kuis</a>
             <a href="{{ route('admin.prestasi-pelanggaran') }}" class="{{ request()->routeIs('admin.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Prestasi & Pelanggaran</a>
             <a href="{{ route('admin.kritik-saran') }}" class="{{ request()->routeIs('admin.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
+            <a href="{{ route('admin.notifikasi') }}" class="{{ request()->routeIs('admin.notifikasi*') ? 'active' : '' }}"><i class="bi bi-megaphone-fill"></i> Kirim Notifikasi Siswa</a>
 
             <div class="menu-title">Laporan & Hasil</div>
             <a href="{{ route('admin.laporan-absensi') }}" class="{{ request()->routeIs('admin.laporan-absensi') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Laporan Absensi</a>
@@ -81,6 +83,7 @@
         @elseif($role == 'siswa')
             <div class="menu-title">Menu Utama</div>
             <a href="{{ route('siswa.dashboard') }}" class="{{ request()->routeIs('siswa.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard Siswa</a>
+            <a href="{{ route('siswa.notifikasi') }}" class="{{ request()->routeIs('siswa.notifikasi*') ? 'active' : '' }}"><i class="bi bi-bell-fill"></i> Notifikasi @if(($studentUnreadNotificationCount ?? 0) > 0)<span class="badge rounded-pill bg-danger ms-1">{{ $studentUnreadNotificationCount }}</span>@endif</a>
 
             <div class="menu-title">Absensi</div>
             <a href="{{ route('siswa.kartu-digital') }}" class="{{ request()->routeIs('siswa.kartu-digital') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Kartu Digital</a>
@@ -122,14 +125,47 @@
 
         <div class="ms-auto d-flex align-items-center">
             <div class="dropdown me-3">
-                <a href="#" class="text-dark position-relative" data-bs-toggle="dropdown">
+                <a href="#" class="text-dark position-relative" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-label="Notifikasi">
                     <i class="bi bi-bell-fill fs-5 text-primary-custom"></i>
                     @if ($role == 'admin' && isset($adminFeedbackNotifications) && $adminFeedbackNotifications->isNotEmpty())
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">{{ $adminFeedbackNotifications->count() }}</span>
+                    @elseif ($role == 'siswa' && ($studentUnreadNotificationCount ?? 0) > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">{{ $studentUnreadNotificationCount > 99 ? '99+' : $studentUnreadNotificationCount }}</span>
                     @endif
                 </a>
-                <div class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
-                    @if ($role == 'admin')
+                @if ($role == 'siswa')
+                    <div class="dropdown-menu dropdown-menu-end border-0 shadow notif-dropdown p-0">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <span class="fw-bold">Notifikasi</span>
+                            @if (($studentUnreadNotificationCount ?? 0) > 0)
+                                <form action="{{ route('siswa.notifikasi.read-all') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Tandai semua dibaca</button>
+                                </form>
+                            @endif
+                        </div>
+                        <div class="notif-dropdown-list">
+                            @forelse ($studentNotifications ?? [] as $notification)
+                                @php
+                                    $announcement = $notification->announcement;
+                                @endphp
+                                <a href="{{ route('siswa.notifikasi.show', $announcement) }}" class="notif-item {{ $notification->isRead() ? '' : 'is-unread' }}">
+                                    <i class="bi {{ $announcement->category->icon() }} text-{{ $announcement->category->color() }} notif-item-icon"></i>
+                                    <div class="notif-item-body">
+                                        <div class="notif-item-title">{{ $announcement->title }}</div>
+                                        <div class="notif-item-snippet">{{ \Illuminate\Support\Str::limit($announcement->message, 70) }}</div>
+                                        <small class="text-muted">{{ $announcement->published_at->locale('id')->diffForHumans() }}</small>
+                                    </div>
+                                    @unless ($notification->isRead())<span class="notif-item-dot" aria-label="Belum dibaca"></span>@endunless
+                                </a>
+                            @empty
+                                <div class="text-center text-muted py-4 px-3"><i class="bi bi-bell-slash d-block fs-3 mb-1"></i>Belum ada notifikasi</div>
+                            @endforelse
+                        </div>
+                        <a href="{{ route('siswa.notifikasi') }}" class="d-block text-center py-2 border-top small fw-semibold text-decoration-none">Lihat semua notifikasi</a>
+                    </div>
+                @else
+                    <div class="dropdown-menu dropdown-menu-end border-0 shadow-sm">
                         @forelse ($adminFeedbackNotifications ?? [] as $notification)
                             <a class="dropdown-item" href="{{ route('admin.kritik-saran') }}">
                                 <i class="bi bi-chat-square-text text-primary me-2"></i>
@@ -138,10 +174,8 @@
                         @empty
                             <span class="dropdown-item text-muted">Tidak ada notifikasi baru</span>
                         @endforelse
-                    @else
-                        <a class="dropdown-item" href="#"><i class="bi bi-cash text-warning me-2"></i> Notifikasi Pembayaran SPP</a>
-                    @endif
-                </div>
+                    </div>
+                @endif
             </div>
             
             <div class="dropdown">
@@ -195,6 +229,7 @@
             ['route' => 'admin.bank-soal', 'icon' => 'bi-file-earmark-play-fill', 'label' => 'Kuis'],
             ['route' => 'admin.prestasi-pelanggaran', 'icon' => 'bi-trophy-fill', 'label' => 'Prestasi'],
             ['route' => 'admin.kritik-saran', 'icon' => 'bi-chat-square-text-fill', 'label' => 'Saran'],
+            ['route' => 'admin.notifikasi', 'icon' => 'bi-megaphone-fill', 'label' => 'Notifikasi'],
             ['route' => 'admin.laporan', 'icon' => 'bi-bar-chart-fill', 'label' => 'Laporan'],
             ['route' => 'admin.laporan-absensi', 'icon' => 'bi-clock-history', 'label' => 'Absensi'],
             ['route' => 'admin.laporan-spp', 'icon' => 'bi-cash-stack', 'label' => 'Laporan SPP'],
@@ -214,6 +249,7 @@
             ['route' => 'siswa.kartu-digital', 'icon' => 'bi-qr-code-scan', 'label' => 'Kartu'],
             ['route' => 'siswa.kuis', 'icon' => 'bi-mortarboard-fill', 'label' => 'Kuis'],
             ['route' => 'siswa.status-spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
+            ['route' => 'siswa.notifikasi', 'icon' => 'bi-bell-fill', 'label' => 'Notifikasi'],
             ['route' => 'siswa.absensi', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
             ['route' => 'siswa.hasil-kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Hasil Kuis'],
             ['route' => 'siswa.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],

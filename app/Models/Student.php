@@ -108,4 +108,12 @@ class Student extends Model
     {
         return $this->hasMany(StudentProgressNote::class);
     }
+
+    /**
+     * Notifikasi dari admin yang ditujukan ke siswa ini.
+     */
+    public function announcementRecipients(): HasMany
+    {
+        return $this->hasMany(AnnouncementRecipient::class);
+    }
 }
