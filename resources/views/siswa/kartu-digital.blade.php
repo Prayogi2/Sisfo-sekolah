@@ -4,11 +4,145 @@
 
 @push('styles')
     <style>
+        .student-card {
+            max-width: 620px;
+            margin: 0 auto;
+            overflow: hidden;
+            border: 0;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 16px 36px rgba(24, 42, 76, .14);
+        }
+
+        .student-card-header {
+            position: relative;
+            overflow: hidden;
+            padding: 1.35rem 1.5rem;
+            color: #fff;
+            background: #0d6efd;
+        }
+
+        .student-card-header::after {
+            content: '';
+            position: absolute;
+            width: 190px;
+            height: 190px;
+            right: -70px;
+            top: -105px;
+            border: 24px solid rgba(255, 255, 255, .12);
+            border-radius: 50%;
+        }
+
+        .student-card-brand,
+        .student-card-header small {
+            position: relative;
+            z-index: 1;
+        }
+
+        .student-card-brand {
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+        }
+
+        .student-card-header small {
+            display: block;
+            margin-top: .2rem;
+            opacity: .82;
+        }
+
+        .student-card-body {
+            display: grid;
+            grid-template-columns: 112px minmax(0, 1fr) 116px;
+            gap: 1.25rem;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        .student-photo {
+            width: 112px;
+            height: 136px;
+            object-fit: cover;
+            border: 4px solid #e7f1ff;
+            border-radius: 12px;
+            background: #e7f1ff;
+        }
+
+        .student-photo-placeholder {
+            display: grid;
+            place-items: center;
+            color: #0d6efd;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .student-card-name {
+            margin-bottom: .7rem;
+            color: #172033;
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .student-card-data {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: .28rem .7rem;
+            margin: 0;
+            font-size: .88rem;
+        }
+
+        .student-card-data dt { color: #6c757d; font-weight: 600; }
+        .student-card-data dd { min-width: 0; margin: 0; color: #172033; font-weight: 600; overflow-wrap: anywhere; }
+
+        .student-qr {
+            width: 116px;
+            height: 116px;
+            padding: .45rem;
+            border: 1px solid #e4eaf2;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .student-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: .75rem 1.5rem;
+            color: #6c757d;
+            border-top: 1px solid #edf0f4;
+            font-size: .76rem;
+        }
+
+        @media (max-width: 575.98px) {
+            .student-card-body { grid-template-columns: 88px minmax(0, 1fr); gap: 1rem; padding: 1.1rem; }
+            .student-photo { width: 88px; height: 108px; }
+            .student-qr { width: 92px; height: 92px; grid-column: 1 / -1; justify-self: end; }
+            .student-card-footer { padding: .7rem 1.1rem; }
+        }
+
         @media print {
             body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .sidebar, .topbar, .footer, .btn, .badge, .alert, .card:not(.digital-card) { display: none !important; }
-            .digital-card, .digital-card .card-header, .digital-card .card-footer { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .digital-card { display: block !important; max-width: 90mm; margin: 0 auto; }
+            .sidebar, .topbar, .footer, .btn, .badge, .alert, .card, .bottom-nav, .offcanvas { display: none !important; }
+            /* Layout aplikasi (margin sidebar, grid Bootstrap) tetap aktif saat
+               print karena breakpoint-nya tidak dibatasi ke media screen, jadi
+               harus direset manual supaya kartu tidak kegeser/kepotong. */
+            .main-content, .main-content.active { margin-left: 0 !important; padding-bottom: 0 !important; }
+            .container-fluid { padding-left: 0 !important; padding-right: 0 !important; }
+            .row.justify-content-center { margin-left: 0 !important; margin-right: 0 !important; }
+            .col-lg-5 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; padding: 0 !important; }
+            .student-card, .student-card-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .student-card { display: block !important; max-width: 85.6mm; margin: 0 auto; border-radius: 0; box-shadow: none; }
+            .student-card-body { grid-template-columns: 22mm minmax(0, 1fr) 22mm; gap: 3mm; padding: 4mm; }
+            .student-card-header { padding: 3mm 4mm; }
+            .student-card-brand { font-size: 7pt; }
+            .student-card-header small, .student-card-footer { font-size: 5.5pt; }
+            .student-photo { width: 22mm; height: 28mm; border-width: 1mm; }
+            .student-card-name { font-size: 8.5pt; margin-bottom: 2mm; }
+            .student-card-data { gap: 1mm 2mm; font-size: 6.5pt; }
+            .student-qr { width: 22mm; height: 22mm; padding: 1mm; }
+            .student-card-footer { padding: 2mm 4mm; }
         }
     </style>
 @endpush
@@ -16,7 +150,7 @@
 @section('content')
     <div class="container-fluid">
         <!-- Page Heading -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div class="d-sm-flex align-items-center justify-content-between mb-4 d-print-none">
             <h1 class="h3 mb-0 text-gray-800">Absensi & Kartu Digital</h1>
             <span class="badge bg-success p-2"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i> Sistem Presensi Online</span>
         </div>
@@ -26,39 +160,38 @@
         <div class="row justify-content-center">
             <!-- Kolom Kartu Digital -->
             <div class="col-lg-5 col-md-12 mb-4">
-                <div class="card digital-card shadow-lg border-0 rounded-lg">
-                    <div class="card-header bg-primary text-white text-center py-3">
-                        <h5 class="mb-0">KARTU PELAJAR DIGITAL</h5>
-                        <small>MIS Nurul Falaq</small>
+                <div class="student-card" id="studentCard">
+                    <div class="student-card-header">
+                        <div class="student-card-brand">KARTU PELAJAR</div>
+                        <small>MIS Nurul Falaq · NURFA.ID</small>
                     </div>
-                    <div class="card-body text-center">
-                        <div class="d-flex flex-column align-items-center">
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode($student->name) }}&size=150&background=4e73df&color=fff&bold=true"
-                                 class="rounded-circle mb-3 shadow" width="120" height="120" alt="Foto Siswa">
+                    <div class="student-card-body">
+                        @if ($student->profile?->photo_path)
+                            <img src="{{ Storage::url($student->profile->photo_path) }}" class="student-photo" alt="Foto {{ $student->name }}" crossorigin="anonymous">
+                        @else
+                            <div class="student-photo student-photo-placeholder" aria-label="Foto {{ $student->name }}">{{ strtoupper(substr($student->name, 0, 1)) }}</div>
+                        @endif
 
-                            <h4 class="mb-0">{{ $student->name }}</h4>
-                            <p class="text-muted mb-2">NIS: {{ $student->nis }} / NISN: {{ $student->nisn }}</p>
-                            <span class="badge bg-info mb-3">Kelas {{ $student->classroom?->name ?? '-' }}</span>
-
-                            <hr class="w-100">
-
-                            <p class="mb-2"><small class="text-muted">Tunjukkan QR Code ini ke alat scanner presensi:</small></p>
-
-                            <div class="bg-white p-3 rounded shadow-sm mb-3">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($student->qr_token) }}" alt="QR Code" width="200" height="200">
-                            </div>
-
-                            <button type="button" class="btn btn-outline-primary w-100" onclick="window.print()"><i class="bi bi-download me-2"></i> Unduh Kartu (PDF)</button>
+                        <div>
+                            <div class="student-card-name">{{ $student->name }}</div>
+                            <dl class="student-card-data">
+                                <dt>NIS</dt><dd>{{ $student->nis ?: '-' }}</dd>
+                                <dt>NISN</dt><dd>{{ $student->nisn ?: '-' }}</dd>
+                                <dt>Kelas</dt><dd>{{ $student->classroom?->name ?: '-' }}</dd>
+                            </dl>
                         </div>
+
+                        <img class="student-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($student->qr_token) }}" alt="QR Code {{ $student->name }}" crossorigin="anonymous">
                     </div>
-                    <div class="card-footer text-muted text-center" style="font-size: 0.8rem;">
-                        NURFA.ID - Digital Platform MIS Nurul Falaq
+                    <div class="student-card-footer" data-html2canvas-ignore="true">
+                        <span>Gunakan QR untuk presensi</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="downloadCardBtn"><i class="bi bi-download me-1"></i> Unduh Kartu</button>
                     </div>
                 </div>
             </div>
 
             <!-- Kolom Status & Riwayat Absensi -->
-            <div class="col-lg-7 col-md-12">
+            <div class="col-lg-7 col-md-12 d-print-none">
                 <!-- Status Presensi Hari Ini -->
                 <div class="card shadow mb-4 border-start-success">
                     <div class="card-body">
@@ -148,3 +281,32 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+        document.getElementById('downloadCardBtn').addEventListener('click', async function () {
+            const button = this;
+            const originalHtml = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyiapkan...';
+
+            try {
+                const canvas = await html2canvas(document.getElementById('studentCard'), {
+                    scale: 3,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                });
+                const link = document.createElement('a');
+                link.download = 'kartu-digital-{{ \Illuminate\Support\Str::slug($student->name) ?: 'siswa' }}.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                alert('Gagal membuat gambar kartu. Silakan coba lagi.');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            }
+        });
+    </script>
+@endpush

@@ -90,6 +90,56 @@ class QuizControllerTest extends TestCase
         $this->actingAs($guruUser)->get(route('guru.bank-soal'))->assertOk();
     }
 
+    /**
+     * Sebelum guru punya soal sendiri, checklist "Pilih soal" di modal Buat
+     * Kuis Baru kosong sehingga tombol Simpan Kuis harus dinonaktifkan dan
+     * diberi penjelasan, bukan malah gagal submit tanpa keterangan jelas.
+     */
+    public function test_create_quiz_button_is_disabled_when_guru_has_no_questions_yet(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->get(route('guru.bank-soal'));
+
+        $response->assertOk();
+        $response->assertSee('belum punya soal di bank soal', false);
+        $response->assertSeeInOrder(['disabled', 'Simpan Kuis'], false);
+    }
+
+    /**
+     * Kalau validasi kuis gagal (mis. belum pilih soal sama sekali), modal
+     * "Buat Kuis Baru" harus otomatis terbuka lagi dengan isian & pesan
+     * errornya, bukan menutup modal dan menyisakan alert kecil yang gampang
+     * kelewat di atas halaman.
+     */
+    public function test_failed_quiz_submission_reopens_the_modal_with_errors_and_old_input(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        QuizQuestion::factory()->create(['subject_id' => $subject->id, 'created_by' => $guruUser->id]);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Tanpa Soal Terpilih',
+            'duration_minutes' => 30,
+            // question_ids sengaja tidak diisi.
+        ]);
+
+        $response = $this->actingAs($guruUser)->get(route('guru.bank-soal'));
+
+        $response->assertOk();
+        $response->assertSee('Pilih minimal satu soal');
+        $response->assertSee('value="Kuis Tanpa Soal Terpilih"', false);
+        $response->assertSeeInOrder(["bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKuis'))"], false);
+    }
+
     public function test_guru_can_add_a_question_for_a_subject_they_teach(): void
     {
         $guruUser = User::factory()->create(['role' => 'guru']);

@@ -79,6 +79,9 @@ class QuizController extends Controller
             'correct_answer' => ['required', 'in:A,B,C,D'],
             'explanation' => ['nullable', 'string', 'max:5000'],
             'points' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ], [
+            'subject_id.required' => 'Pilih mata pelajaran untuk soal ini.',
+            'correct_answer.required' => 'Pilih kunci jawaban.',
         ]);
         $this->authorizeSubject($request, (int) $data['subject_id']);
         $data['created_by'] = $request->user()->id;
@@ -136,6 +139,11 @@ class QuizController extends Controller
             'title' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'], 'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_published' => ['sometimes', 'boolean'], 'question_ids' => ['required', 'array', 'min:1'], 'question_ids.*' => ['integer', 'exists:quiz_questions,id'],
+        ], [
+            'subject_id.required' => 'Pilih mata pelajaran untuk kuis ini.',
+            'classroom_id.required' => 'Pilih kelas yang akan mengerjakan kuis ini.',
+            'question_ids.required' => 'Pilih minimal satu soal dari bank soal untuk dimasukkan ke kuis ini.',
+            'question_ids.min' => 'Pilih minimal satu soal dari bank soal untuk dimasukkan ke kuis ini.',
         ]);
         $this->authorizeSubject($request, (int) $data['subject_id']);
         $this->authorizeClassroom($request, (int) $data['subject_id'], (int) $data['classroom_id']);

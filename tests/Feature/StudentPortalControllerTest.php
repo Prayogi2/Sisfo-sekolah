@@ -31,6 +31,25 @@ class StudentPortalControllerTest extends TestCase
         $response->assertSee($student->qr_token);
     }
 
+    /**
+     * Kartu digital diunduh sebagai gambar PNG lewat html2canvas, bukan lagi
+     * lewat window.print() — jadi cuma elemen kartunya saja yang harus
+     * tersedia untuk dirender, tanpa sisa markup cetak yang lama.
+     */
+    public function test_digital_card_page_offers_a_download_button_instead_of_print(): void
+    {
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['user_id' => $siswa->id]);
+
+        $response = $this->actingAs($siswa)->get(route('siswa.kartu-digital'));
+
+        $response->assertOk();
+        $response->assertSee('id="studentCard"', false);
+        $response->assertSee('id="downloadCardBtn"', false);
+        $response->assertSee('html2canvas', false);
+        $response->assertDontSee('window.print()', false);
+    }
+
     public function test_siswa_without_student_data_is_sent_back_to_the_dashboard(): void
     {
         $siswa = User::factory()->create(['role' => 'siswa']);
