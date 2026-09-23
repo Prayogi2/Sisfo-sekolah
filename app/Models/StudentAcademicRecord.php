@@ -11,21 +11,41 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'student_id',
+    // A. Pendidikan sebelumnya
     'kindergarten_origin',
+    'kindergarten_address',
+    'kindergarten_npsn',
     'kindergarten_certificate_number',
     'kindergarten_certificate_date',
+    // B. Status peserta didik
     'entry_status',
+    'entry_year',
     'entry_date',
-    'transfer_out_date',
-    'transfer_out_reason',
-    'exit_date',
-    'exit_reason',
+    'entry_classroom',
+    // C. Lulus
     'graduation_status',
     'graduation_year',
     'graduation_certificate_number',
     'graduation_certificate_date',
+    'graduation_skl_number',
     'continued_to',
+    'continued_to_district',
+    'continued_to_province',
     'graduation_notes',
+    // D. Meninggalkan sekolah (pindah)
+    'transfer_out_letter_number',
+    'transfer_out_date',
+    'transfer_out_classroom',
+    'transfer_out_reason',
+    'transfer_out_nsm',
+    'transfer_out_npsn',
+    'transfer_out_village',
+    'transfer_out_district',
+    'transfer_out_province',
+    // E. Putus sekolah / dropout
+    'exit_date',
+    'exit_classroom',
+    'exit_reason',
 ])]
 class StudentAcademicRecord extends Model
 {

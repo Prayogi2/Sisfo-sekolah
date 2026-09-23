@@ -49,7 +49,7 @@
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light"><tr><th>Siswa</th><th>Kelas</th><th>Status</th></tr></thead>
+                            <thead class="table-light"><tr><th>Siswa</th><th>Kelas</th><th>Status Baca</th><th>WhatsApp</th></tr></thead>
                             <tbody>
                                 @forelse ($recipients as $recipient)
                                     <tr>
@@ -63,9 +63,24 @@
                                                 <span class="badge bg-secondary">Belum dibaca</span>
                                             @endif
                                         </td>
+                                        <td>
+                                            @switch($recipient->whatsapp_status)
+                                                @case(\App\Models\AnnouncementRecipient::WHATSAPP_SENT)
+                                                    <span class="badge bg-success">Terkirim</span>
+                                                    @break
+                                                @case(\App\Models\AnnouncementRecipient::WHATSAPP_FAILED)
+                                                    <span class="badge bg-danger">Gagal</span>
+                                                    @break
+                                                @case(\App\Models\AnnouncementRecipient::WHATSAPP_SKIPPED)
+                                                    <span class="badge bg-secondary">No. HP kosong</span>
+                                                    @break
+                                                @default
+                                                    <span class="text-muted small">—</span>
+                                            @endswitch
+                                        </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="3" class="text-center text-muted py-4">Tidak ada penerima.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Tidak ada penerima.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

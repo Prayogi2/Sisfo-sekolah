@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\StudentStatus;
+use App\Jobs\SendAnnouncementWhatsApp;
 use App\Models\Announcement;
 use App\Models\AnnouncementRecipient;
 use App\Models\Classroom;
@@ -10,6 +11,7 @@ use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AnnouncementControllerTest extends TestCase
@@ -113,6 +115,46 @@ class AnnouncementControllerTest extends TestCase
         $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload(['target' => 'siswa']))
             ->assertSessionHasErrors('student_ids');
         $this->assertDatabaseCount('announcements', 0);
+    }
+
+    public function test_checking_send_whatsapp_queues_a_job_per_recipient(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory(2)->create(['parent_phone' => '081234567890']);
+
+        $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload(['send_whatsapp' => '1']))
+            ->assertRedirect();
+
+        $announcement = Announcement::sole();
+        $recipientIds = $announcement->recipients()->pluck('id')->all();
+        Queue::assertPushed(SendAnnouncementWhatsApp::class, count($recipientIds));
+        Queue::assertPushed(fn (SendAnnouncementWhatsApp $job) => in_array($job->recipientId, $recipientIds, true));
+    }
+
+    public function test_whatsapp_is_not_queued_when_the_checkbox_is_left_unchecked(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload())->assertRedirect();
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_whatsapp_is_not_queued_for_a_scheduled_announcement(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        Student::factory()->create(['parent_phone' => '081234567890']);
+
+        $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload([
+            'send_whatsapp' => '1',
+            'published_at' => now()->addDay()->format('Y-m-d\TH:i'),
+        ]))->assertRedirect();
+
+        Queue::assertNothingPushed();
     }
 
     public function test_non_admins_cannot_send_notifications(): void

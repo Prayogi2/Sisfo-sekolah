@@ -45,7 +45,19 @@
         <form action="{{ $isNew ? route('admin.data-siswa.store') : route('admin.buku-induk.update', $student) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @unless($isNew)@method('PUT')@endunless
-            <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Identitas Peserta Didik</h6></div><div class="card-body"><div class="row g-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-start">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Identitas Peserta Didik</h6>
+                    <div class="text-center flex-shrink-0 ms-3">
+                        @if($profile?->photo_path)
+                            <img src="{{ Storage::url($profile->photo_path) }}" alt="Foto {{ $student->name }}" class="img-thumbnail" style="width:90px;height:112px;object-fit:cover;">
+                        @else
+                            <div class="img-thumbnail d-flex align-items-center justify-content-center text-muted small bg-light" style="width:90px;height:112px;">Belum ada foto</div>
+                        @endif
+                        <input name="photo" type="file" class="form-control form-control-sm mt-1" accept="image/jpeg,image/png,image/webp" style="width:90px;">
+                    </div>
+                </div>
+                <div class="card-body"><div class="row g-3">
                 <div class="col-md-4"><label class="form-label">NISN <span class="text-danger">*</span></label><input name="nisn" class="form-control" value="{{ $value('nisn', $student->nisn) }}" required></div>
                 <div class="col-md-4"><label class="form-label">NIS <span class="text-danger">*</span></label><input name="nis" class="form-control" value="{{ $value('nis', $student->nis) }}" required></div>
                 <div class="col-md-4"><label class="form-label">Nama Lengkap <span class="text-danger">*</span></label><input name="name" class="form-control" value="{{ $value('name', $student->name) }}" required></div>
@@ -57,14 +69,12 @@
                 <div class="col-md-4"><label class="form-label">Nama Orang Tua</label><input name="parent_name" class="form-control" value="{{ $value('parent_name', $student->parent_name) }}"></div>
                 <div class="col-md-4"><label class="form-label">No. Telepon Orang Tua</label><input name="parent_phone" class="form-control" value="{{ $value('parent_phone', $student->parent_phone) }}"></div>
                 <div class="col-md-8"><label class="form-label">Alamat</label><textarea name="address" class="form-control" rows="2">{{ $value('address', $student->address) }}</textarea></div>
-                <div class="col-md-4"><label class="form-label">Foto Siswa</label><input name="photo" type="file" class="form-control" accept="image/jpeg,image/png,image/webp"><small class="text-muted">JPG, PNG, WEBP maksimal 5 MB.</small></div>
-                @if($profile?->photo_path)<div class="col-md-2"><img src="{{ Storage::url($profile->photo_path) }}" alt="Foto {{ $student->name }}" class="img-thumbnail" style="max-height:100px"></div>@endif
+                <small class="text-muted d-block">JPG, PNG, WEBP maksimal 5 MB untuk foto siswa.</small>
             </div></div></div>
 
             <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-lines-fill me-2"></i>Profil Lengkap</h6></div><div class="card-body"><div class="row g-3">
                 <div class="col-md-4"><label class="form-label">Nama Panggilan</label><input name="nickname" class="form-control" value="{{ $value('nickname', $profile?->nickname) }}"></div>
                 <div class="col-md-4"><label class="form-label">NIK</label><input name="nik" class="form-control" value="{{ $value('nik', $profile?->nik) }}"></div>
-                <div class="col-md-4"><label class="form-label">No. Kartu Keluarga</label><input name="family_card_number" class="form-control" value="{{ $value('family_card_number', $profile?->family_card_number) }}"></div>
                 <div class="col-md-4"><label class="form-label">Agama</label><select name="religion" class="form-select"><option value="">-- Pilih --</option>@foreach($religions as $item)<option value="{{ $item->value }}" @selected($value('religion', $profile?->religion?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Status dalam Keluarga</label><select name="family_status" class="form-select"><option value="">-- Pilih --</option>@foreach($familyStatuses as $item)<option value="{{ $item->value }}" @selected($value('family_status', $profile?->family_status?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
                 <div class="col-md-4"><label class="form-label">Golongan Darah</label><select name="blood_type" class="form-select"><option value="">-- Pilih --</option>@foreach($bloodTypes as $item)<option value="{{ $item->value }}" @selected($value('blood_type', $profile?->blood_type?->value) === $item->value)>{{ $item->value }}</option>@endforeach</select></div>
@@ -79,6 +89,10 @@
                 <div class="col-md-4"><label class="form-label">Kabupaten / Kota</label><input name="regency" class="form-control" value="{{ $value('regency', $profile?->regency) }}"></div>
                 <div class="col-md-6"><label class="form-label">Provinsi</label><input name="province" class="form-control" value="{{ $value('province', $profile?->province) }}"></div>
                 <div class="col-md-6"><label class="form-label">Kode Pos</label><input name="postal_code" class="form-control" value="{{ $value('postal_code', $profile?->postal_code) }}"></div>
+                <div class="col-md-3"><label class="form-label">Bertempat Tinggal di</label><select name="residence_type" class="form-select"><option value="">-- Pilih --</option>@foreach($residenceTypes as $item)<option value="{{ $item->value }}" @selected($value('residence_type', $profile?->residence_type?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
+                <div class="col-md-3"><label class="form-label">Transportasi ke Sekolah</label><select name="transportation" class="form-select"><option value="">-- Pilih --</option>@foreach($transportationModes as $item)<option value="{{ $item->value }}" @selected($value('transportation', $profile?->transportation?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
+                <div class="col-md-3"><label class="form-label">Jarak Tempuh (km)</label><input name="distance_km" type="number" min="0" class="form-control" value="{{ $value('distance_km', $profile?->distance_km) }}"></div>
+                <div class="col-md-3"><label class="form-label">Durasi Tempuh (menit)</label><input name="travel_duration_minutes" type="number" min="0" class="form-control" value="{{ $value('travel_duration_minutes', $profile?->travel_duration_minutes) }}"></div>
             </div></div></div>
 
             @foreach([['prefix' => 'father', 'title' => 'Data Ayah', 'guardian' => $father], ['prefix' => 'mother', 'title' => 'Data Ibu', 'guardian' => $mother]] as $parent)
@@ -101,23 +115,59 @@
                 </div></div></div>
             @endforeach
 
-            <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Pendidikan & Kelulusan</h6></div><div class="card-body"><div class="row g-3">
-                <div class="col-md-4"><label class="form-label">Asal TK / PAUD</label><input name="kindergarten_origin" class="form-control" value="{{ $value('kindergarten_origin', $academic?->kindergarten_origin) }}"></div>
-                <div class="col-md-4"><label class="form-label">No. Ijazah TK</label><input name="kindergarten_certificate_number" class="form-control" value="{{ $value('kindergarten_certificate_number', $academic?->kindergarten_certificate_number) }}"></div>
-                <div class="col-md-4"><label class="form-label">Tanggal Ijazah TK</label><input name="kindergarten_certificate_date" type="date" class="form-control" value="{{ $value('kindergarten_certificate_date', $academic?->kindergarten_certificate_date?->format('Y-m-d')) }}"></div>
-                <div class="col-md-4"><label class="form-label">Status Masuk</label><input name="entry_status" class="form-control" value="{{ $value('entry_status', $academic?->entry_status) }}"></div>
-                <div class="col-md-4"><label class="form-label">Tanggal Masuk</label><input name="entry_date" type="date" class="form-control" value="{{ $value('entry_date', $academic?->entry_date?->format('Y-m-d')) }}"></div>
-                <div class="col-md-4"><label class="form-label">Status Kelulusan</label><select name="graduation_status" class="form-select"><option value="">-- Pilih --</option>@foreach($graduationStatuses as $item)<option value="{{ $item->value }}" @selected($value('graduation_status', $academic?->graduation_status?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
-                <div class="col-md-4"><label class="form-label">Tanggal Pindah Keluar</label><input name="transfer_out_date" type="date" class="form-control" value="{{ $value('transfer_out_date', $academic?->transfer_out_date?->format('Y-m-d')) }}"></div>
-                <div class="col-md-8"><label class="form-label">Alasan Pindah Keluar</label><input name="transfer_out_reason" class="form-control" value="{{ $value('transfer_out_reason', $academic?->transfer_out_reason) }}"></div>
-                <div class="col-md-4"><label class="form-label">Tanggal Keluar</label><input name="exit_date" type="date" class="form-control" value="{{ $value('exit_date', $academic?->exit_date?->format('Y-m-d')) }}"></div>
-                <div class="col-md-8"><label class="form-label">Alasan Keluar</label><input name="exit_reason" class="form-control" value="{{ $value('exit_reason', $academic?->exit_reason) }}"></div>
-                <div class="col-md-4"><label class="form-label">Tahun Kelulusan</label><input name="graduation_year" type="number" min="1900" max="2200" class="form-control" value="{{ $value('graduation_year', $academic?->graduation_year) }}"></div>
-                <div class="col-md-4"><label class="form-label">No. Ijazah</label><input name="graduation_certificate_number" class="form-control" value="{{ $value('graduation_certificate_number', $academic?->graduation_certificate_number) }}"></div>
-                <div class="col-md-4"><label class="form-label">Tanggal Ijazah</label><input name="graduation_certificate_date" type="date" class="form-control" value="{{ $value('graduation_certificate_date', $academic?->graduation_certificate_date?->format('Y-m-d')) }}"></div>
-                <div class="col-md-6"><label class="form-label">Melanjutkan Ke</label><input name="continued_to" class="form-control" value="{{ $value('continued_to', $academic?->continued_to) }}"></div>
-                <div class="col-md-6"><label class="form-label">Catatan Kelulusan</label><textarea name="graduation_notes" class="form-control" rows="2">{{ $value('graduation_notes', $academic?->graduation_notes) }}</textarea></div>
-            </div></div></div>
+            <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Pendidikan</h6></div><div class="card-body">
+
+                <h6 class="fw-bold text-dark">A. Pendidikan Sebelumnya</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4"><label class="form-label">Nama TK / PAUD</label><input name="kindergarten_origin" class="form-control" value="{{ $value('kindergarten_origin', $academic?->kindergarten_origin) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Alamat</label><input name="kindergarten_address" class="form-control" value="{{ $value('kindergarten_address', $academic?->kindergarten_address) }}"></div>
+                    <div class="col-md-4"><label class="form-label">NPSN / NSM</label><input name="kindergarten_npsn" class="form-control" value="{{ $value('kindergarten_npsn', $academic?->kindergarten_npsn) }}"></div>
+                    <div class="col-md-4"><label class="form-label">No. Ijazah TK</label><input name="kindergarten_certificate_number" class="form-control" value="{{ $value('kindergarten_certificate_number', $academic?->kindergarten_certificate_number) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Tanggal Ijazah TK</label><input name="kindergarten_certificate_date" type="date" class="form-control" value="{{ $value('kindergarten_certificate_date', $academic?->kindergarten_certificate_date?->format('Y-m-d')) }}"></div>
+                </div>
+
+                <h6 class="fw-bold text-dark">B. Status Peserta Didik</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><label class="form-label">Status Peserta Didik</label><input name="entry_status" class="form-control" value="{{ $value('entry_status', $academic?->entry_status) }}" placeholder="Mis. Peserta Didik Baru"></div>
+                    <div class="col-md-3"><label class="form-label">Tahun Masuk</label><input name="entry_year" type="number" min="1900" max="2200" class="form-control" value="{{ $value('entry_year', $academic?->entry_year) }}"></div>
+                    <div class="col-md-3"><label class="form-label">Tanggal Masuk</label><input name="entry_date" type="date" class="form-control" value="{{ $value('entry_date', $academic?->entry_date?->format('Y-m-d')) }}"></div>
+                    <div class="col-md-3"><label class="form-label">Masuk ke Kelas</label><input name="entry_classroom" class="form-control" value="{{ $value('entry_classroom', $academic?->entry_classroom) }}"></div>
+                </div>
+
+                <h6 class="fw-bold text-dark">C. Lulus</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><label class="form-label">Status Kelulusan</label><select name="graduation_status" class="form-select"><option value="">-- Pilih --</option>@foreach($graduationStatuses as $item)<option value="{{ $item->value }}" @selected($value('graduation_status', $academic?->graduation_status?->value) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
+                    <div class="col-md-3"><label class="form-label">Tahun Lulus</label><input name="graduation_year" type="number" min="1900" max="2200" class="form-control" value="{{ $value('graduation_year', $academic?->graduation_year) }}"></div>
+                    <div class="col-md-3"><label class="form-label">Tanggal Lulus</label><input name="graduation_certificate_date" type="date" class="form-control" value="{{ $value('graduation_certificate_date', $academic?->graduation_certificate_date?->format('Y-m-d')) }}"></div>
+                    <div class="col-md-3"><label class="form-label">No. Seri Ijazah</label><input name="graduation_certificate_number" class="form-control" value="{{ $value('graduation_certificate_number', $academic?->graduation_certificate_number) }}"></div>
+                    <div class="col-md-3"><label class="form-label">No. Seri SKL</label><input name="graduation_skl_number" class="form-control" value="{{ $value('graduation_skl_number', $academic?->graduation_skl_number) }}"></div>
+                    <div class="col-md-9"><label class="form-label">Melanjutkan ke Sekolah</label><input name="continued_to" class="form-control" value="{{ $value('continued_to', $academic?->continued_to) }}"></div>
+                    <div class="col-md-6"><label class="form-label">Alamat Sekolah — Kecamatan</label><input name="continued_to_district" class="form-control" value="{{ $value('continued_to_district', $academic?->continued_to_district) }}"></div>
+                    <div class="col-md-6"><label class="form-label">Alamat Sekolah — Provinsi</label><input name="continued_to_province" class="form-control" value="{{ $value('continued_to_province', $academic?->continued_to_province) }}"></div>
+                    <div class="col-12"><label class="form-label">Catatan Kelulusan</label><textarea name="graduation_notes" class="form-control" rows="2">{{ $value('graduation_notes', $academic?->graduation_notes) }}</textarea></div>
+                </div>
+
+                <h6 class="fw-bold text-dark">D. Meninggalkan Sekolah</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4"><label class="form-label">No. Surat</label><input name="transfer_out_letter_number" class="form-control" value="{{ $value('transfer_out_letter_number', $academic?->transfer_out_letter_number) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Tanggal</label><input name="transfer_out_date" type="date" class="form-control" value="{{ $value('transfer_out_date', $academic?->transfer_out_date?->format('Y-m-d')) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Kelas yang Ditinggalkan</label><input name="transfer_out_classroom" class="form-control" value="{{ $value('transfer_out_classroom', $academic?->transfer_out_classroom) }}"></div>
+                    <div class="col-md-8"><label class="form-label">Alasan Pindah</label><input name="transfer_out_reason" class="form-control" value="{{ $value('transfer_out_reason', $academic?->transfer_out_reason) }}"></div>
+                    <div class="col-md-4"><label class="form-label">NSM</label><input name="transfer_out_nsm" class="form-control" value="{{ $value('transfer_out_nsm', $academic?->transfer_out_nsm) }}"></div>
+                    <div class="col-md-6"><label class="form-label">NPSN Sekolah Tujuan</label><input name="transfer_out_npsn" class="form-control" value="{{ $value('transfer_out_npsn', $academic?->transfer_out_npsn) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Alamat Sekolah Tujuan — Desa</label><input name="transfer_out_village" class="form-control" value="{{ $value('transfer_out_village', $academic?->transfer_out_village) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Alamat Sekolah Tujuan — Kec.</label><input name="transfer_out_district" class="form-control" value="{{ $value('transfer_out_district', $academic?->transfer_out_district) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Alamat Sekolah Tujuan — Prov.</label><input name="transfer_out_province" class="form-control" value="{{ $value('transfer_out_province', $academic?->transfer_out_province) }}"></div>
+                </div>
+
+                <h6 class="fw-bold text-dark">E. Putus Sekolah / Dropout</h6>
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Hari, Tanggal</label><input name="exit_date" type="date" class="form-control" value="{{ $value('exit_date', $academic?->exit_date?->format('Y-m-d')) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Kelas</label><input name="exit_classroom" class="form-control" value="{{ $value('exit_classroom', $academic?->exit_classroom) }}"></div>
+                    <div class="col-md-4"><label class="form-label">Alasan</label><input name="exit_reason" class="form-control" value="{{ $value('exit_reason', $academic?->exit_reason) }}"></div>
+                </div>
+
+            </div></div>
 
             @unless($isNew)
             <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-graph-up-arrow me-2"></i>Perkembangan Akademik</h6></div><div class="card-body"><div class="row g-3">

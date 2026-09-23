@@ -7,6 +7,7 @@ use App\Enums\AnnouncementTarget;
 use App\Enums\StudentStatus;
 use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
 use App\Http\Requests\Announcement\StoreAnnouncementRequest;
+use App\Jobs\SendAnnouncementWhatsApp;
 use App\Models\Announcement;
 use App\Models\AnnouncementRecipient;
 use App\Models\Classroom;
@@ -93,9 +94,16 @@ class AnnouncementController extends Controller
             return $announcement;
         });
 
+        $sendWhatsapp = $request->boolean('send_whatsapp') && ! $announcement->isScheduled();
+        if ($sendWhatsapp) {
+            $announcement->recipients()->pluck('id')->each(
+                fn (int $recipientId) => SendAnnouncementWhatsApp::dispatch($recipientId)
+            );
+        }
+
         $message = $announcement->isScheduled()
             ? "Notifikasi dijadwalkan untuk {$studentIds->count()} siswa pada {$announcement->published_at->translatedFormat('d F Y, H:i')} WIB."
-            : "Notifikasi terkirim ke {$studentIds->count()} siswa.";
+            : "Notifikasi terkirim ke {$studentIds->count()} siswa.".($sendWhatsapp ? ' Pesan WhatsApp sedang dikirim ke orang tua di latar belakang.' : '');
 
         return redirect()->route('admin.notifikasi')->with('success', $message);
     }

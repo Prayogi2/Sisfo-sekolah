@@ -156,18 +156,24 @@
                         <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Data identitas buku induk siswa ini belum dilengkapi.</div>
                     @endunless
 
-                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-info-circle-fill me-2"></i>Identitas Dasar</h6>
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="text-primary fw-bold mb-0"><i class="bi bi-info-circle-fill me-2"></i>Identitas Dasar</h6>
+                        @if($profile?->photo_path)
+                            <img src="{{ Storage::url($profile->photo_path) }}" alt="Foto {{ $student->name }}" class="img-thumbnail" style="width:90px;height:112px;object-fit:cover;">
+                        @else
+                            <div class="img-thumbnail d-flex align-items-center justify-content-center text-muted small bg-light" style="width:90px;height:112px;">Belum ada foto</div>
+                        @endif
+                    </div>
                     <div class="row g-3 mb-4">
                         <div class="col-md-4"><label class="form-label small text-muted">NISN</label><input type="text" class="form-control bg-light" value="{{ $student->nisn }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">NIS</label><input type="text" class="form-control bg-light" value="{{ $student->nis }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Nama Panggilan</label><input type="text" class="form-control bg-light" value="{{ $profile?->nickname ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">NIK</label><input type="text" class="form-control bg-light" value="{{ $profile?->nik ?: '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">No. Kartu Keluarga</label><input type="text" class="form-control bg-light" value="{{ $profile?->family_card_number ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Jenis Kelamin</label><input type="text" class="form-control bg-light" value="{{ $student->gender->label() }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Tempat Lahir</label><input type="text" class="form-control bg-light" value="{{ $student->birth_place ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Tanggal Lahir</label><input type="text" class="form-control bg-light" value="{{ $student->birth_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Agama</label><input type="text" class="form-control bg-light" value="{{ $profile?->religion?->label() ?? '-' }}" readonly></div>
-                        <div class="col-md-3"><label class="form-label small text-muted">Status dalam Keluarga</label><input type="text" class="form-control bg-light" value="{{ $profile?->family_status?->label() ?? '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Status dalam Keluarga</label><input type="text" class="form-control bg-light" value="{{ $profile?->family_status?->label() ?? '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Golongan Darah</label><input type="text" class="form-control bg-light" value="{{ $profile?->blood_type?->value ?? '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Tinggi / Berat (cm/kg)</label>
                             <div class="d-flex gap-2">
@@ -184,7 +190,7 @@
                     </div>
 
                     <h6 class="text-primary fw-bold mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Alamat Detail</h6>
-                    <div class="row g-3">
+                    <div class="row g-3 mb-4">
                         <div class="col-md-6"><label class="form-label small text-muted">Alamat (Jalan)</label><input type="text" class="form-control bg-light" value="{{ $profile?->street_address ?: '-' }}" readonly></div>
                         <div class="col-md-6"><label class="form-label small text-muted">Gang / Dusun</label><input type="text" class="form-control bg-light" value="{{ $profile?->hamlet ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Desa / Kelurahan</label><input type="text" class="form-control bg-light" value="{{ $profile?->village ?: '-' }}" readonly></div>
@@ -194,6 +200,14 @@
                         <div class="col-md-4"><label class="form-label small text-muted">Kode Pos</label><input type="text" class="form-control bg-light" value="{{ $profile?->postal_code ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Alamat Ringkas (Data Siswa)</label><input type="text" class="form-control bg-light" value="{{ $student->address ?: '-' }}" readonly></div>
                     </div>
+
+                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-signpost-2-fill me-2"></i>Perjalanan ke Sekolah</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label small text-muted">Bertempat Tinggal di</label><input type="text" class="form-control bg-light" value="{{ $profile?->residence_type?->label() ?? '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Transportasi ke Sekolah</label><input type="text" class="form-control bg-light" value="{{ $profile?->transportation?->label() ?? '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Jarak Tempuh</label><input type="text" class="form-control bg-light" value="{{ $profile?->distance_km !== null ? $profile->distance_km.' km' : '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Durasi Tempuh</label><input type="text" class="form-control bg-light" value="{{ $profile?->travel_duration_minutes !== null ? $profile->travel_duration_minutes.' menit' : '-' }}" readonly></div>
+                    </div>
                 </div>
 
                 <!-- Tab 2: Riwayat Pendidikan -->
@@ -202,22 +216,50 @@
                         <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Riwayat pendidikan siswa ini belum dilengkapi.</div>
                     @endunless
 
-                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-school me-2"></i>Riwayat Pendidikan Formal</h6>
+                    <h6 class="text-primary fw-bold mb-3">A. Pendidikan Sebelumnya</h6>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4"><label class="form-label small text-muted">Asal TK / PAUD</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_origin ?: '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">No. Ijazah / SKL TK</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_certificate_number ?: '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal Ijazah TK</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Nama TK / PAUD</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_origin ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Alamat</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_address ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">NPSN / NSM</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_npsn ?: '-' }}" readonly></div>
                     </div>
 
-                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-info-circle-fill me-2"></i>Status di Sekolah</h6>
+                    <h6 class="text-primary fw-bold mb-3">B. Status Peserta Didik</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3"><label class="form-label small text-muted">Status Peserta Didik</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_status ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Tahun Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_year ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Tanggal Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Masuk ke Kelas</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_classroom ?: '-' }}" readonly></div>
+                    </div>
+
+                    <h6 class="text-primary fw-bold mb-3">C. Lulus</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3"><label class="form-label small text-muted">Tahun Lulus</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_year ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Tanggal Lulus</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">No. Seri Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">No. Seri SKL</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_skl_number ?: '-' }}" readonly></div>
+                        <div class="col-md-6"><label class="form-label small text-muted">Melanjutkan ke Sekolah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Kecamatan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_district ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Provinsi</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_province ?: '-' }}" readonly></div>
+                    </div>
+
+                    <h6 class="text-primary fw-bold mb-3">D. Meninggalkan Sekolah</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4"><label class="form-label small text-muted">No. Surat</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_letter_number ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Kelas yang Ditinggalkan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_classroom ?: '-' }}" readonly></div>
+                        <div class="col-md-8"><label class="form-label small text-muted">Alasan Pindah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_reason ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">NSM</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_nsm ?: '-' }}" readonly></div>
+                        <div class="col-md-6"><label class="form-label small text-muted">NPSN Sekolah Tujuan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_npsn ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Alamat Tujuan — Desa</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_village ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Alamat Tujuan — Kec.</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_district ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Alamat Tujuan — Prov.</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_province ?: '-' }}" readonly></div>
+                    </div>
+
+                    <h6 class="text-primary fw-bold mb-3">E. Putus Sekolah / Dropout</h6>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label small text-muted">Status Siswa</label><input type="text" class="form-control bg-light" value="{{ $student->status->label() }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">Status Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_status ?: '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal Pindah Keluar</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
-                        <div class="col-md-8"><label class="form-label small text-muted">Alasan Pindah Keluar</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_reason ?: '-' }}" readonly></div>
-                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal Keluar</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
-                        <div class="col-md-8"><label class="form-label small text-muted">Alasan Keluar</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_reason ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Hari, Tanggal</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_date?->translatedFormat('l, d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Kelas</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_classroom ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Alasan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_reason ?: '-' }}" readonly></div>
                     </div>
                 </div>
 
@@ -257,6 +299,8 @@
                                 @if ($guardian)
                                     <div class="mb-3"><label class="form-label small text-muted">Nama Lengkap</label><input type="text" class="form-control bg-light" value="{{ $guardian->name }}" readonly></div>
                                     <div class="mb-3"><label class="form-label small text-muted">NIK</label><input type="text" class="form-control bg-light" value="{{ $guardian->nik ?: '-' }}" readonly></div>
+                                    <div class="mb-3"><label class="form-label small text-muted">Tempat, Tanggal Lahir</label><input type="text" class="form-control bg-light" value="{{ $guardian->birth_place ?: '-' }}, {{ $guardian->birth_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                                    <div class="mb-3"><label class="form-label small text-muted">Agama</label><input type="text" class="form-control bg-light" value="{{ $guardian->religion?->label() ?? '-' }}" readonly></div>
                                     <div class="mb-3"><label class="form-label small text-muted">Pekerjaan</label><input type="text" class="form-control bg-light" value="{{ $guardian->occupation ?: '-' }}" readonly></div>
                                     <div class="mb-3"><label class="form-label small text-muted">Penghasilan per Bulan</label><input type="text" class="form-control bg-light" value="{{ $guardian->monthly_income ?: '-' }}" readonly></div>
                                     <div class="mb-3"><label class="form-label small text-muted">Pendidikan Terakhir</label><input type="text" class="form-control bg-light" value="{{ $guardian->last_education?->label() ?? '-' }}" readonly></div>
@@ -273,11 +317,14 @@
                 <!-- Tab 5: Data Kelulusan -->
                 <div class="tab-pane fade" id="lulus" role="tabpanel">
                     <div class="row g-3">
-                        <div class="col-md-6"><label class="form-label small text-muted">Status Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_status?->label() ?? 'Belum Lulus' }}" readonly></div>
-                        <div class="col-md-6"><label class="form-label small text-muted">Tahun Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_year ?: '-' }}" readonly></div>
-                        <div class="col-md-6"><label class="form-label small text-muted">No. Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
-                        <div class="col-md-6"><label class="form-label small text-muted">Tanggal Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Status Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_status?->label() ?? 'Belum Lulus' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Tahun Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_year ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">Tanggal Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
+                        <div class="col-md-6"><label class="form-label small text-muted">No. Seri Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
+                        <div class="col-md-6"><label class="form-label small text-muted">No. Seri SKL</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_skl_number ?: '-' }}" readonly></div>
                         <div class="col-md-6"><label class="form-label small text-muted">Melanjutkan Ke</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Kecamatan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_district ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">Provinsi</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_province ?: '-' }}" readonly></div>
                         <div class="col-md-12"><label class="form-label small text-muted">Catatan Kelulusan</label><textarea class="form-control bg-light" rows="3" readonly>{{ $academicRecord?->graduation_notes ?: '-' }}</textarea></div>
                     </div>
                 </div>

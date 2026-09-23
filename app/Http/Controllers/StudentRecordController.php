@@ -9,8 +9,10 @@ use App\Enums\GraduationStatus;
 use App\Enums\GuardianRelationship;
 use App\Enums\PromotionStatus;
 use App\Enums\Religion;
+use App\Enums\ResidenceType;
 use App\Enums\Semester;
 use App\Enums\StudentStatus;
+use App\Enums\TransportationMode;
 use App\Models\Classroom;
 use App\Models\Grade;
 use App\Models\GradeWeight;
@@ -119,6 +121,8 @@ class StudentRecordController extends Controller
             'educationLevels' => EducationLevel::cases(),
             'promotionStatuses' => PromotionStatus::cases(),
             'semesters' => Semester::cases(),
+            'residenceTypes' => ResidenceType::cases(),
+            'transportationModes' => TransportationMode::cases(),
             'currentProgressNote' => $student->progressNotes->first(
                 fn (StudentProgressNote $note) => $note->academic_year === Classroom::currentAcademicYear()
                     && $note->semester === Semester::current()

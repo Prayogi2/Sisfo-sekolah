@@ -93,10 +93,16 @@
                             <textarea name="message" id="message" class="form-control" rows="5" maxlength="5000" placeholder="Tulis pengumuman untuk siswa..." required>{{ old('message') }}</textarea>
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label for="published_at" class="form-label fw-semibold">Waktu Kirim <span class="text-muted fw-normal small">(opsional)</span></label>
                             <input type="datetime-local" name="published_at" id="published_at" class="form-control" value="{{ old('published_at') }}" min="{{ now()->format('Y-m-d\TH:i') }}">
                             <div class="form-text">Kosongkan untuk mengirim sekarang.</div>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input type="checkbox" name="send_whatsapp" value="1" class="form-check-input" id="send_whatsapp" @checked(old('send_whatsapp'))>
+                            <label class="form-check-label" for="send_whatsapp"><i class="bi bi-whatsapp text-success me-1"></i>Kirim juga ke WhatsApp orang tua</label>
+                            <div class="form-text">Butuh nomor HP orang tua terisi di data siswa. Tidak berlaku untuk notifikasi yang dijadwalkan.</div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send-fill me-1"></i> Kirim Notifikasi</button>

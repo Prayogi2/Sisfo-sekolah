@@ -31,6 +31,7 @@ class StoreAnnouncementRequest extends FormRequest
             'student_ids' => [Rule::requiredIf($this->input('target') === AnnouncementTarget::SpecificStudents->value), 'array'],
             'student_ids.*' => ['integer', 'exists:students,id'],
             'published_at' => ['nullable', 'date'],
+            'send_whatsapp' => ['sometimes', 'boolean'],
         ];
     }
 
