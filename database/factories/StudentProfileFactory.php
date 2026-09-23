@@ -5,6 +5,8 @@ namespace Database\Factories;
 use App\Enums\BloodType;
 use App\Enums\FamilyStatus;
 use App\Enums\Religion;
+use App\Enums\ResidenceType;
+use App\Enums\TransportationMode;
 use App\Models\Student;
 use App\Models\StudentProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -25,7 +27,6 @@ class StudentProfileFactory extends Factory
             'student_id' => Student::factory(),
             'nickname' => fake()->firstName(),
             'nik' => fake()->unique()->numerify('################'),
-            'family_card_number' => fake()->numerify('################'),
             'religion' => Religion::Islam,
             'family_status' => FamilyStatus::BiologicalChild,
             'birth_order' => fake()->numberBetween(1, 5),
@@ -40,6 +41,10 @@ class StudentProfileFactory extends Factory
             'regency' => fake()->city(),
             'province' => fake()->state(),
             'postal_code' => fake()->postcode(),
+            'residence_type' => fake()->randomElement(ResidenceType::cases()),
+            'transportation' => fake()->randomElement(TransportationMode::cases()),
+            'distance_km' => fake()->numberBetween(1, 15),
+            'travel_duration_minutes' => fake()->numberBetween(5, 60),
             'photo_path' => null,
         ];
     }

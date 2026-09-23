@@ -11,9 +11,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Status baca satu notifikasi untuk satu siswa.
  */
-#[Fillable(['announcement_id', 'student_id', 'read_at'])]
+#[Fillable(['announcement_id', 'student_id', 'read_at', 'whatsapp_status', 'whatsapp_sent_at'])]
 class AnnouncementRecipient extends Model
 {
+    public const WHATSAPP_SENT = 'sent';
+
+    public const WHATSAPP_FAILED = 'failed';
+
+    public const WHATSAPP_SKIPPED = 'skipped';
+
     /**
      * @return array<string, string>
      */
@@ -21,6 +27,7 @@ class AnnouncementRecipient extends Model
     {
         return [
             'read_at' => 'datetime',
+            'whatsapp_sent_at' => 'datetime',
         ];
     }
 

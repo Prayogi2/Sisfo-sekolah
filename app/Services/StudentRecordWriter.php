@@ -8,6 +8,8 @@ use App\Enums\FamilyStatus;
 use App\Enums\GraduationStatus;
 use App\Enums\GuardianRelationship;
 use App\Enums\Religion;
+use App\Enums\ResidenceType;
+use App\Enums\TransportationMode;
 use App\Models\Student;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -21,16 +23,26 @@ use Illuminate\Validation\Rule;
 class StudentRecordWriter
 {
     private const PROFILE_FIELDS = [
-        'nickname', 'nik', 'family_card_number', 'religion', 'family_status',
+        'nickname', 'nik', 'religion', 'family_status',
         'birth_order', 'siblings_count', 'weight_kg', 'height_cm', 'blood_type',
         'street_address', 'hamlet', 'village', 'district', 'regency', 'province', 'postal_code',
+        'residence_type', 'transportation', 'distance_km', 'travel_duration_minutes',
     ];
 
     private const ACADEMIC_FIELDS = [
-        'kindergarten_origin', 'kindergarten_certificate_number', 'kindergarten_certificate_date',
-        'entry_status', 'entry_date', 'report_book_serial_number', 'transfer_out_date', 'transfer_out_reason',
-        'exit_date', 'exit_reason', 'graduation_status', 'graduation_year', 'exam_number',
-        'graduation_certificate_number', 'graduation_certificate_date', 'continued_to', 'graduation_notes',
+        // A. Pendidikan sebelumnya
+        'kindergarten_origin', 'kindergarten_address', 'kindergarten_npsn',
+        'kindergarten_certificate_number', 'kindergarten_certificate_date',
+        // B. Status peserta didik
+        'entry_status', 'entry_year', 'entry_date', 'entry_classroom', 'report_book_serial_number',
+        // C. Lulus
+        'graduation_status', 'graduation_year', 'exam_number', 'graduation_certificate_number', 'graduation_certificate_date',
+        'graduation_skl_number', 'continued_to', 'continued_to_district', 'continued_to_province', 'graduation_notes',
+        // D. Meninggalkan sekolah (pindah)
+        'transfer_out_letter_number', 'transfer_out_date', 'transfer_out_classroom', 'transfer_out_reason',
+        'transfer_out_nsm', 'transfer_out_npsn', 'transfer_out_village', 'transfer_out_district', 'transfer_out_province',
+        // E. Putus sekolah / dropout
+        'exit_date', 'exit_classroom', 'exit_reason',
     ];
 
     private const GUARDIAN_FIELDS = [
@@ -47,7 +59,6 @@ class StudentRecordWriter
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'nickname' => ['nullable', 'string', 'max:255'],
             'nik' => ['nullable', 'string', 'max:30', Rule::unique('student_profiles', 'nik')->ignore($student?->profile?->id)],
-            'family_card_number' => ['nullable', 'string', 'max:30'],
             'religion' => ['nullable', Rule::enum(Religion::class)],
             'family_status' => ['nullable', Rule::enum(FamilyStatus::class)],
             'birth_order' => ['nullable', 'integer', 'min:1'],
@@ -62,23 +73,52 @@ class StudentRecordWriter
             'regency' => ['nullable', 'string', 'max:255'],
             'province' => ['nullable', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:10'],
-            'entry_status' => ['nullable', 'string', 'max:100'],
-            'entry_date' => ['nullable', 'date'],
-            'report_book_serial_number' => ['nullable', 'string', 'max:100'],
+            'residence_type' => ['nullable', Rule::enum(ResidenceType::class)],
+            'transportation' => ['nullable', Rule::enum(TransportationMode::class)],
+            'distance_km' => ['nullable', 'integer', 'min:0'],
+            'travel_duration_minutes' => ['nullable', 'integer', 'min:0'],
+
+            // A. Pendidikan sebelumnya
             'kindergarten_origin' => ['nullable', 'string', 'max:255'],
+            'kindergarten_address' => ['nullable', 'string', 'max:255'],
+            'kindergarten_npsn' => ['nullable', 'string', 'max:50'],
             'kindergarten_certificate_number' => ['nullable', 'string', 'max:100'],
             'kindergarten_certificate_date' => ['nullable', 'date'],
-            'transfer_out_date' => ['nullable', 'date'],
-            'transfer_out_reason' => ['nullable', 'string'],
-            'exit_date' => ['nullable', 'date'],
-            'exit_reason' => ['nullable', 'string'],
+
+            // B. Status peserta didik
+            'entry_status' => ['nullable', 'string', 'max:100'],
+            'entry_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
+            'entry_date' => ['nullable', 'date'],
+            'entry_classroom' => ['nullable', 'string', 'max:100'],
+            'report_book_serial_number' => ['nullable', 'string', 'max:100'],
+
+            // C. Lulus
             'graduation_status' => ['nullable', Rule::enum(GraduationStatus::class)],
             'graduation_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
             'exam_number' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-\/.]+$/'],
             'graduation_certificate_number' => ['nullable', 'string', 'max:100'],
             'graduation_certificate_date' => ['nullable', 'date'],
+            'graduation_skl_number' => ['nullable', 'string', 'max:100'],
             'continued_to' => ['nullable', 'string', 'max:255'],
+            'continued_to_district' => ['nullable', 'string', 'max:255'],
+            'continued_to_province' => ['nullable', 'string', 'max:255'],
             'graduation_notes' => ['nullable', 'string'],
+
+            // D. Meninggalkan sekolah (pindah)
+            'transfer_out_letter_number' => ['nullable', 'string', 'max:100'],
+            'transfer_out_date' => ['nullable', 'date'],
+            'transfer_out_classroom' => ['nullable', 'string', 'max:100'],
+            'transfer_out_reason' => ['nullable', 'string'],
+            'transfer_out_nsm' => ['nullable', 'string', 'max:50'],
+            'transfer_out_npsn' => ['nullable', 'string', 'max:50'],
+            'transfer_out_village' => ['nullable', 'string', 'max:255'],
+            'transfer_out_district' => ['nullable', 'string', 'max:255'],
+            'transfer_out_province' => ['nullable', 'string', 'max:255'],
+
+            // E. Putus sekolah / dropout
+            'exit_date' => ['nullable', 'date'],
+            'exit_classroom' => ['nullable', 'string', 'max:100'],
+            'exit_reason' => ['nullable', 'string'],
         ];
 
         foreach (['father', 'mother'] as $prefix) {

@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\BloodType;
 use App\Enums\FamilyStatus;
 use App\Enums\Religion;
+use App\Enums\ResidenceType;
+use App\Enums\TransportationMode;
 use Database\Factories\StudentProfileFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'student_id',
     'nickname',
     'nik',
-    'family_card_number',
     'religion',
     'family_status',
     'birth_order',
@@ -30,6 +31,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'regency',
     'province',
     'postal_code',
+    'residence_type',
+    'transportation',
+    'distance_km',
+    'travel_duration_minutes',
     'photo_path',
 ])]
 class StudentProfile extends Model
@@ -48,6 +53,8 @@ class StudentProfile extends Model
             'religion' => Religion::class,
             'family_status' => FamilyStatus::class,
             'blood_type' => BloodType::class,
+            'residence_type' => ResidenceType::class,
+            'transportation' => TransportationMode::class,
         ];
     }
 

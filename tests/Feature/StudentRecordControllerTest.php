@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\GuardianRelationship;
+use App\Enums\Religion;
 use App\Models\Classroom;
 use App\Models\Guardian;
 use App\Models\Student;
@@ -70,7 +71,6 @@ class StudentRecordControllerTest extends TestCase
         StudentProfile::factory()->create([
             'student_id' => $student->id,
             'nik' => '3201234567890001',
-            'family_card_number' => '3201234567890123',
             'village' => 'Sukamaju',
         ]);
 
@@ -80,7 +80,6 @@ class StudentRecordControllerTest extends TestCase
         $response->assertSee('Siti Aminah');
         $response->assertSee('0098761234');
         $response->assertSee('3201234567890001');
-        $response->assertSee('3201234567890123');
         $response->assertSee('Cianjur');
         $response->assertSee('Sukamaju');
         $response->assertSee('6-A');
@@ -93,9 +92,11 @@ class StudentRecordControllerTest extends TestCase
         StudentAcademicRecord::factory()->create([
             'student_id' => $student->id,
             'kindergarten_origin' => 'TK Nurul Huda',
-            'kindergarten_certificate_number' => 'SKL-2023-001',
+            'kindergarten_npsn' => 'NPSN-001122',
             'entry_status' => 'Peserta Didik Baru',
+            'entry_classroom' => 'Kelas 1',
             'graduation_certificate_number' => 'IJZ-2024-077',
+            'graduation_skl_number' => 'SKL-2024-055',
             'graduation_year' => 2024,
             'continued_to' => 'MTs Nurul Falaq',
         ]);
@@ -104,9 +105,11 @@ class StudentRecordControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('TK Nurul Huda');
-        $response->assertSee('SKL-2023-001');
+        $response->assertSee('NPSN-001122');
         $response->assertSee('Peserta Didik Baru');
+        $response->assertSee('Kelas 1');
         $response->assertSee('IJZ-2024-077');
+        $response->assertSee('SKL-2024-055');
         $response->assertSee('2024');
         $response->assertSee('MTs Nurul Falaq');
     }
@@ -119,6 +122,8 @@ class StudentRecordControllerTest extends TestCase
             'name' => 'Bapak Udin',
             'relationship' => GuardianRelationship::Father,
             'occupation' => 'Petani',
+            'birth_place' => 'Garut',
+            'religion' => Religion::Islam,
         ]);
         $mother = Guardian::factory()->create([
             'name' => 'Ibu Aminah',
@@ -132,6 +137,8 @@ class StudentRecordControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Bapak Udin');
         $response->assertSee('Petani');
+        $response->assertSee('Garut');
+        $response->assertSee('Islam');
         $response->assertSee('Ibu Aminah');
         $response->assertSee('Ibu Rumah Tangga');
     }
@@ -209,7 +216,15 @@ class StudentRecordControllerTest extends TestCase
             'gender' => 'P',
             'status' => 'active',
             'nickname' => 'Nana',
+            'residence_type' => 'orang_tua',
+            'transportation' => 'sepeda_motor',
+            'distance_km' => 3,
+            'travel_duration_minutes' => 15,
+            'kindergarten_origin' => 'TK Melati',
+            'entry_classroom' => 'Kelas 1',
             'mother_name' => 'Ibu Sari',
+            'mother_birth_place' => 'Bandung',
+            'mother_religion' => 'islam',
             'progress_academic_year' => '2026/2027',
             'progress_semester' => 'ganjil',
             'promotion_status' => 'naik',
@@ -217,7 +232,20 @@ class StudentRecordControllerTest extends TestCase
 
         $response->assertRedirect(route('admin.buku-induk', ['student' => $student->id]));
         $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Nama Baru']);
-        $this->assertDatabaseHas('student_profiles', ['student_id' => $student->id, 'nickname' => 'Nana']);
+        $this->assertDatabaseHas('student_profiles', [
+            'student_id' => $student->id,
+            'nickname' => 'Nana',
+            'residence_type' => 'orang_tua',
+            'transportation' => 'sepeda_motor',
+            'distance_km' => 3,
+            'travel_duration_minutes' => 15,
+        ]);
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $student->id,
+            'kindergarten_origin' => 'TK Melati',
+            'entry_classroom' => 'Kelas 1',
+        ]);
+        $this->assertDatabaseHas('guardians', ['name' => 'Ibu Sari', 'birth_place' => 'Bandung', 'religion' => 'islam']);
         $this->assertSame(['Ibu Sari'], $student->guardians()->pluck('name')->all());
         $this->assertDatabaseHas('student_progress_notes', ['student_id' => $student->id, 'academic_year' => '2026/2027', 'promotion_status' => 'naik']);
     }
@@ -293,6 +321,35 @@ class StudentRecordControllerTest extends TestCase
 
         $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Nama Asli']);
         $this->assertDatabaseMissing('student_academic_records', ['exam_number' => 'PALSU-001']);
+    }
+
+    public function test_the_printable_buku_induk_shows_the_new_riwayat_pendidikan_sections(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+        StudentAcademicRecord::factory()->create([
+            'student_id' => $student->id,
+            'kindergarten_npsn' => 'NPSN-998877',
+            'entry_classroom' => 'Kelas 1',
+            'graduation_skl_number' => 'SKL-2024-099',
+            'transfer_out_letter_number' => 'SRT-01/2025',
+            'exit_classroom' => 'Kelas 4',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk.student.download', $student));
+
+        $response->assertOk();
+        $response->assertSee('A. Pendidikan Sebelumnya', false);
+        $response->assertSee('NPSN-998877');
+        $response->assertSee('B. Status Peserta Didik', false);
+        $response->assertSee('Kelas 1');
+        $response->assertSee('C. Lulus', false);
+        $response->assertSee('SKL-2024-099');
+        $response->assertSee('D. Meninggalkan Sekolah', false);
+        $response->assertSee('SRT-01/2025');
+        $response->assertSee('E. Putus Sekolah', false);
+        $response->assertSee('Kelas 4');
+        $response->assertDontSee('No. Kartu Keluarga');
     }
 
     public function test_escapes_a_dangerous_student_name(): void
