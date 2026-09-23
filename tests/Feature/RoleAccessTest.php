@@ -49,6 +49,41 @@ class RoleAccessTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_or_guru_can_login_with_email(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'email' => 'admin@nurfa.id',
+            'password' => bcrypt('secret123'),
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'identifier' => 'admin@nurfa.id',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticatedAs($admin);
+    }
+
+    public function test_student_can_login_with_nis(): void
+    {
+        $studentUser = User::factory()->create([
+            'role' => 'siswa',
+            'username' => '20240001',
+            'email' => '20240001@siswa.local',
+            'password' => bcrypt('secret123'),
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'identifier' => '20240001',
+            'password' => 'secret123',
+        ]);
+
+        $response->assertRedirect(route('siswa.dashboard'));
+        $this->assertAuthenticatedAs($studentUser);
+    }
+
     /**
      * @return array<string, array{string}>
      */

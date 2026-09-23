@@ -28,10 +28,12 @@ class StudentEnroller
                 'address', 'parent_name', 'parent_phone', 'status',
             ])->filter(fn ($value) => $value !== null)->all());
 
+            $loginIdentifier = $student->nis ?: $student->nisn;
+
             $student->update(['user_id' => User::create([
                 'name' => $student->name,
-                'email' => $student->nisn.'@siswa.local',
-                'username' => $student->nisn,
+                'email' => $loginIdentifier.'@siswa.local',
+                'username' => $loginIdentifier,
                 'password' => 'password123',
                 'role' => 'siswa',
             ])->id]);

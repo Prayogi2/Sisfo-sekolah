@@ -22,7 +22,7 @@ class AuthController extends Controller
             'identifier' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ], [
-            'identifier.required' => 'Email atau nama wajib diisi.',
+            'identifier.required' => 'Email atau NIS wajib diisi.',
             'password.required' => 'Password wajib diisi.',
         ]);
 
@@ -31,13 +31,13 @@ class AuthController extends Controller
             $query->where(function ($query) use ($identifier) {
                 $query->whereIn('role', ['admin', 'guru'])->where('email', $identifier);
             })->orWhere(function ($query) use ($identifier) {
-                $query->where('role', 'siswa')->where('name', $identifier);
+                $query->where('role', 'siswa')->where('username', $identifier);
             });
         })->first();
 
         if (! $user || ! Hash::check($request->string('password')->toString(), $user->password)) {
             return back()
-                ->with('error', 'Email/nama atau password salah.')
+                ->with('error', 'Email/NIS atau password salah.')
                 ->withInput($request->only('identifier'));
         }
 
