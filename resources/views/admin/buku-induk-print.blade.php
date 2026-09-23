@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Buku Induk Siswa - NURFA.ID</title>
+    <x-favicon />
     <style>
         body { margin: 0; color: #1f2937; font: 14px/1.5 Arial, sans-serif; background: #e5e7eb; }
         .toolbar { position: sticky; top: 0; z-index: 2; padding: 12px 20px; background: #0d6efd; text-align: right; }

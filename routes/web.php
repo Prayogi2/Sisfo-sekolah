@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassroomController;
@@ -97,6 +98,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
         Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
         Route::get('/kritik-saran', [FeedbackController::class, 'index'])->name('kritik-saran');
+        Route::get('/notifikasi', [AnnouncementController::class, 'index'])->name('notifikasi');
+        Route::post('/notifikasi', [AnnouncementController::class, 'store'])->name('notifikasi.store');
+        Route::get('/notifikasi/{announcement}', [AnnouncementController::class, 'show'])->name('notifikasi.show');
+        Route::delete('/notifikasi/{announcement}', [AnnouncementController::class, 'destroy'])->name('notifikasi.destroy');
         Route::get('/bank-soal', [QuizController::class, 'questionBank'])->name('bank-soal');
         Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
         Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'index'])->name('prestasi-pelanggaran');
@@ -178,6 +183,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/kuis-cbt/attempt/{attempt}/jawaban', [QuizController::class, 'answer'])->name('kuis.answer');
         Route::post('/kuis-cbt/attempt/{attempt}/kumpulkan', [QuizController::class, 'submit'])->name('kuis.submit');
         Route::get('/riwayat-absensi', [StudentPortalController::class, 'attendanceHistory'])->name('absensi');
+        Route::get('/notifikasi', [AnnouncementController::class, 'studentIndex'])->name('notifikasi');
+        Route::post('/notifikasi/tandai-semua', [AnnouncementController::class, 'markAllAsRead'])->name('notifikasi.read-all');
+        Route::get('/notifikasi/{announcement}', [AnnouncementController::class, 'studentShow'])->name('notifikasi.show');
     });
 
     /*

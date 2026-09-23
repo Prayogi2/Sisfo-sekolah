@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AnnouncementRecipient;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Notifications\NewFeedbackSubmitted;
 use App\Observers\StudentObserver;
 use App\Observers\TeacherObserver;
 use App\Observers\UserObserver;
+use App\Services\CurrentStudentResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -50,6 +52,13 @@ class AppServiceProvider extends ServiceProvider
                     'adminFeedbackNotifications',
                     $user->unreadNotifications()->where('type', NewFeedbackSubmitted::class)->limit(5)->get(),
                 );
+            }
+
+            if ($user?->hasRole('siswa') && $student = app(CurrentStudentResolver::class)->resolve($user)) {
+                $view->with([
+                    'studentNotifications' => AnnouncementRecipient::query()->visibleTo($student)->newestFirst()->with('announcement')->limit(5)->get(),
+                    'studentUnreadNotificationCount' => AnnouncementRecipient::query()->visibleTo($student)->unread()->count(),
+                ]);
             }
         });
     }
