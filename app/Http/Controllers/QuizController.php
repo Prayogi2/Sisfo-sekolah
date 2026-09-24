@@ -133,6 +133,10 @@ class QuizController extends Controller
     private function correctAnswerCountRule(Request $request): callable
     {
         return function (string $attribute, mixed $value, callable $fail) use ($request): void {
+            if (! is_array($value)) {
+                return;
+            }
+
             $count = count($value);
             if ($request->input('type') === QuizQuestion::TYPE_SINGLE && $count !== 1) {
                 $fail('Soal pilihan ganda biasa harus memiliki tepat satu jawaban benar.');

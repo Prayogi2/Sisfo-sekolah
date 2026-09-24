@@ -36,4 +36,21 @@ class StudentCardTest extends TestCase
 
         $this->actingAs($guru)->get(route('admin.data-siswa.kartu-qr', $student))->assertForbidden();
     }
+
+    /**
+     * Unduhan PNG di halaman ini hanya mengambil gambar QR-nya saja (lewat
+     * fetch ke #qrImage), bukan merender seluruh kartu seperti fitur kartu
+     * digital siswa yang sudah dihapus.
+     */
+    public function test_admin_qr_card_page_offers_a_qr_only_png_download(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $response = $this->actingAs($admin)->get(route('admin.data-siswa.kartu-qr', $student));
+
+        $response->assertOk();
+        $response->assertSee('id="downloadQrBtn"', false);
+        $response->assertSee('id="qrImage"', false);
+    }
 }

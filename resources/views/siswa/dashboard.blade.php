@@ -21,7 +21,6 @@
             </div>
             @if($student)
                 <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('siswa.kartu-digital') }}" class="btn btn-outline-primary"><i class="bi bi-qr-code me-1"></i>Kartu Digital</a>
                     <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="btn btn-outline-primary"><i class="bi bi-award me-1"></i>Prestasi & Pelanggaran</a>
                 </div>
             @endif

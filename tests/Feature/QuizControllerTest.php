@@ -202,6 +202,25 @@ class QuizControllerTest extends TestCase
         $this->assertDatabaseCount('quiz_questions', 0);
     }
 
+    public function test_adding_a_question_with_a_non_array_correct_answer_fails_validation_instead_of_crashing(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
+            'subject_id' => $subject->id,
+            'type' => 'single',
+            'question' => 'Berapa hasil 2 + 2?',
+            'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
+            'correct_answer' => 'A',
+        ]);
+
+        $response->assertSessionHasErrors('correct_answer');
+        $this->assertDatabaseCount('quiz_questions', 0);
+    }
+
     public function test_guru_can_add_a_complex_multiple_answer_question(): void
     {
         $guruUser = User::factory()->create(['role' => 'guru']);

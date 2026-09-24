@@ -54,24 +54,6 @@ class StudentPortalController extends Controller
         return view('siswa.dashboard', compact('student', 'today', 'monthAttendances', 'bills', 'quizzes'));
     }
 
-    public function digitalCard(CurrentStudentResolver $resolver): View|RedirectResponse
-    {
-        $student = $this->resolveStudentOrRedirect(auth()->user(), $resolver);
-
-        if ($student instanceof RedirectResponse) {
-            return $student;
-        }
-
-        $today = Attendance::query()
-            ->where('student_id', $student->id)
-            ->where('date', now()->toDateString())
-            ->first();
-
-        $history = $this->lastSevenDaysAttendance($student);
-
-        return view('siswa.kartu-digital', compact('student', 'today', 'history'));
-    }
-
     public function attendanceHistory(CurrentStudentResolver $resolver): View|RedirectResponse
     {
         $student = $this->resolveStudentOrRedirect(auth()->user(), $resolver);

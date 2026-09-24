@@ -169,7 +169,6 @@ Route::middleware('auth')->group(function () {
     */
     Route::middleware('role:siswa')->prefix('siswa')->name('siswa.')->group(function () {
         Route::get('/dashboard', [StudentPortalController::class, 'dashboard'])->name('dashboard');
-        Route::get('/kartu-digital', [StudentPortalController::class, 'digitalCard'])->name('kartu-digital');
         Route::get('/status-spp', [SppPaymentController::class, 'status'])->name('status-spp');
         Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
         Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');

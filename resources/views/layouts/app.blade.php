@@ -86,7 +86,6 @@
             <a href="{{ route('siswa.notifikasi') }}" class="{{ request()->routeIs('siswa.notifikasi*') ? 'active' : '' }}"><i class="bi bi-bell-fill"></i> Notifikasi @if(($studentUnreadNotificationCount ?? 0) > 0)<span class="badge rounded-pill bg-danger ms-1">{{ $studentUnreadNotificationCount }}</span>@endif</a>
 
             <div class="menu-title">Absensi</div>
-            <a href="{{ route('siswa.kartu-digital') }}" class="{{ request()->routeIs('siswa.kartu-digital') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Kartu Digital</a>
             <a href="{{ route('siswa.absensi') }}" class="{{ request()->routeIs('siswa.absensi') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Riwayat Absensi</a>
 
             <div class="menu-title">Akademik</div>
@@ -246,7 +245,6 @@
         ],
         default => [
             ['route' => 'siswa.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
-            ['route' => 'siswa.kartu-digital', 'icon' => 'bi-qr-code-scan', 'label' => 'Kartu'],
             ['route' => 'siswa.kuis', 'icon' => 'bi-mortarboard-fill', 'label' => 'Kuis'],
             ['route' => 'siswa.status-spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
             ['route' => 'siswa.notifikasi', 'icon' => 'bi-bell-fill', 'label' => 'Notifikasi'],
