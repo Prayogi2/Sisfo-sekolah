@@ -97,7 +97,7 @@ class StudentImporter
             ];
 
             $validator = Validator::make($payload, [
-                'nisn' => ['required', 'string', 'max:20', 'unique:students,nisn'],
+                'nisn' => ['required', 'digits:10', 'unique:students,nisn'],
                 'nis' => ['required', 'string', 'max:20', 'unique:students,nis'],
                 'name' => ['required', 'string', 'max:255'],
                 'gender' => ['required', 'in:L,P'],
@@ -109,6 +109,7 @@ class StudentImporter
                 'parent_phone' => ['nullable', 'string', 'max:30'],
             ], [
                 'gender.in' => 'Jenis kelamin harus diisi L atau P.',
+                'nisn.digits' => 'NISN harus 10 digit angka (format kolom NISN sebagai Teks di Excel agar angka 0 di depan tidak hilang).',
             ]);
 
             // Panggil fails() dulu untuk menjalankan validasi & mengisi

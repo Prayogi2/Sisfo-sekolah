@@ -250,6 +250,79 @@ class StudentRecordControllerTest extends TestCase
         $this->assertDatabaseHas('student_progress_notes', ['student_id' => $student->id, 'academic_year' => '2026/2027', 'promotion_status' => 'naik']);
     }
 
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function bukuIndukPayload(Student $student, array $overrides = []): array
+    {
+        return [
+            'nisn' => $student->nisn,
+            'nis' => $student->nis,
+            'name' => $student->name,
+            'gender' => 'L',
+            'status' => 'active',
+            'progress_academic_year' => '2026/2027',
+            'progress_semester' => 'ganjil',
+            'promotion_status' => 'naik',
+            ...$overrides,
+        ];
+    }
+
+    public function test_admin_can_record_report_book_exam_and_certificate_numbers(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'report_book_serial_number' => 'RPT-0042',
+            'exam_number' => '2-26-05-01-001-002-3',
+            'graduation_certificate_number' => 'MI-26-0012345',
+        ]))->assertRedirect(route('admin.buku-induk', ['student' => $student->id]));
+
+        $this->assertDatabaseHas('student_academic_records', [
+            'student_id' => $student->id,
+            'report_book_serial_number' => 'RPT-0042',
+            'exam_number' => '2-26-05-01-001-002-3',
+            'graduation_certificate_number' => 'MI-26-0012345',
+        ]);
+    }
+
+    public function test_buku_induk_rejects_a_non_numeric_nisn_and_a_future_birth_date(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'nisn' => '12AB567890',
+            'birth_date' => now()->addDay()->toDateString(),
+        ]))->assertSessionHasErrors(['nisn', 'birth_date']);
+
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'nisn' => $student->nisn]);
+    }
+
+    /**
+     * Guru & siswa tidak cukup hanya disembunyikan menunya: akses langsung
+     * lewat URL ke form maupun proses simpan Buku Induk harus ditolak.
+     */
+    public function test_guru_and_siswa_cannot_open_or_submit_the_buku_induk_form(): void
+    {
+        $student = Student::factory()->create(['name' => 'Nama Asli']);
+
+        foreach (['guru', 'siswa'] as $role) {
+            $user = User::factory()->create(['role' => $role]);
+
+            $this->actingAs($user)->get(route('admin.buku-induk.edit', $student))->assertForbidden();
+            $this->actingAs($user)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+                'name' => 'Nama Palsu',
+                'exam_number' => 'PALSU-001',
+            ]))->assertForbidden();
+        }
+
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Nama Asli']);
+        $this->assertDatabaseMissing('student_academic_records', ['exam_number' => 'PALSU-001']);
+    }
+
     public function test_the_printable_buku_induk_shows_the_new_riwayat_pendidikan_sections(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

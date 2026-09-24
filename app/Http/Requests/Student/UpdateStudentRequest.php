@@ -4,6 +4,7 @@ namespace App\Http\Requests\Student;
 
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
+use App\Services\StudentRecordWriter;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -23,13 +24,13 @@ class UpdateStudentRequest extends FormRequest
         $student = $this->route('student');
 
         return [
-            'nisn' => ['required', 'string', 'max:20', Rule::unique('students', 'nisn')->ignore($student)],
+            'nisn' => ['required', 'digits:10', Rule::unique('students', 'nisn')->ignore($student)],
             'nis' => ['required', 'string', 'max:20', Rule::unique('students', 'nis')->ignore($student)],
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::enum(Gender::class)],
             'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
             'birth_place' => ['nullable', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
             'address' => ['nullable', 'string'],
             'parent_name' => ['nullable', 'string', 'max:255'],
             'parent_phone' => ['nullable', 'string', 'max:30'],
@@ -39,7 +40,7 @@ class UpdateStudentRequest extends FormRequest
 
     public function messages(): array
     {
-        return [
+        return app(StudentRecordWriter::class)->messages() + [
             'nisn.required' => 'NISN wajib diisi.',
             'nisn.unique' => 'NISN sudah terdaftar.',
             'nis.required' => 'NIS wajib diisi.',

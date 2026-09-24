@@ -122,6 +122,7 @@ class StudentConductController extends Controller
         if ($student instanceof RedirectResponse) {
             return $student;
         }
+        $student->load('academicRecord');
         $achievements = $student->achievements()->latest('achieved_at')->latest()->get();
         $violations = $student->violations()->latest('occurred_at')->latest()->get();
 

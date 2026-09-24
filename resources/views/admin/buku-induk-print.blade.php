@@ -69,11 +69,13 @@
                     <table>
                         <tr><th>Status Peserta Didik</th><td>{{ $academic?->entry_status ?: '-' }}</td><th>Tahun Masuk</th><td>{{ $academic?->entry_year ?: '-' }}</td></tr>
                         <tr><th>Tanggal Masuk</th><td>{{ $academic?->entry_date?->translatedFormat('d F Y') ?: '-' }}</td><th>Masuk ke Kelas</th><td>{{ $academic?->entry_classroom ?: '-' }}</td></tr>
+                        <tr><th>No. Seri Rapor</th><td colspan="3">{{ $academic?->report_book_serial_number ?: '-' }}</td></tr>
                     </table>
                     <h3>C. Lulus</h3>
                     <table>
                         <tr><th>Tahun Lulus</th><td>{{ $academic?->graduation_year ?: '-' }}</td><th>Tanggal Lulus</th><td>{{ $academic?->graduation_certificate_date?->translatedFormat('d F Y') ?: '-' }}</td></tr>
                         <tr><th>No. Seri Ijazah</th><td>{{ $academic?->graduation_certificate_number ?: '-' }}</td><th>No. Seri SKL</th><td>{{ $academic?->graduation_skl_number ?: '-' }}</td></tr>
+                        <tr><th>No. Ujian</th><td colspan="3">{{ $academic?->exam_number ?: '-' }}</td></tr>
                         <tr><th>Melanjutkan ke Sekolah</th><td colspan="3">{{ $academic?->continued_to ?: '-' }}</td></tr>
                         <tr><th>Alamat Sekolah</th><td>Kec. {{ $academic?->continued_to_district ?: '-' }}</td><th>Provinsi</th><td>{{ $academic?->continued_to_province ?: '-' }}</td></tr>
                         <tr><th>Catatan</th><td colspan="3">{{ $academic?->graduation_notes ?: '-' }}</td></tr>

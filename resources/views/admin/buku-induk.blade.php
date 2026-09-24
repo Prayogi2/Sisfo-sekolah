@@ -229,6 +229,7 @@
                         <div class="col-md-3"><label class="form-label small text-muted">Tahun Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_year ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Tanggal Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Masuk ke Kelas</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_classroom ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">No. Seri Rapor</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->report_book_serial_number ?: '-' }}" readonly></div>
                     </div>
 
                     <h6 class="text-primary fw-bold mb-3">C. Lulus</h6>
@@ -237,6 +238,7 @@
                         <div class="col-md-3"><label class="form-label small text-muted">Tanggal Lulus</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">No. Seri Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">No. Seri SKL</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_skl_number ?: '-' }}" readonly></div>
+                        <div class="col-md-3"><label class="form-label small text-muted">No. Ujian</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exam_number ?: '-' }}" readonly></div>
                         <div class="col-md-6"><label class="form-label small text-muted">Melanjutkan ke Sekolah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Kecamatan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_district ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Provinsi</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_province ?: '-' }}" readonly></div>
@@ -320,8 +322,9 @@
                         <div class="col-md-4"><label class="form-label small text-muted">Status Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_status?->label() ?? 'Belum Lulus' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Tahun Kelulusan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_year ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Tanggal Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
-                        <div class="col-md-6"><label class="form-label small text-muted">No. Seri Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
-                        <div class="col-md-6"><label class="form-label small text-muted">No. Seri SKL</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_skl_number ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">No. Ujian</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exam_number ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">No. Seri Ijazah</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_number ?: '-' }}" readonly></div>
+                        <div class="col-md-4"><label class="form-label small text-muted">No. Seri SKL</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_skl_number ?: '-' }}" readonly></div>
                         <div class="col-md-6"><label class="form-label small text-muted">Melanjutkan Ke</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Kecamatan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_district ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Provinsi</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_province ?: '-' }}" readonly></div>

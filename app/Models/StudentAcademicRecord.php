@@ -22,9 +22,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'entry_year',
     'entry_date',
     'entry_classroom',
+    'report_book_serial_number',
     // C. Lulus
     'graduation_status',
     'graduation_year',
+    'exam_number',
     'graduation_certificate_number',
     'graduation_certificate_date',
     'graduation_skl_number',

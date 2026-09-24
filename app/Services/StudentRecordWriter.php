@@ -34,9 +34,9 @@ class StudentRecordWriter
         'kindergarten_origin', 'kindergarten_address', 'kindergarten_npsn',
         'kindergarten_certificate_number', 'kindergarten_certificate_date',
         // B. Status peserta didik
-        'entry_status', 'entry_year', 'entry_date', 'entry_classroom',
+        'entry_status', 'entry_year', 'entry_date', 'entry_classroom', 'report_book_serial_number',
         // C. Lulus
-        'graduation_status', 'graduation_year', 'graduation_certificate_number', 'graduation_certificate_date',
+        'graduation_status', 'graduation_year', 'exam_number', 'graduation_certificate_number', 'graduation_certificate_date',
         'graduation_skl_number', 'continued_to', 'continued_to_district', 'continued_to_province', 'graduation_notes',
         // D. Meninggalkan sekolah (pindah)
         'transfer_out_letter_number', 'transfer_out_date', 'transfer_out_classroom', 'transfer_out_reason',
@@ -90,10 +90,12 @@ class StudentRecordWriter
             'entry_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
             'entry_date' => ['nullable', 'date'],
             'entry_classroom' => ['nullable', 'string', 'max:100'],
+            'report_book_serial_number' => ['nullable', 'string', 'max:100'],
 
             // C. Lulus
             'graduation_status' => ['nullable', Rule::enum(GraduationStatus::class)],
             'graduation_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
+            'exam_number' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-\/.]+$/'],
             'graduation_certificate_number' => ['nullable', 'string', 'max:100'],
             'graduation_certificate_date' => ['nullable', 'date'],
             'graduation_skl_number' => ['nullable', 'string', 'max:100'],
@@ -138,6 +140,24 @@ class StudentRecordWriter
         }
 
         return $rules;
+    }
+
+    /**
+     * Pesan validasi berbahasa Indonesia untuk identitas utama & data akademik.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'nisn.digits' => 'NISN harus berupa 10 digit angka.',
+            'birth_date.date' => 'Tanggal lahir tidak valid.',
+            'birth_date.before' => 'Tanggal lahir harus sebelum hari ini.',
+            'report_book_serial_number.max' => 'No. seri rapor maksimal 100 karakter.',
+            'exam_number.regex' => 'No. ujian hanya boleh berisi huruf, angka, tanda hubung (-), garis miring (/), dan titik.',
+            'exam_number.max' => 'No. ujian maksimal 50 karakter.',
+            'graduation_certificate_number.max' => 'No. seri ijazah maksimal 100 karakter.',
+        ];
     }
 
     /**

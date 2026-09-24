@@ -91,7 +91,7 @@
             <div class="menu-title">Akademik</div>
             <a href="{{ route('siswa.kuis') }}" class="{{ request()->routeIs('siswa.kuis*') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill"></i> Kuis & Ranking</a>
             <a href="{{ route('siswa.hasil-kuis') }}" class="{{ request()->routeIs('siswa.hasil-kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis</a>
-            <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="{{ request()->routeIs('siswa.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
+            <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="{{ request()->routeIs('siswa.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Data Akademik</a>
 
             <div class="menu-title">Keuangan</div>
             <a href="{{ route('siswa.status-spp') }}" class="{{ request()->routeIs('siswa.status-spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status SPP</a>
