@@ -55,7 +55,7 @@ class QuizAutoSubmitTest extends TestCase
         ]);
         $questions = QuizQuestion::factory(2)->create([
             'subject_id' => $subject->id,
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
             'points' => 1,
         ]);
         $quiz->questions()->attach(
@@ -75,7 +75,7 @@ class QuizAutoSubmitTest extends TestCase
             QuizAnswer::create([
                 'quiz_attempt_id' => $attempt->id,
                 'quiz_question_id' => $question->id,
-                'answer' => 'A',
+                'answer' => ['A'],
                 'is_correct' => true,
                 'awarded_points' => 1,
             ]);

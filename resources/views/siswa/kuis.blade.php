@@ -12,10 +12,16 @@
         <div class="card-body">
             <x-page-guide>Jawab semua soal sebelum waktu habis. Jawaban tersimpan begitu dipilih; kuis otomatis dikumpulkan jika waktu berakhir.</x-page-guide>
             @foreach($quiz->questions as $number => $question)
+                @php $savedAnswer = optional($attempt->answers->firstWhere('quiz_question_id', $question->id))->answer ?? []; @endphp
                 <form method="POST" action="{{ route('siswa.kuis.answer', $attempt) }}" class="border rounded p-3 mb-3">
                     @csrf
                     <input type="hidden" name="quiz_question_id" value="{{ $question->id }}">
-                    <p class="fw-semibold">{{ $number + 1 }}. {{ $question->question }}</p>
+                    <p class="fw-semibold">
+                        {{ $number + 1 }}. {{ $question->question }}
+                        @if($question->type === 'multiple')
+                            <span class="badge bg-info text-dark">Pilih semua jawaban yang benar</span>
+                        @endif
+                    </p>
                     @if($question->media_path)
                         @if($question->media_type === 'video')
                             <video src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mb-3" controls></video>
@@ -24,7 +30,7 @@
                         @endif
                     @endif
                     @foreach($question->options as $key => $option)
-                        <label class="d-block mb-2"><input type="radio" name="answer" value="{{ $key }}" {{ optional($attempt->answers->firstWhere('quiz_question_id', $question->id))->answer === $key ? 'checked' : '' }}> {{ $key }}. {{ $option }}</label>
+                        <label class="d-block mb-2"><input type="{{ $question->type === 'multiple' ? 'checkbox' : 'radio' }}" name="answer[]" value="{{ $key }}" {{ in_array($key, $savedAnswer, true) ? 'checked' : '' }}> {{ $key }}. {{ $option }}</label>
                     @endforeach
                     <button class="btn btn-sm btn-outline-primary">Simpan Jawaban</button>
                 </form>

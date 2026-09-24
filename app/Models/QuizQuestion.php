@@ -13,9 +13,13 @@ class QuizQuestion extends Model
 {
     use HasFactory;
 
+    public const TYPE_SINGLE = 'single';
+
+    public const TYPE_MULTIPLE = 'multiple';
+
     protected function casts(): array
     {
-        return ['options' => 'array', 'points' => 'integer', 'is_active' => 'boolean'];
+        return ['options' => 'array', 'correct_answer' => 'array', 'points' => 'integer', 'is_active' => 'boolean'];
     }
 
     public function subject(): BelongsTo

@@ -69,6 +69,7 @@ class QuizController extends Controller
     {
         $data = $request->validate([
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'type' => ['required', 'in:single,multiple'],
             'question' => ['required', 'string', 'max:10000'],
             'media' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,mp4,webm,mov', 'max:51200'],
             'options' => ['required', 'array:A,B,C,D'],
@@ -76,7 +77,8 @@ class QuizController extends Controller
             'options.B' => ['required', 'string', 'max:1000'],
             'options.C' => ['required', 'string', 'max:1000'],
             'options.D' => ['required', 'string', 'max:1000'],
-            'correct_answer' => ['required', 'in:A,B,C,D'],
+            'correct_answer' => ['required', 'array', 'min:1', 'max:4', $this->correctAnswerCountRule($request)],
+            'correct_answer.*' => ['distinct', 'in:A,B,C,D'],
             'explanation' => ['nullable', 'string', 'max:5000'],
             'points' => ['nullable', 'integer', 'min:1', 'max:100'],
         ], [
@@ -97,12 +99,14 @@ class QuizController extends Controller
         $this->authorizeQuestion($request, $question);
         $data = $request->validate([
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'type' => ['required', 'in:single,multiple'],
             'question' => ['required', 'string', 'max:10000'],
             'media' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,mp4,webm,mov', 'max:51200'],
             'options' => ['required', 'array:A,B,C,D'],
             'options.A' => ['required', 'string', 'max:1000'], 'options.B' => ['required', 'string', 'max:1000'],
             'options.C' => ['required', 'string', 'max:1000'], 'options.D' => ['required', 'string', 'max:1000'],
-            'correct_answer' => ['required', 'in:A,B,C,D'], 'explanation' => ['nullable', 'string', 'max:5000'],
+            'correct_answer' => ['required', 'array', 'min:1', 'max:4', $this->correctAnswerCountRule($request)],
+            'correct_answer.*' => ['distinct', 'in:A,B,C,D'], 'explanation' => ['nullable', 'string', 'max:5000'],
             'points' => ['required', 'integer', 'min:1', 'max:100'], 'is_active' => ['sometimes', 'boolean'],
         ]);
         $this->authorizeSubject($request, (int) $data['subject_id']);
@@ -120,6 +124,23 @@ class QuizController extends Controller
         $question->update($data);
 
         return back()->with('success', 'Soal berhasil diperbarui.');
+    }
+
+    /**
+     * Menjaga jumlah kunci jawaban sesuai jenis soal: pilihan ganda biasa
+     * harus tepat satu jawaban benar, pilihan ganda kompleks lebih dari satu.
+     */
+    private function correctAnswerCountRule(Request $request): callable
+    {
+        return function (string $attribute, mixed $value, callable $fail) use ($request): void {
+            $count = count($value);
+            if ($request->input('type') === QuizQuestion::TYPE_SINGLE && $count !== 1) {
+                $fail('Soal pilihan ganda biasa harus memiliki tepat satu jawaban benar.');
+            }
+            if ($request->input('type') === QuizQuestion::TYPE_MULTIPLE && $count < 2) {
+                $fail('Soal pilihan ganda kompleks harus memiliki lebih dari satu jawaban benar.');
+            }
+        };
     }
 
     public function destroyQuestion(Request $request, QuizQuestion $question): RedirectResponse
@@ -284,6 +305,7 @@ class QuizController extends Controller
             'question' => $question ? [
                 'id' => $question->id,
                 'text' => $question->question,
+                'type' => $question->type,
                 'options' => $question->options,
                 'media_url' => $question->media_path ? Storage::disk('public')->url($question->media_path) : null,
                 'media_type' => $question->media_type,
@@ -303,11 +325,14 @@ class QuizController extends Controller
         abort_unless($quiz->isLive() && $quiz->live_phase === 'question', 422);
         $question = $quiz->questions()->get()->get($quiz->live_question_index);
         abort_unless($question, 422);
-        $data = $request->validate(['answer' => ['nullable', 'in:A,B,C,D']]);
-        $isCorrect = $data['answer'] === $question->correct_answer;
+        $data = $request->validate(['answer' => ['nullable', 'array'], 'answer.*' => ['string', 'in:A,B,C,D']]);
+        $answer = collect($data['answer'] ?? [])->unique()->sort()->values()->all();
+        abort_if($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1, 422, 'Soal ini hanya menerima satu jawaban.');
+        $correctAnswer = collect($question->correct_answer)->sort()->values()->all();
+        $isCorrect = $answer !== [] && $answer === $correctAnswer;
         QuizAnswer::updateOrCreate(
             ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
-            ['answer' => $data['answer'] ?? null, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]
+            ['answer' => $answer === [] ? null : $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]
         );
 
         return response()->json(['ok' => true]);
@@ -375,7 +400,11 @@ class QuizController extends Controller
 
     public function answer(Request $request, QuizAttempt $attempt, QuizAttemptFinalizer $finalizer): RedirectResponse
     {
-        $data = $request->validate(['quiz_question_id' => ['required', 'integer', 'exists:quiz_questions,id'], 'answer' => ['nullable', 'in:A,B,C,D']]);
+        $data = $request->validate([
+            'quiz_question_id' => ['required', 'integer', 'exists:quiz_questions,id'],
+            'answer' => ['nullable', 'array'],
+            'answer.*' => ['string', 'in:A,B,C,D'],
+        ]);
         $this->assertAttemptOwner($request, $attempt);
 
         // Waktu habis di tengah pengerjaan: kumpulkan otomatis, jangan
@@ -387,9 +416,11 @@ class QuizController extends Controller
 
         $question = $attempt->quiz->questions()->whereKey($data['quiz_question_id'])->firstOrFail();
         abort_if($attempt->status === 'submitted', 422, 'Kuis sudah dikumpulkan.');
-        $answer = $data['answer'] ?? null;
-        $isCorrect = $answer !== null && $answer === $question->correct_answer;
-        QuizAnswer::updateOrCreate(['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id], ['answer' => $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]);
+        $answer = collect($data['answer'] ?? [])->unique()->sort()->values()->all();
+        abort_if($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1, 422, 'Soal ini hanya menerima satu jawaban.');
+        $correctAnswer = collect($question->correct_answer)->sort()->values()->all();
+        $isCorrect = $answer !== [] && $answer === $correctAnswer;
+        QuizAnswer::updateOrCreate(['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id], ['answer' => $answer === [] ? null : $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]);
 
         return back()->with('success', 'Jawaban tersimpan.');
     }

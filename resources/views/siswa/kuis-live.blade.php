@@ -91,6 +91,15 @@ const answerUrl = @json(route('siswa.kuis.live.answer', $attempt));
 let current = null;
 let popupShown = false;
 let pollTimer = null;
+let selectedKeys = [];
+
+async function sendAnswer(keys) {
+    return fetch(answerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+        body: JSON.stringify({ answer: keys })
+    });
+}
 
 function launchConfetti() {
     const colors = ['#ff5252', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc', '#ff7043'];
@@ -162,27 +171,55 @@ async function refresh() {
     const renderKey = data.question.id + ':' + data.phase;
     if (current === renderKey) return;
     current = renderKey;
+    selectedKeys = [];
 
     const media = data.question.media_url
         ? (data.question.media_type === 'video'
             ? '<video src="' + escapeHtml(data.question.media_url) + '" class="img-fluid rounded mb-3" controls></video>'
             : '<img src="' + escapeHtml(data.question.media_url) + '" class="img-fluid rounded mb-3" alt="Media soal">')
         : '';
-    document.getElementById('question').innerHTML = media + '<div>' + escapeHtml(data.question.text) + '</div>';
+    const isMultiple = data.question.type === 'multiple';
+    const badge = isMultiple ? '<div class="badge bg-info text-dark mb-2">Pilih semua jawaban yang benar</div><br>' : '';
+    document.getElementById('question').innerHTML = media + badge + '<div>' + escapeHtml(data.question.text) + '</div>';
 
     const isAnswering = data.phase === 'question' && !data.answer;
+    const submitButtonHtml = (isAnswering && isMultiple)
+        ? '<div class="col-12 mt-2"><button type="button" id="submitMultiAnswer" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>'
+        : '';
     document.getElementById('options').innerHTML = Object.entries(data.question.options).map(([key, value]) =>
         '<div class="col-md-6"><button class="btn ' + optionClass(key, data) + ' w-100 py-3 option" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><strong>' + escapeHtml(key) + '</strong> ' + escapeHtml(value) + '</button></div>'
-    ).join('');
+    ).join('') + submitButtonHtml;
 
     if (!isAnswering) return;
+
+    if (isMultiple) {
+        const submitButton = document.getElementById('submitMultiAnswer');
+        document.querySelectorAll('.option').forEach(button => button.onclick = () => {
+            const key = button.dataset.key;
+            if (selectedKeys.includes(key)) {
+                selectedKeys = selectedKeys.filter(item => item !== key);
+                button.classList.replace('btn-primary', 'btn-outline-primary');
+            } else {
+                selectedKeys.push(key);
+                button.classList.replace('btn-outline-primary', 'btn-primary');
+            }
+            submitButton.disabled = selectedKeys.length === 0;
+        });
+        submitButton.onclick = async () => {
+            document.querySelectorAll('.option').forEach(item => item.disabled = true);
+            submitButton.disabled = true;
+            const response = await sendAnswer(selectedKeys);
+            if (!response.ok) {
+                document.querySelectorAll('.option').forEach(item => item.disabled = false);
+                submitButton.disabled = false;
+            }
+        };
+        return;
+    }
+
     document.querySelectorAll('.option').forEach(button => button.onclick = async () => {
         document.querySelectorAll('.option').forEach(item => item.disabled = true);
-        const response = await fetch(answerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-            body: JSON.stringify({ answer: button.dataset.key })
-        });
+        const response = await sendAnswer([button.dataset.key]);
         if (response.ok) {
             button.classList.replace('btn-outline-primary', 'btn-primary');
         } else {
@@ -198,12 +235,14 @@ function escapeHtml(value) {
 }
 
 function optionClass(key, data) {
+    const isSelected = Array.isArray(data.answer) && data.answer.includes(key);
     if (data.phase === 'reveal') {
-        if (key === data.question.correct) return 'btn-success';
-        if (key === data.answer) return 'btn-danger';
+        const isCorrectOption = Array.isArray(data.question.correct) && data.question.correct.includes(key);
+        if (isCorrectOption) return 'btn-success';
+        if (isSelected) return 'btn-danger';
         return 'btn-outline-secondary';
     }
-    return key === data.answer ? 'btn-primary' : 'btn-outline-primary';
+    return isSelected ? 'btn-primary' : 'btn-outline-primary';
 }
 
 refresh();

@@ -11,7 +11,7 @@ class QuizAnswer extends Model
 {
     protected function casts(): array
     {
-        return ['is_correct' => 'boolean', 'awarded_points' => 'integer'];
+        return ['answer' => 'array', 'is_correct' => 'boolean', 'awarded_points' => 'integer'];
     }
 
     public function attempt(): BelongsTo

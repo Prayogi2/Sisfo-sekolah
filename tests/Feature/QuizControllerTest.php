@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\Quiz;
+use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
 use App\Models\Student;
@@ -67,7 +68,7 @@ class QuizControllerTest extends TestCase
 
         $questions = QuizQuestion::factory($questionCount)->create([
             'subject_id' => $subject->id,
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
             'points' => $pointsEach,
         ]);
 
@@ -149,17 +150,77 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
+            'type' => 'single',
             'question' => 'Berapa hasil 2 + 2?',
             'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('quiz_questions', [
             'question' => 'Berapa hasil 2 + 2?',
-            'correct_answer' => 'A',
             'created_by' => $guruUser->id,
         ]);
+        $this->assertSame(['A'], QuizQuestion::where('question', 'Berapa hasil 2 + 2?')->firstOrFail()->correct_answer);
+    }
+
+    public function test_single_answer_question_rejects_more_than_one_correct_answer(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
+            'subject_id' => $subject->id,
+            'type' => 'single',
+            'question' => 'Berapa hasil 2 + 2?',
+            'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
+            'correct_answer' => ['A', 'B'],
+        ]);
+
+        $response->assertSessionHasErrors('correct_answer');
+        $this->assertDatabaseCount('quiz_questions', 0);
+    }
+
+    public function test_complex_answer_question_rejects_a_single_correct_answer(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
+            'subject_id' => $subject->id,
+            'type' => 'multiple',
+            'question' => 'Manakah bilangan genap?',
+            'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
+            'correct_answer' => ['A'],
+        ]);
+
+        $response->assertSessionHasErrors('correct_answer');
+        $this->assertDatabaseCount('quiz_questions', 0);
+    }
+
+    public function test_guru_can_add_a_complex_multiple_answer_question(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => Classroom::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
+            'subject_id' => $subject->id,
+            'type' => 'multiple',
+            'question' => 'Manakah bilangan genap?',
+            'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
+            'correct_answer' => ['A', 'C'],
+        ]);
+
+        $response->assertRedirect();
+        $question = QuizQuestion::where('question', 'Manakah bilangan genap?')->firstOrFail();
+        $this->assertSame('multiple', $question->type);
+        $this->assertSame(['A', 'C'], $question->correct_answer);
     }
 
     public function test_guru_cannot_add_a_question_for_a_subject_they_do_not_teach(): void
@@ -170,9 +231,10 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $otherSubject->id,
+            'type' => 'single',
             'question' => 'Soal titipan.',
             'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
         ]);
 
         $response->assertForbidden();
@@ -199,9 +261,10 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
+            'type' => 'single',
             'question' => 'Soal titipan.',
             'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
         ]);
 
         $response->assertForbidden();
@@ -284,17 +347,17 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('quiz_answers', [
             'quiz_attempt_id' => $attempt->id,
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
             'is_correct' => true,
             'awarded_points' => 1,
         ]);
+        $this->assertSame(['A'], QuizAnswer::where('quiz_attempt_id', $attempt->id)->where('quiz_question_id', $question->id)->firstOrFail()->answer);
     }
 
     public function test_a_wrong_answer_earns_no_points(): void
@@ -309,7 +372,7 @@ class QuizControllerTest extends TestCase
 
         $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
-            'answer' => 'B',
+            'answer' => ['B'],
         ]);
 
         $this->assertDatabaseHas('quiz_answers', [
@@ -331,11 +394,11 @@ class QuizControllerTest extends TestCase
 
         $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $questions[0]->id,
-            'answer' => 'A',
+            'answer' => ['A'],
         ]);
         $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $questions[1]->id,
-            'answer' => 'C',
+            'answer' => ['C'],
         ]);
 
         $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt))->assertRedirect();
@@ -345,6 +408,145 @@ class QuizControllerTest extends TestCase
         $this->assertSame('50.00', $attempt->score);
         $this->assertSame(1, $attempt->correct_answers);
         $this->assertSame(2, $attempt->total_questions);
+    }
+
+    /**
+     * @return array{0: User, 1: QuizAttempt, 2: QuizQuestion}
+     */
+    private function attemptForComplexQuestion(): array
+    {
+        $classroom = Classroom::factory()->create();
+        [$siswa] = $this->siswaInClassroom($classroom);
+        $subject = Subject::factory()->create();
+        $quiz = Quiz::factory()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        $question = QuizQuestion::factory()->multiple()->create(['subject_id' => $subject->id, 'correct_answer' => ['A', 'C']]);
+        $quiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
+
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
+        $attempt = QuizAttempt::first();
+
+        return [$siswa, $attempt, $question];
+    }
+
+    public function test_a_complex_question_is_correct_only_when_the_full_answer_set_is_selected(): void
+    {
+        [$siswa, $attempt, $question] = $this->attemptForComplexQuestion();
+
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
+            'quiz_question_id' => $question->id,
+            'answer' => ['C', 'A'],
+        ]);
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => true, 'awarded_points' => 1]);
+    }
+
+    public function test_a_complex_question_is_incorrect_when_missing_a_correct_option(): void
+    {
+        [$siswa, $attempt, $question] = $this->attemptForComplexQuestion();
+
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
+            'quiz_question_id' => $question->id,
+            'answer' => ['A'],
+        ]);
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => false, 'awarded_points' => 0]);
+    }
+
+    public function test_a_complex_question_is_incorrect_when_an_extra_wrong_option_is_included(): void
+    {
+        [$siswa, $attempt, $question] = $this->attemptForComplexQuestion();
+
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
+            'quiz_question_id' => $question->id,
+            'answer' => ['A', 'C', 'D'],
+        ]);
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => false, 'awarded_points' => 0]);
+    }
+
+    public function test_a_single_type_question_rejects_more_than_one_submitted_answer(): void
+    {
+        $classroom = Classroom::factory()->create();
+        [$siswa] = $this->siswaInClassroom($classroom);
+        $quiz = $this->quizWithQuestions($classroom);
+        $question = $quiz->questions()->first();
+
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
+        $attempt = QuizAttempt::first();
+
+        $response = $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
+            'quiz_question_id' => $question->id,
+            'answer' => ['A', 'B'],
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('quiz_answers', 0);
+    }
+
+    /**
+     * @return array{0: User, 1: QuizAttempt, 2: QuizQuestion}
+     */
+    private function liveAttemptOnQuestion(QuizQuestion $question): array
+    {
+        $classroom = Classroom::factory()->create();
+        [$siswa, $student] = $this->siswaInClassroom($classroom);
+        $quiz = Quiz::factory()->create([
+            'subject_id' => $question->subject_id,
+            'classroom_id' => $classroom->id,
+            'mode' => 'live',
+            'live_phase' => 'question',
+            'live_question_index' => 0,
+        ]);
+        $quiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
+
+        $attempt = QuizAttempt::create(['quiz_id' => $quiz->id, 'student_id' => $student->id, 'started_at' => now(), 'total_questions' => 1]);
+
+        return [$siswa, $attempt, $question];
+    }
+
+    public function test_live_answer_grades_a_complex_question_correctly(): void
+    {
+        $question = QuizQuestion::factory()->multiple()->create(['correct_answer' => ['B', 'D']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+
+        $response = $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => ['D', 'B']]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => true, 'awarded_points' => 1]);
+    }
+
+    public function test_live_answer_marks_a_partial_complex_selection_incorrect(): void
+    {
+        $question = QuizQuestion::factory()->multiple()->create(['correct_answer' => ['B', 'D']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => ['B']]);
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => false, 'awarded_points' => 0]);
+    }
+
+    public function test_live_answer_rejects_more_than_one_answer_for_a_single_type_question(): void
+    {
+        $question = QuizQuestion::factory()->create(['correct_answer' => ['A']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+
+        $response = $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => ['A', 'B']]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('quiz_answers', 0);
+    }
+
+    public function test_live_state_exposes_the_question_type_and_the_full_correct_set_on_reveal(): void
+    {
+        $question = QuizQuestion::factory()->multiple()->create(['correct_answer' => ['A', 'C']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+        $attempt->quiz->update(['live_phase' => 'reveal']);
+
+        $response = $this->actingAs($siswa)->getJson(route('siswa.kuis.live.state', $attempt->quiz));
+
+        $response->assertOk();
+        $response->assertJsonPath('question.type', 'multiple');
+        $response->assertJsonPath('question.correct', ['A', 'C']);
     }
 
     public function test_a_submitted_quiz_cannot_be_submitted_again(): void
@@ -376,7 +578,7 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($otherSiswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
         ]);
 
         $response->assertForbidden();
@@ -396,7 +598,7 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), [
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
         ]);
 
         // Waktu habis: jawaban baru ditolak dan kuis langsung dikumpulkan.

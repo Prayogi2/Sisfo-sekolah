@@ -136,7 +136,7 @@ class QuizLeaderboardTest extends TestCase
         $student = Student::factory()->create(['classroom_id' => $classroom->id]);
 
         $quiz = Quiz::factory()->create(['classroom_id' => $classroom->id, 'subject_id' => $subject->id]);
-        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => 'A']);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => ['A']]);
         $quiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
 
         $attempt = QuizAttempt::factory()->create([
@@ -146,7 +146,7 @@ class QuizLeaderboardTest extends TestCase
         ]);
         $attempt->answers()->create([
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
             'is_correct' => true,
             'awarded_points' => 1,
         ]);
@@ -178,12 +178,12 @@ class QuizLeaderboardTest extends TestCase
 
         // Kuis kedua dikumpulkan sekarang dengan nilai 100.
         $secondQuiz = Quiz::factory()->create(['classroom_id' => $classroom->id, 'subject_id' => $subject->id]);
-        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => 'A']);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => ['A']]);
         $secondQuiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
         $attempt = QuizAttempt::factory()->create(['quiz_id' => $secondQuiz->id, 'student_id' => $student->id]);
         $attempt->answers()->create([
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
             'is_correct' => true,
             'awarded_points' => 1,
         ]);
@@ -215,12 +215,12 @@ class QuizLeaderboardTest extends TestCase
         ]);
 
         $quiz = Quiz::factory()->create(['classroom_id' => $classroom->id, 'subject_id' => $subject->id]);
-        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => 'A']);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => ['A']]);
         $quiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
         $attempt = QuizAttempt::factory()->create(['quiz_id' => $quiz->id, 'student_id' => $student->id]);
         $attempt->answers()->create([
             'quiz_question_id' => $question->id,
-            'answer' => 'B',
+            'answer' => ['B'],
             'is_correct' => false,
             'awarded_points' => 0,
         ]);
@@ -245,7 +245,7 @@ class QuizLeaderboardTest extends TestCase
             'subject_id' => $subject->id,
             'duration_minutes' => 10,
         ]);
-        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => 'A']);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id, 'correct_answer' => ['A']]);
         $quiz->questions()->attach([$question->id => ['sort_order' => 1, 'points' => 1]]);
 
         $attempt = QuizAttempt::factory()->create([
@@ -255,7 +255,7 @@ class QuizLeaderboardTest extends TestCase
         ]);
         $attempt->answers()->create([
             'quiz_question_id' => $question->id,
-            'answer' => 'A',
+            'answer' => ['A'],
             'is_correct' => true,
             'awarded_points' => 1,
         ]);

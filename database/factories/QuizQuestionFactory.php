@@ -21,7 +21,7 @@ class QuizQuestionFactory extends Factory
         return [
             'subject_id' => Subject::factory(),
             'created_by' => null,
-            'type' => 'multiple_choice',
+            'type' => QuizQuestion::TYPE_SINGLE,
             'question' => fake()->sentence().'?',
             'options' => [
                 'A' => fake()->word(),
@@ -29,10 +29,15 @@ class QuizQuestionFactory extends Factory
                 'C' => fake()->word(),
                 'D' => fake()->word(),
             ],
-            'correct_answer' => 'A',
+            'correct_answer' => ['A'],
             'explanation' => null,
             'points' => 1,
             'is_active' => true,
         ];
+    }
+
+    public function multiple(): static
+    {
+        return $this->state(fn () => ['type' => QuizQuestion::TYPE_MULTIPLE, 'correct_answer' => ['A', 'C']]);
     }
 }
