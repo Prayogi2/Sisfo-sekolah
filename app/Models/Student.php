@@ -110,6 +110,22 @@ class Student extends Model
     }
 
     /**
+     * Baris mata pelajaran tabel nilai buku induk, sesuai urutan di form.
+     */
+    public function reportBookGrades(): HasMany
+    {
+        return $this->hasMany(ReportBookGrade::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * Tahun Ajaran & "Naik ke Kelas" tiap tingkat kelas di buku induk.
+     */
+    public function reportBookYears(): HasMany
+    {
+        return $this->hasMany(ReportBookYear::class);
+    }
+
+    /**
      * Notifikasi dari admin yang ditujukan ke siswa ini.
      */
     public function announcementRecipients(): HasMany

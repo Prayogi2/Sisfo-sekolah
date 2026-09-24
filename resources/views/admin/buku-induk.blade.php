@@ -11,6 +11,8 @@
             ['title' => 'Data Ibu', 'icon' => 'bi-person-fill', 'color' => 'primary', 'guardian' => $mother],
             ['title' => 'Data Wali', 'icon' => 'bi-person-badge', 'color' => 'warning', 'guardian' => $legalGuardian],
         ];
+        // Error dari import Excel nilai buku induk (file atau isi baris nilainya).
+        $reportBookImportFailed = collect($errors->keys())->contains(fn (string $key) => $key === 'file' || str_starts_with($key, 'subjects') || str_starts_with($key, 'years'));
     @endphp
 
     <div class="container-fluid">
@@ -115,6 +117,17 @@
                 Tidak ada data siswa yang cocok dengan pencarian. Kosongkan kolom pencarian atau tambahkan siswa lebih dulu pada menu Data Siswa.
             </div>
         @else
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            @endif
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Data tidak disimpan.</strong>
+                    <ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
             <!-- Identitas Ringkas Siswa Terpilih -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body d-flex align-items-center">
@@ -267,7 +280,30 @@
 
                 <!-- Tab 3: Perkembangan Akademik -->
                 <div class="tab-pane fade" id="akademik" role="tabpanel">
-                    <h6 class="text-primary fw-bold mb-3"><i class="bi bi-graph-up me-2"></i>Rekap Nilai &amp; Rapor</h6>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h6 class="text-primary fw-bold mb-0"><i class="bi bi-journal-bookmark me-2"></i>Nilai Laporan Hasil Belajar (Buku Induk)</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ route('admin.buku-induk.nilai.edit', $student) }}" class="btn btn-sm btn-primary"><i class="bi bi-pencil-square me-1"></i>Edit Nilai</a>
+                            <a href="{{ route('admin.buku-induk.nilai.export.xlsx', $student) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</a>
+                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#importNilaiBukuInduk" aria-expanded="false"><i class="bi bi-upload me-1"></i>Import Excel</button>
+                            <a href="{{ route('admin.buku-induk.nilai.pdf', $student) }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>Cetak PDF</a>
+                        </div>
+                    </div>
+
+                    <div class="collapse {{ $reportBookImportFailed ? 'show' : '' }}" id="importNilaiBukuInduk">
+                        <form action="{{ route('admin.buku-induk.nilai.import.xlsx', $student) }}" method="POST" enctype="multipart/form-data" class="border rounded p-3 mb-3 bg-light" onsubmit="return confirm('Import akan MENGGANTI seluruh nilai buku induk {{ addslashes($student->name) }} dengan isi file. Lanjutkan?')">
+                            @csrf
+                            <p class="small mb-2">Gunakan file dari tombol <strong>Export Excel</strong> siswa ini, isi/ubah nilainya, lalu upload di sini. Susunan kolom & header jangan diubah. Baris mata pelajaran boleh ditambah di atas baris <em>Jumlah Nilai</em>.</p>
+                            <div class="input-group">
+                                <input type="file" name="file" class="form-control" accept=".xlsx" required>
+                                <button type="submit" class="btn btn-success"><i class="bi bi-upload me-1"></i>Import</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <x-nilai-buku-induk :student="$student" :summary="$reportBookSummary" />
+
+                    <h6 class="text-primary fw-bold mb-3 mt-2"><i class="bi bi-graph-up me-2"></i>Rekap Nilai Harian dari Guru</h6>
                     @forelse($academicReports as $report)
                         <div class="card border mb-4"><div class="card-header bg-light d-flex justify-content-between"><strong>Tahun Ajaran {{ $report['academic_year'] }} · Semester {{ $report['semester']->label() }}</strong><span class="text-primary fw-bold">Rata-rata: {{ $report['average'] ?? '-' }} · Peringkat: {{ $report['rank'] ? $report['rank'].' / '.$report['rank_total'] : '-' }}</span></div><div class="table-responsive"><table class="table table-sm table-bordered mb-0 align-middle"><thead><tr><th>Mapel</th><th>Tugas</th><th>Kuis</th><th>UTS</th><th>UAS</th><th>Nilai Akhir</th><th>Grade</th></tr></thead><tbody>@foreach($report['grades'] as $grade)<tr><td>{{ $grade['subject'] }}</td><td>{{ $grade['assignment'] ?? '-' }}</td><td>{{ $grade['quiz'] ?? '-' }}</td><td>{{ $grade['midterm'] ?? '-' }}</td><td>{{ $grade['final'] ?? '-' }}</td><td class="fw-bold">{{ $grade['final_score'] ?? '-' }}</td><td>{{ $grade['letter'] }}</td></tr>@endforeach</tbody></table></div></div>
                     @empty
@@ -362,6 +398,17 @@
     </div>
 
     <script>
+        // Buka tab tertentu lewat ?tab=... (mis. kembali dari Edit Nilai atau setelah import).
+        (() => {
+            const requestedTab = new URLSearchParams(window.location.search).get('tab') || @json($reportBookImportFailed ? 'akademik' : null);
+            const tabButton = requestedTab && document.getElementById(`${requestedTab}-tab`);
+            if (tabButton && window.bootstrap) {
+                bootstrap.Tab.getOrCreateInstance(tabButton).show();
+            } else if (tabButton) {
+                document.addEventListener('DOMContentLoaded', () => bootstrap.Tab.getOrCreateInstance(tabButton).show());
+            }
+        })();
+
         document.getElementById('modalEditBukuInduk')?.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             document.getElementById('formEditBukuInduk').action = button.dataset.action;

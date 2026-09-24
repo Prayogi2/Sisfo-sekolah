@@ -27,6 +27,14 @@ class ReportExportService
             $sheet->getColumnDimensionByColumn($column)->setAutoSize(true);
         }
 
+        return $this->downloadSpreadsheet($spreadsheet, $filename);
+    }
+
+    /**
+     * Unduh spreadsheet yang sudah disusun sendiri (mis. dengan sel gabungan).
+     */
+    public function downloadSpreadsheet(Spreadsheet $spreadsheet, string $filename)
+    {
         $temporaryFile = tempnam(sys_get_temp_dir(), 'nurfa-report-');
         (new Xlsx($spreadsheet))->save($temporaryFile);
 

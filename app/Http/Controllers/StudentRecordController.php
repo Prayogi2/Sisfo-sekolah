@@ -18,6 +18,7 @@ use App\Models\Grade;
 use App\Models\GradeWeight;
 use App\Models\Student;
 use App\Models\StudentProgressNote;
+use App\Services\ReportBook;
 use App\Services\ReportExportService;
 use App\Services\StudentRecordWriter;
 use Illuminate\Database\Eloquent\Collection;
@@ -207,6 +208,7 @@ class StudentRecordController extends Controller
             'mother' => $guardians->firstWhere('relationship', GuardianRelationship::Mother),
             'legalGuardian' => $guardians->firstWhere('relationship', GuardianRelationship::Guardian),
             'academicReports' => $student ? $this->academicReport($student) : collect(),
+            'reportBookSummary' => $student ? app(ReportBook::class)->summary($student) : null,
         ]);
     }
 
