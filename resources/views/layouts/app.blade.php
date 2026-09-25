@@ -46,6 +46,7 @@
             
             <div class="menu-title">Manajemen Data</div>
             <a href="{{ route('admin.data-siswa') }}" class="{{ request()->routeIs('admin.data-siswa*') ? 'active' : '' }}"><i class="bi bi-people-fill"></i> Data Siswa</a>
+            <a href="{{ route('admin.peserta-presensi') }}" class="{{ request()->routeIs('admin.peserta-presensi*') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Peserta Presensi</a>
             <a href="{{ route('admin.buku-induk') }}" class="{{ request()->routeIs('admin.buku-induk') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill"></i> Buku Induk (Siswa)</a>
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
@@ -220,6 +221,7 @@
         'admin' => [
             ['route' => 'admin.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
             ['route' => 'admin.buku-induk', 'icon' => 'bi-journal-bookmark-fill', 'label' => 'Siswa'],
+            ['route' => 'admin.peserta-presensi', 'icon' => 'bi-qr-code-scan', 'label' => 'Presensi'],
             ['route' => 'admin.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Guru'],
             ['route' => 'admin.pembagian-kelas', 'icon' => 'bi-diagram-3-fill', 'label' => 'Kelas'],
             ['route' => 'admin.data-mapel', 'icon' => 'bi-book-half', 'label' => 'Mapel'],

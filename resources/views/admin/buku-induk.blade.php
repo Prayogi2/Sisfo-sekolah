@@ -11,6 +11,15 @@
             ['title' => 'Data Ibu', 'icon' => 'bi-person-fill', 'color' => 'primary', 'guardian' => $mother],
             ['title' => 'Data Wali', 'icon' => 'bi-person-badge', 'color' => 'warning', 'guardian' => $legalGuardian],
         ];
+        // Bagan Riwayat Pendidikan yang semua kolomnya kosong ditampilkan "Belum ada data".
+        $hasAnyValue = fn (array $fields) => collect($fields)->contains(fn (string $field) => filled($academicRecord?->{$field}));
+        $riwayatFilled = [
+            'A' => $hasAnyValue(['kindergarten_origin', 'kindergarten_address', 'kindergarten_npsn']),
+            'B' => $hasAnyValue(['entry_status', 'entry_year', 'entry_date', 'entry_classroom', 'report_book_serial_number']),
+            'C' => $hasAnyValue(['graduation_year', 'graduation_certificate_date', 'graduation_certificate_number', 'graduation_skl_number', 'exam_number', 'continued_to', 'continued_to_district', 'continued_to_province']),
+            'D' => $hasAnyValue(['transfer_out_letter_number', 'transfer_out_date', 'transfer_out_classroom', 'transfer_out_reason', 'transfer_out_nsm', 'transfer_out_npsn', 'transfer_out_village', 'transfer_out_district', 'transfer_out_province']),
+            'E' => $hasAnyValue(['exit_date', 'exit_classroom', 'exit_reason']),
+        ];
         // Error dari import Excel nilai buku induk (file atau isi baris nilainya).
         $reportBookImportFailed = collect($errors->keys())->contains(fn (string $key) => $key === 'file' || str_starts_with($key, 'subjects') || str_starts_with($key, 'years'));
     @endphp
@@ -33,7 +42,6 @@
         </div>
 
         <x-page-guide>Pilih siswa dari daftar/pencarian untuk melihat data lengkapnya. Klik <strong>Edit Buku Induk Lengkap</strong> untuk mengisi atau melengkapi data yang masih kosong.</x-page-guide>
-        </div>
 
         <!-- Pilih Siswa -->
         <div class="card shadow-sm mb-4">
@@ -131,7 +139,7 @@
             <!-- Identitas Ringkas Siswa Terpilih -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body d-flex align-items-center">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode($student->name) }}&background=e7f1ff&color=0d6efd&bold=true" class="rounded-circle me-3" width="50" height="50" alt="Foto {{ $student->name }}">
+                    <img src="{{ $profile?->photo_path ? Storage::url($profile->photo_path) : 'https://ui-avatars.com/api/?name='.urlencode($student->name).'&background=e7f1ff&color=0d6efd&bold=true' }}" class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;" alt="Foto {{ $student->name }}">
                     <div>
                         <h5 class="fw-bold mb-0 text-dark">{{ $student->name }}</h5>
                         <span class="text-muted small">
@@ -230,13 +238,18 @@
                     @endunless
 
                     <h6 class="text-primary fw-bold mb-3">A. Pendidikan Sebelumnya</h6>
+                    @if($riwayatFilled['A'])
                     <div class="row g-3 mb-4">
                         <div class="col-md-4"><label class="form-label small text-muted">Nama TK / PAUD</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_origin ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Alamat</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_address ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">NPSN / NSM</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->kindergarten_npsn ?: '-' }}" readonly></div>
                     </div>
+                    @else
+                        <div class="alert alert-light border text-muted py-2 mb-4"><i class="bi bi-dash-circle me-1"></i>Belum ada data.</div>
+                    @endif
 
                     <h6 class="text-primary fw-bold mb-3">B. Status Peserta Didik</h6>
+                    @if($riwayatFilled['B'])
                     <div class="row g-3 mb-4">
                         <div class="col-md-3"><label class="form-label small text-muted">Status Peserta Didik</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_status ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Tahun Masuk</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_year ?: '-' }}" readonly></div>
@@ -244,8 +257,12 @@
                         <div class="col-md-3"><label class="form-label small text-muted">Masuk ke Kelas</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->entry_classroom ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">No. Seri Rapor</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->report_book_serial_number ?: '-' }}" readonly></div>
                     </div>
+                    @else
+                        <div class="alert alert-light border text-muted py-2 mb-4"><i class="bi bi-dash-circle me-1"></i>Belum ada data.</div>
+                    @endif
 
                     <h6 class="text-primary fw-bold mb-3">C. Lulus</h6>
+                    @if($riwayatFilled['C'])
                     <div class="row g-3 mb-4">
                         <div class="col-md-3"><label class="form-label small text-muted">Tahun Lulus</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_year ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Tanggal Lulus</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->graduation_certificate_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
@@ -256,8 +273,12 @@
                         <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Kecamatan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_district ?: '-' }}" readonly></div>
                         <div class="col-md-3"><label class="form-label small text-muted">Alamat Sekolah — Provinsi</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->continued_to_province ?: '-' }}" readonly></div>
                     </div>
+                    @else
+                        <div class="alert alert-light border text-muted py-2 mb-4"><i class="bi bi-dash-circle me-1"></i>Belum ada data.</div>
+                    @endif
 
                     <h6 class="text-primary fw-bold mb-3">D. Meninggalkan Sekolah</h6>
+                    @if($riwayatFilled['D'])
                     <div class="row g-3 mb-4">
                         <div class="col-md-4"><label class="form-label small text-muted">No. Surat</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_letter_number ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Tanggal</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_date?->translatedFormat('d F Y') ?? '-' }}" readonly></div>
@@ -269,13 +290,20 @@
                         <div class="col-md-4"><label class="form-label small text-muted">Alamat Tujuan — Kec.</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_district ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Alamat Tujuan — Prov.</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->transfer_out_province ?: '-' }}" readonly></div>
                     </div>
+                    @else
+                        <div class="alert alert-light border text-muted py-2 mb-4"><i class="bi bi-dash-circle me-1"></i>Belum ada data.</div>
+                    @endif
 
                     <h6 class="text-primary fw-bold mb-3">E. Putus Sekolah / Dropout</h6>
+                    @if($riwayatFilled['E'])
                     <div class="row g-3">
                         <div class="col-md-4"><label class="form-label small text-muted">Hari, Tanggal</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_date?->translatedFormat('l, d F Y') ?? '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Kelas</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_classroom ?: '-' }}" readonly></div>
                         <div class="col-md-4"><label class="form-label small text-muted">Alasan</label><input type="text" class="form-control bg-light" value="{{ $academicRecord?->exit_reason ?: '-' }}" readonly></div>
                     </div>
+                    @else
+                        <div class="alert alert-light border text-muted py-2 mb-4"><i class="bi bi-dash-circle me-1"></i>Belum ada data.</div>
+                    @endif
                 </div>
 
                 <!-- Tab 3: Perkembangan Akademik -->

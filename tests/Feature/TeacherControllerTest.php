@@ -67,6 +67,56 @@ class TeacherControllerTest extends TestCase
         $this->assertTrue($teacher->teaches($subject->id, $classroomB->id));
     }
 
+    public function test_admin_can_save_the_teacher_biodata(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post(route('admin.data-guru.store'), [
+            'nip' => '198001012005011001',
+            'name' => 'Ustadzah Aminah, S.Pd.',
+            'gender' => 'P',
+            'email' => 'aminah@gmail.com',
+            'phone' => '081234567890',
+            'nik' => '3203014501800001',
+            'birth_place' => 'Cianjur',
+            'birth_date' => '1980-01-05',
+            'address' => 'Kp. Sukamaju RT 01/02',
+            'village' => 'Sukamaju',
+            'district' => 'Cibeber',
+            'province' => 'Jawa Barat',
+            'last_education' => 's1',
+            'blood_type' => 'O',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('teachers', [
+            'nik' => '3203014501800001',
+            'birth_place' => 'Cianjur',
+            'village' => 'Sukamaju',
+            'district' => 'Cibeber',
+            'province' => 'Jawa Barat',
+            'last_education' => 's1',
+            'blood_type' => 'O',
+            'email' => 'aminah@gmail.com',
+            'phone' => '081234567890',
+        ]);
+    }
+
+    public function test_teacher_biodata_is_validated(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacher = Teacher::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.data-guru.update', $teacher), [
+            'nip' => $teacher->nip,
+            'name' => $teacher->name,
+            'gender' => 'L',
+            'nik' => '12345',
+            'birth_date' => now()->addDay()->toDateString(),
+            'last_education' => 'profesor',
+            'blood_type' => 'Z',
+        ])->assertSessionHasErrors(['nik', 'birth_date', 'last_education', 'blood_type']);
+    }
+
     public function test_creating_a_teacher_rejects_the_same_subject_chosen_twice(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

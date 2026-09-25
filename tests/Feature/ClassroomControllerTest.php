@@ -29,6 +29,31 @@ class ClassroomControllerTest extends TestCase
         $this->actingAs($admin)->get(route('admin.pembagian-kelas'))->assertOk();
     }
 
+    /**
+     * Saat semua siswa sudah punya kelas, "Atur Siswa" tetap harus bisa
+     * memilih siswa dari kelas lain untuk dipindah — bukan daftar kosong.
+     */
+    public function test_atur_siswa_offers_students_from_other_classrooms(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $target = Classroom::factory()->create(['name' => '3-A']);
+        $other = Classroom::factory()->create(['name' => '5-A']);
+        Student::factory()->create(['name' => 'Siswa Kelas Lain', 'classroom_id' => $other->id]);
+        Student::factory()->create(['name' => 'Siswa Tanpa Kelas', 'classroom_id' => null]);
+        Student::factory()->create(['name' => 'Siswa Sudah Lulus', 'classroom_id' => null, 'status' => 'graduated']);
+
+        $html = $this->actingAs($admin)->get(route('admin.pembagian-kelas'))->assertOk()->getContent();
+
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $available = (new \DOMXPath($document))->query('//div[@id="modalAturSiswa'.$target->id.'"]//select[contains(@class, "select-available")]')->item(0);
+
+        $this->assertNotNull($available);
+        $this->assertStringContainsString('Siswa Tanpa Kelas', $available->textContent);
+        $this->assertStringContainsString('Siswa Kelas Lain', $available->textContent);
+        $this->assertStringNotContainsString('Siswa Sudah Lulus', $available->textContent);
+    }
+
     public function test_guru_is_forbidden_from_the_classroom_list(): void
     {
         $guru = User::factory()->create(['role' => 'guru']);

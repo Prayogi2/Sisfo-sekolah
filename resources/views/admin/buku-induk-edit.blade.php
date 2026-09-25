@@ -102,7 +102,6 @@
                     <div class="col-md-4"><label class="form-label">Nama</label><input name="{{ $prefix }}_name" class="form-control" value="{{ $guardianValue($prefix, 'name', $guardian) }}"></div>
                     <div class="col-md-2"><label class="form-label">Jenis Kelamin</label><select name="{{ $prefix }}_gender" class="form-select"><option value="">-- Pilih --</option><option value="L" @selected($guardianValue($prefix, 'gender', $guardian) === 'L')>Laki-laki</option><option value="P" @selected($guardianValue($prefix, 'gender', $guardian) === 'P')>Perempuan</option></select></div>
                     <div class="col-md-3"><label class="form-label">NIK</label><input name="{{ $prefix }}_nik" class="form-control" value="{{ $guardianValue($prefix, 'nik', $guardian) }}"></div>
-                    <div class="col-md-3"><label class="form-label">No. Kartu Keluarga</label><input name="{{ $prefix }}_family_card_number" class="form-control" value="{{ $guardianValue($prefix, 'family_card_number', $guardian) }}"></div>
                     <div class="col-md-3"><label class="form-label">Tempat Lahir</label><input name="{{ $prefix }}_birth_place" class="form-control" value="{{ $guardianValue($prefix, 'birth_place', $guardian) }}"></div>
                     <div class="col-md-3"><label class="form-label">Tanggal Lahir</label><input name="{{ $prefix }}_birth_date" type="date" class="form-control" value="{{ $guardianDateValue($prefix, 'birth_date', $guardian) }}"></div>
                     <div class="col-md-3"><label class="form-label">Agama</label><select name="{{ $prefix }}_religion" class="form-select"><option value="">-- Pilih --</option>@foreach($religions as $item)<option value="{{ $item->value }}" @selected($guardianEnumValue($prefix, 'religion', $guardian) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
@@ -116,6 +115,7 @@
             @endforeach
 
             <div class="card shadow-sm mb-4"><div class="card-header bg-white"><h6 class="mb-0 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Pendidikan</h6></div><div class="card-body">
+                <p class="text-muted small mb-3"><i class="bi bi-info-circle me-1"></i>Semua bagian A–E boleh dikosongkan. Isi hanya yang relevan: siswa aktif cukup A & B, siswa lulus isi C, siswa pindah keluar isi D, siswa putus sekolah isi E.</p>
 
                 <h6 class="fw-bold text-dark">A. Pendidikan Sebelumnya</h6>
                 <div class="row g-3 mb-4">
@@ -128,7 +128,7 @@
 
                 <h6 class="fw-bold text-dark">B. Status Peserta Didik</h6>
                 <div class="row g-3 mb-4">
-                    <div class="col-md-3"><label class="form-label">Status Peserta Didik</label><input name="entry_status" class="form-control" value="{{ $value('entry_status', $academic?->entry_status) }}" placeholder="Mis. Peserta Didik Baru"></div>
+                    <div class="col-md-3"><label class="form-label">Status Peserta Didik</label><select name="entry_status" class="form-select"><option value="">-- Pilih --</option>@foreach($entryStatuses as $item)<option value="{{ $item->value }}" @selected($value('entry_status', $academic?->entry_status) === $item->value)>{{ $item->label() }}</option>@endforeach</select></div>
                     <div class="col-md-3"><label class="form-label">Tahun Masuk</label><input name="entry_year" type="number" min="1900" max="2200" class="form-control" value="{{ $value('entry_year', $academic?->entry_year) }}"></div>
                     <div class="col-md-3"><label class="form-label">Tanggal Masuk</label><input name="entry_date" type="date" class="form-control" value="{{ $value('entry_date', $academic?->entry_date?->format('Y-m-d')) }}"></div>
                     <div class="col-md-3"><label class="form-label">Masuk ke Kelas</label><input name="entry_classroom" class="form-control" value="{{ $value('entry_classroom', $academic?->entry_classroom) }}"></div>

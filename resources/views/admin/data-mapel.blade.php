@@ -15,7 +15,7 @@
             </button>
         </div>
 
-        <x-page-guide>Daftar mapel di sini dipakai saat menetapkan mapel yang diajarkan guru, dan saat guru membuat soal/kuis.</x-page-guide>
+        <x-page-guide>Daftar mapel di sini dipakai saat menetapkan mapel yang diajarkan guru, dan saat guru membuat soal/kuis. Klik ikon <i class="bi bi-person-video3 text-success"></i> untuk mengatur <strong>Guru Pengampu</strong> tiap mapel beserta kelas yang diajarnya.</x-page-guide>
 
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -48,7 +48,7 @@
                                 <th width="50">No</th>
                                 <th width="150">Kode</th>
                                 <th>Nama Mata Pelajaran</th>
-                                <th class="text-center">Jumlah Guru Pengampu</th>
+                                <th>Guru Pengampu</th>
                                 <th class="text-center">Bobot Nilai (T/K/UTS/UAS)</th>
                                 <th class="text-center" width="160">Aksi</th>
                             </tr>
@@ -59,7 +59,19 @@
                                     <td>{{ $loop->iteration }}</td>
                                     <td><span class="badge bg-primary-soft text-primary" style="background-color: #e7f1ff;">{{ $subject->code }}</span></td>
                                     <td class="fw-semibold text-dark">{{ $subject->name }}</td>
-                                    <td class="text-center">{{ $subject->teachers_count }}</td>
+                                    @php
+                                        $pengampu = $subject->teachingAssignments->groupBy('teacher_id');
+                                    @endphp
+                                    <td>
+                                        @forelse ($pengampu as $rows)
+                                            <div class="small">
+                                                <i class="bi bi-person-fill text-primary me-1"></i><span class="fw-semibold">{{ $rows->first()->teacher->name }}</span>
+                                                <span class="text-muted">({{ $rows->pluck('classroom.name')->sort()->join(', ') }})</span>
+                                            </div>
+                                        @empty
+                                            <span class="text-muted small">Belum ada guru pengampu</span>
+                                        @endforelse
+                                    </td>
                                     @php
                                         $weight = $weights->get($subject->id)
                                             ?? \App\Models\GradeWeight::default($subject->id, $academicYear, $semester);
@@ -72,6 +84,12 @@
                                         @endunless
                                     </td>
                                     <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-light" title="Atur Guru Pengampu"
+                                            data-bs-toggle="modal" data-bs-target="#modalGuruPengampu"
+                                            data-action="{{ route('admin.data-mapel.guru-pengampu', $subject) }}"
+                                            data-subject="{{ $subject->name }}"
+                                            data-assignments="{{ $pengampu->map(fn ($rows, $teacherId) => ['teacher_id' => $teacherId, 'classroom_ids' => $rows->pluck('classroom_id')->values()])->values()->toJson() }}"
+                                        ><i class="bi bi-person-video3 text-success"></i></button>
                                         <button type="button" class="btn btn-sm btn-light" title="Atur Bobot Nilai"
                                             data-bs-toggle="modal" data-bs-target="#modalBobotNilai"
                                             data-action="{{ route('admin.data-mapel.bobot-nilai', $subject) }}"
@@ -212,7 +230,100 @@
         </div>
     </div>
 
+    <!-- Template baris guru pengampu (guru + kelas yang diajar) -->
+    <template id="templatePengampuRow">
+        <div class="row g-2 align-items-start mb-2 pengampu-row">
+            <div class="col-md-5">
+                <select name="assignments[__INDEX__][teacher_id]" class="form-select form-select-sm" required>
+                    <option value="">-- Pilih Guru --</option>
+                    @foreach ($teachers as $teacher)
+                        <option value="{{ $teacher->id }}">{{ $teacher->name }}{{ $teacher->is_active ? '' : ' (nonaktif)' }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <select name="assignments[__INDEX__][classroom_ids][]" class="form-select form-select-sm" multiple required size="3">
+                    @foreach ($classrooms as $classroom)
+                        <option value="{{ $classroom->id }}">{{ $classroom->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-pengampu-row" title="Hapus baris"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal Guru Pengampu -->
+    <div class="modal fade" id="modalGuruPengampu" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form id="formGuruPengampu" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-person-video3 me-2"></i>Guru Pengampu</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Mapel: <strong id="pengampuSubjectName"></strong></p>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-semibold mb-0">Guru & Kelas yang Diajar</label>
+                            <button type="button" class="btn btn-sm btn-outline-success" id="addPengampuRow"><i class="bi bi-plus-lg"></i> Tambah Guru</button>
+                        </div>
+                        <div id="pengampuRows"></div>
+                        <p class="text-muted small mb-0">Satu mapel bisa diajar guru berbeda di kelas berbeda — tambahkan satu baris per guru, lalu pilih kelasnya (tahan Ctrl/Cmd untuk pilih lebih dari satu). Data ini sama dengan "Mata Pelajaran & Kelas Diajarkan" di menu Data Guru, dan menentukan kelas mana yang bisa diakses guru untuk kuis & nilai.</p>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success">Simpan Guru Pengampu</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        (function () {
+            const template = document.getElementById('templatePengampuRow');
+            const container = document.getElementById('pengampuRows');
+            let rowIndex = 0;
+
+            function addPengampuRow(teacherId, classroomIds) {
+                const fragment = template.content.cloneNode(true);
+                fragment.querySelectorAll('[name]').forEach((field) => {
+                    field.name = field.name.replace('__INDEX__', rowIndex);
+                });
+                rowIndex++;
+
+                const row = fragment.querySelector('.pengampu-row');
+                if (teacherId) {
+                    row.querySelector('select[name$="[teacher_id]"]').value = teacherId;
+                }
+                Array.from(row.querySelector('select[name$="[classroom_ids][]"]').options).forEach((option) => {
+                    option.selected = (classroomIds || []).map(String).includes(option.value);
+                });
+                row.querySelector('.remove-pengampu-row').addEventListener('click', () => row.remove());
+                container.appendChild(fragment);
+            }
+
+            document.getElementById('addPengampuRow').addEventListener('click', () => addPengampuRow(null, []));
+
+            document.getElementById('modalGuruPengampu').addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                document.getElementById('formGuruPengampu').action = button.dataset.action;
+                document.getElementById('pengampuSubjectName').textContent = button.dataset.subject;
+                container.innerHTML = '';
+                rowIndex = 0;
+                const assignments = JSON.parse(button.dataset.assignments || '[]');
+                if (assignments.length === 0) {
+                    addPengampuRow(null, []);
+                } else {
+                    assignments.forEach((assignment) => addPengampuRow(assignment.teacher_id, assignment.classroom_ids));
+                }
+            });
+        })();
+
         document.getElementById('modalEditMapel').addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             document.getElementById('formEditMapel').action = button.dataset.action;

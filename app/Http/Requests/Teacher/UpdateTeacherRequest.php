@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Teacher;
 
 use App\Enums\Gender;
+use App\Http\Requests\Teacher\Concerns\ValidatesTeacherProfile;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateTeacherRequest extends FormRequest
 {
+    use ValidatesTeacherProfile;
+
     public function authorize(): bool
     {
         return $this->user()->can('update', $this->route('teacher'));
@@ -28,7 +31,7 @@ class UpdateTeacherRequest extends FormRequest
             'gender' => ['required', Rule::enum(Gender::class)],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('teachers', 'email')->ignore($teacher)],
-            'address' => ['nullable', 'string'],
+            ...$this->profileRules($teacher),
             'is_active' => ['boolean'],
             'assignments' => ['array'],
             'assignments.*.subject_id' => ['required', 'integer', 'exists:subjects,id'],
@@ -39,7 +42,7 @@ class UpdateTeacherRequest extends FormRequest
 
     public function messages(): array
     {
-        return [
+        return $this->profileMessages() + [
             'nip.required' => 'NIP/NUPTK wajib diisi.',
             'nip.unique' => 'NIP/NUPTK sudah terdaftar.',
             'name.required' => 'Nama lengkap wajib diisi.',

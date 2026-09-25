@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BloodType;
+use App\Enums\EducationLevel;
 use App\Enums\Gender;
 use Database\Factories\TeacherFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,7 +14,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
-#[Fillable(['user_id', 'nip', 'name', 'gender', 'phone', 'address', 'email', 'is_active'])]
+#[Fillable([
+    'user_id', 'nip', 'nik', 'name', 'gender', 'birth_place', 'birth_date', 'phone', 'email',
+    'address', 'village', 'district', 'province', 'last_education', 'blood_type', 'is_active',
+])]
 class Teacher extends Model
 {
     /** @use HasFactory<TeacherFactory> */
@@ -27,6 +32,9 @@ class Teacher extends Model
     {
         return [
             'gender' => Gender::class,
+            'birth_date' => 'date',
+            'last_education' => EducationLevel::class,
+            'blood_type' => BloodType::class,
             'is_active' => 'boolean',
         ];
     }

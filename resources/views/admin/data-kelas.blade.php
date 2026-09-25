@@ -12,7 +12,26 @@
             </button>
         </div>
 
-        <x-page-guide>Buat kelas baru dan tetapkan wali kelasnya di sini, lalu pindahkan siswa ke kelas yang sesuai lewat tombol <strong>Atur Siswa</strong>.</x-page-guide>
+        <x-page-guide>Buat kelas baru dan tetapkan wali kelasnya di sini. Masukkan siswa ke kelas lewat tombol <strong>Atur Siswa</strong> (pilih satu per satu), atau sekaligus banyak lewat tombol <strong>Import</strong> di kartu kelas (file Excel berisi Nama, NIS, NISN).</x-page-guide>
+
+        @if (session('classroom_import_result'))
+            @php
+                $importResult = session('classroom_import_result');
+            @endphp
+            <div class="alert {{ $importResult->hasErrors() ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
+                <p class="fw-semibold mb-1"><i class="bi bi-clipboard-check me-1"></i>Hasil import ke Kelas {{ $importResult->classroomName }}:
+                    {{ $importResult->placed }} siswa berhasil dimasukkan{{ $importResult->skipped ? ', '.count($importResult->skipped).' dilewati' : '' }}{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal' : '' }}.</p>
+                @if ($importResult->hasErrors())
+                    <p class="small mb-1 mt-2 fw-semibold">Baris yang gagal (tidak diproses):</p>
+                    <ul class="mb-0 small">@foreach ($importResult->errors as $error)<li>{{ $error }}</li>@endforeach</ul>
+                @endif
+                @if ($importResult->skipped)
+                    <p class="small mb-1 mt-2 fw-semibold">Dilewati:</p>
+                    <ul class="mb-0 small">@foreach ($importResult->skipped as $note)<li>{{ $note }}</li>@endforeach</ul>
+                @endif
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
 
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -23,6 +42,7 @@
 
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @if ($errors->has('file'))<strong>File import tidak bisa diproses:</strong>@endif
                 <ul class="mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -66,6 +86,7 @@
                             </div>
                             <div class="mt-3 d-flex gap-2">
                                 <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#modalAturSiswa{{ $classroom->id }}"><i class="bi bi-people"></i> Atur Siswa</button>
+                                <button class="btn btn-sm btn-outline-success text-nowrap" data-bs-toggle="modal" data-bs-target="#modalImportSiswa{{ $classroom->id }}" title="Import siswa dari Excel"><i class="bi bi-file-earmark-excel"></i> Import</button>
                                 <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalEditKelas"
                                     data-action="{{ route('admin.pembagian-kelas.update', $classroom) }}"
                                     data-name="{{ $classroom->name }}"
@@ -83,6 +104,35 @@
                     </div>
                 </div>
 
+                <!-- Modal Import Siswa: {{ $classroom->name }} -->
+                <div class="modal fade" id="modalImportSiswa{{ $classroom->id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <form action="{{ route('admin.pembagian-kelas.import', $classroom) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-excel me-2"></i>Import Siswa ke Kelas {{ $classroom->name }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <ol class="small ps-3">
+                                        <li>Klik <strong>Download Template Excel</strong>, lalu isi kolom <strong>Nama Siswa</strong>, <strong>NIS</strong>, dan <strong>NISN</strong> (satu siswa per baris).</li>
+                                        <li>Siswa harus <strong>sudah terdaftar</strong> di Data Siswa — fitur ini tidak membuat siswa baru. Nama harus sama dengan data siswa.</li>
+                                        <li>Upload file, lalu klik <strong>Import</strong>.</li>
+                                    </ol>
+                                    <p class="small text-muted">Baris yang benar langsung dimasukkan ke kelas ini. Baris yang salah (NIS/NISN tidak ditemukan, data tidak lengkap, siswa sudah di kelas lain, atau kelas penuh) dilewati dan ditampilkan alasannya.</p>
+                                    <a href="{{ route('admin.pembagian-kelas.import.template', $classroom) }}" class="btn btn-outline-secondary btn-sm mb-3"><i class="bi bi-download me-1"></i> Download Template Excel</a>
+                                    <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                                </div>
+                                <div class="modal-footer bg-light">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-upload me-1"></i> Import</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 <!-- Modal Atur Siswa: {{ $classroom->name }} -->
                 <div class="modal fade" id="modalAturSiswa{{ $classroom->id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-xl modal-dialog-centered">
@@ -94,14 +144,26 @@
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    <p class="text-muted small">Pilih siswa dari kolom kiri, lalu klik tombol panah kanan untuk memasukkan ke kelas. Sebaliknya, gunakan panah kiri untuk mengeluarkan siswa.</p>
+                                    @php
+                                        $candidates = $activeStudents->where('classroom_id', '!==', $classroom->id);
+                                        $candidateGroups = $candidates->groupBy(fn ($student) => $student->classroom ? 'Dari Kelas '.$student->classroom->name.' (akan dipindah)' : 'Belum Punya Kelas')
+                                            ->sortKeysUsing(fn ($a, $b) => ($a === 'Belum Punya Kelas' ? -1 : ($b === 'Belum Punya Kelas' ? 1 : strnatcmp($a, $b))));
+                                    @endphp
+                                    <p class="text-muted small">Pilih siswa dari kolom kiri (tahan Ctrl/Cmd untuk memilih banyak), lalu klik panah kanan untuk memasukkan ke kelas ini. Siswa yang sudah punya kelas lain akan <strong>dipindah</strong> ke kelas ini. Gunakan panah kiri untuk mengeluarkan siswa. Jangan lupa klik <strong>Simpan Pembagian</strong>.</p>
                                     <div class="row">
                                         <div class="col-md-5">
-                                            <label class="fw-semibold mb-2">Siswa Belum Memiliki Kelas ({{ $unassignedStudents->count() }})</label>
+                                            <label class="fw-semibold mb-2">Pilih Siswa ({{ $candidates->count() }})</label>
+                                            <input type="search" class="form-control form-control-sm mb-2 search-available" placeholder="Cari nama atau NISN...">
                                             <select class="form-select select-available" multiple style="height: 300px;">
-                                                @foreach ($unassignedStudents as $student)
-                                                    <option value="{{ $student->id }}">{{ $student->name }}</option>
-                                                @endforeach
+                                                @forelse ($candidateGroups as $groupLabel => $groupStudents)
+                                                    <optgroup label="{{ $groupLabel }}">
+                                                        @foreach ($groupStudents as $student)
+                                                            <option value="{{ $student->id }}" data-search="{{ strtolower($student->name.' '.$student->nisn) }}">{{ $student->name }}{{ $student->classroom ? ' — '.$student->classroom->name : '' }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @empty
+                                                    <option disabled>Semua siswa aktif sudah ada di kelas ini</option>
+                                                @endforelse
                                             </select>
                                         </div>
                                         <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-3">
@@ -237,15 +299,28 @@
         });
 
         function moveSelectedOptions(from, to) {
-            Array.from(from.selectedOptions).forEach(option => to.appendChild(option));
+            Array.from(from.selectedOptions).forEach(option => {
+                option.selected = false;
+                option.hidden = false;
+                to.appendChild(option);
+            });
         }
 
         document.querySelectorAll('.form-atur-siswa').forEach(function (form) {
             const available = form.querySelector('.select-available');
             const members = form.querySelector('.select-members');
+            const search = form.querySelector('.search-available');
 
             form.querySelector('.btn-move-right').addEventListener('click', () => moveSelectedOptions(available, members));
             form.querySelector('.btn-move-left').addEventListener('click', () => moveSelectedOptions(members, available));
+
+            // Saring daftar kiri berdasarkan nama/NISN.
+            search.addEventListener('input', () => {
+                const keyword = search.value.trim().toLowerCase();
+                available.querySelectorAll('option[data-search]').forEach(option => {
+                    option.hidden = keyword !== '' && ! option.dataset.search.includes(keyword);
+                });
+            });
 
             // select multiple hanya mengirim opsi yang sedang selected, jadi tandai semua opsi anggota sebelum submit.
             form.addEventListener('submit', function () {

@@ -4,8 +4,10 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceParticipantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\ClassroomImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeWeightController;
@@ -78,11 +80,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/data-siswa/import/template', [StudentImportController::class, 'template'])->name('data-siswa.import.template');
         Route::post('/data-siswa/import', [StudentImportController::class, 'store'])->name('data-siswa.import.store');
         Route::get('/data-siswa/{student}/kartu-qr', [StudentController::class, 'qrCard'])->name('data-siswa.kartu-qr');
+        Route::get('/peserta-presensi', [AttendanceParticipantController::class, 'index'])->name('peserta-presensi');
+        Route::post('/peserta-presensi', [AttendanceParticipantController::class, 'store'])->name('peserta-presensi.store');
         Route::post('/data-siswa', [StudentController::class, 'store'])->name('data-siswa.store');
         Route::put('/data-siswa/{student}', [StudentController::class, 'update'])->name('data-siswa.update');
         Route::delete('/data-siswa/{student}', [StudentController::class, 'destroy'])->name('data-siswa.destroy');
         Route::get('/pembagian-kelas', [ClassroomController::class, 'index'])->name('pembagian-kelas');
         Route::post('/pembagian-kelas', [ClassroomController::class, 'store'])->name('pembagian-kelas.store');
+        Route::get('/pembagian-kelas/{classroom}/import/template', [ClassroomImportController::class, 'template'])->name('pembagian-kelas.import.template');
+        Route::post('/pembagian-kelas/{classroom}/import', [ClassroomImportController::class, 'store'])->name('pembagian-kelas.import');
         Route::put('/pembagian-kelas/{classroom}', [ClassroomController::class, 'update'])->name('pembagian-kelas.update');
         Route::delete('/pembagian-kelas/{classroom}', [ClassroomController::class, 'destroy'])->name('pembagian-kelas.destroy');
         Route::post('/pembagian-kelas/{classroom}/siswa', [ClassroomController::class, 'assignStudents'])->name('pembagian-kelas.assign-students');
@@ -91,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/data-mapel', [SubjectController::class, 'store'])->name('data-mapel.store');
         Route::put('/data-mapel/{subject}', [SubjectController::class, 'update'])->name('data-mapel.update');
         Route::delete('/data-mapel/{subject}', [SubjectController::class, 'destroy'])->name('data-mapel.destroy');
+        Route::put('/data-mapel/{subject}/guru-pengampu', [SubjectController::class, 'updateTeachers'])->name('data-mapel.guru-pengampu');
 
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
         Route::post('/data-guru', [TeacherController::class, 'store'])->name('data-guru.store');

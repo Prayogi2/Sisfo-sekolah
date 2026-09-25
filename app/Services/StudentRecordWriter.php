@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\BloodType;
 use App\Enums\EducationLevel;
+use App\Enums\EntryStatus;
 use App\Enums\FamilyStatus;
 use App\Enums\GraduationStatus;
 use App\Enums\GuardianRelationship;
@@ -45,8 +46,12 @@ class StudentRecordWriter
         'exit_date', 'exit_classroom', 'exit_reason',
     ];
 
+    /**
+     * No. KK orang tua sengaja tidak ada di sini: kolomnya disembunyikan dari
+     * form, tapi data lama di guardians.family_card_number tetap disimpan.
+     */
     private const GUARDIAN_FIELDS = [
-        'name', 'gender', 'nik', 'family_card_number', 'birth_place', 'birth_date', 'religion',
+        'name', 'gender', 'nik', 'birth_place', 'birth_date', 'religion',
         'blood_type', 'last_education', 'occupation', 'monthly_income', 'phone', 'address',
     ];
 
@@ -86,7 +91,7 @@ class StudentRecordWriter
             'kindergarten_certificate_date' => ['nullable', 'date'],
 
             // B. Status peserta didik
-            'entry_status' => ['nullable', 'string', 'max:100'],
+            'entry_status' => ['nullable', Rule::enum(EntryStatus::class)],
             'entry_year' => ['nullable', 'integer', 'min:1900', 'max:2200'],
             'entry_date' => ['nullable', 'date'],
             'entry_classroom' => ['nullable', 'string', 'max:100'],
@@ -126,7 +131,6 @@ class StudentRecordWriter
                 $prefix.'_name' => ['nullable', 'string', 'max:255'],
                 $prefix.'_gender' => ['nullable', 'in:L,P'],
                 $prefix.'_nik' => ['nullable', 'string', 'max:30'],
-                $prefix.'_family_card_number' => ['nullable', 'string', 'max:30'],
                 $prefix.'_birth_place' => ['nullable', 'string', 'max:255'],
                 $prefix.'_birth_date' => ['nullable', 'date'],
                 $prefix.'_religion' => ['nullable', Rule::enum(Religion::class)],
@@ -157,6 +161,7 @@ class StudentRecordWriter
             'exam_number.regex' => 'No. ujian hanya boleh berisi huruf, angka, tanda hubung (-), garis miring (/), dan titik.',
             'exam_number.max' => 'No. ujian maksimal 50 karakter.',
             'graduation_certificate_number.max' => 'No. seri ijazah maksimal 100 karakter.',
+            'entry_status.enum' => 'Status peserta didik tidak valid, pilih dari daftar yang tersedia.',
         ];
     }
 

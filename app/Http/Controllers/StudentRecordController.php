@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\BloodType;
 use App\Enums\EducationLevel;
+use App\Enums\EntryStatus;
 use App\Enums\FamilyStatus;
 use App\Enums\GraduationStatus;
 use App\Enums\GuardianRelationship;
@@ -124,6 +125,7 @@ class StudentRecordController extends Controller
             'semesters' => Semester::cases(),
             'residenceTypes' => ResidenceType::cases(),
             'transportationModes' => TransportationMode::cases(),
+            'entryStatuses' => EntryStatus::cases(),
             'currentProgressNote' => $student->progressNotes->first(
                 fn (StudentProgressNote $note) => $note->academic_year === Classroom::currentAcademicYear()
                     && $note->semester === Semester::current()

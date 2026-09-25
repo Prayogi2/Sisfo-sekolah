@@ -96,7 +96,10 @@
                                             <span class="badge bg-primary-soft text-primary">Guru Mapel</span>
                                         @endif
                                     </td>
-                                    <td>{{ $teacher->phone ?? '-' }}</td>
+                                    <td>
+                                        <div><i class="bi bi-whatsapp text-success me-1"></i>{{ $teacher->phone ?: '-' }}</div>
+                                        @if ($teacher->email)<small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ $teacher->email }}</small>@endif
+                                    </td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-light" title="Edit"
                                             data-bs-toggle="modal" data-bs-target="#modalEditGuru"
@@ -107,6 +110,14 @@
                                             data-phone="{{ $teacher->phone }}"
                                             data-email="{{ $teacher->email }}"
                                             data-address="{{ $teacher->address }}"
+                                            data-nik="{{ $teacher->nik }}"
+                                            data-birth-place="{{ $teacher->birth_place }}"
+                                            data-birth-date="{{ $teacher->birth_date?->format('Y-m-d') }}"
+                                            data-village="{{ $teacher->village }}"
+                                            data-district="{{ $teacher->district }}"
+                                            data-province="{{ $teacher->province }}"
+                                            data-last-education="{{ $teacher->last_education?->value }}"
+                                            data-blood-type="{{ $teacher->blood_type?->value }}"
                                             data-assignments="{{ $teacher->teachingAssignments->groupBy('subject_id')->map(fn ($rows) => ['subject_id' => $rows->first()->subject_id, 'classroom_ids' => $rows->pluck('classroom_id')])->values()->toJson() }}"
                                         ><i class="bi bi-pencil-square text-warning"></i></button>
                                         <form action="{{ route('admin.data-guru.reset-password', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Reset password login {{ $teacher->name }}?');">
@@ -177,8 +188,9 @@
                                     <option value="P">Perempuan</option>
                                 </select>
                             </div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" class="form-control"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Email</label><input type="email" name="email" class="form-control"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Email (Gmail)</label><input type="email" name="email" class="form-control" placeholder="nama@gmail.com"></div>
+                            <x-guru-biodata-fields />
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -220,8 +232,9 @@
                                     <option value="P">Perempuan</option>
                                 </select>
                             </div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" id="editGuruPhone" class="form-control"></div>
-                            <div class="col-md-6"><label class="form-label fw-semibold">Email</label><input type="email" name="email" id="editGuruEmail" class="form-control"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">No. WhatsApp</label><input type="text" name="phone" id="editGuruPhone" class="form-control" placeholder="08xxxxxxxxxx"></div>
+                            <div class="col-md-6"><label class="form-label fw-semibold">Email (Gmail)</label><input type="email" name="email" id="editGuruEmail" class="form-control" placeholder="nama@gmail.com"></div>
+                            <x-guru-biodata-fields id-prefix="editGuru" />
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -286,6 +299,10 @@
                 document.getElementById('editGuruGender').value = button.dataset.gender;
                 document.getElementById('editGuruPhone').value = button.dataset.phone ?? '';
                 document.getElementById('editGuruEmail').value = button.dataset.email ?? '';
+                ['nik', 'birthPlace', 'birthDate', 'address', 'village', 'district', 'province', 'lastEducation', 'bloodType'].forEach((field) => {
+                    const input = document.getElementById('editGuru' + field.charAt(0).toUpperCase() + field.slice(1));
+                    input.value = button.dataset[field] ?? '';
+                });
 
                 const container = this.querySelector('.assignment-rows');
                 container.innerHTML = '';

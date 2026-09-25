@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StudentStatus;
 use App\Http\Requests\Classroom\AssignStudentsRequest;
 use App\Http\Requests\Classroom\StoreClassroomRequest;
 use App\Http\Requests\Classroom\UpdateClassroomRequest;
@@ -26,9 +27,14 @@ class ClassroomController extends Controller
             ->get();
 
         $teachers = Teacher::where('is_active', true)->orderBy('name')->get();
-        $unassignedStudents = Student::whereNull('classroom_id')->orderBy('name')->get();
+        // Pilihan di "Atur Siswa": siswa aktif tanpa kelas maupun dari kelas lain (akan dipindah).
+        $activeStudents = Student::query()
+            ->with('classroom')
+            ->where('status', StudentStatus::Active)
+            ->orderBy('name')
+            ->get(['id', 'name', 'nisn', 'classroom_id']);
 
-        return view('admin.data-kelas', compact('classrooms', 'teachers', 'unassignedStudents'));
+        return view('admin.data-kelas', compact('classrooms', 'teachers', 'activeStudents'));
     }
 
     public function store(StoreClassroomRequest $request): RedirectResponse

@@ -352,6 +352,63 @@ class StudentRecordControllerTest extends TestCase
         $response->assertDontSee('No. Kartu Keluarga');
     }
 
+    public function test_entry_status_must_be_chosen_from_the_list(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'entry_status' => 'Status Karangan',
+        ]))->assertSessionHasErrors('entry_status');
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'entry_status' => 'Pindahan',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('student_academic_records', ['student_id' => $student->id, 'entry_status' => 'Pindahan']);
+    }
+
+    /**
+     * No. KK orang tua disembunyikan dari form, tapi nilai yang sudah
+     * tersimpan tidak boleh ikut terhapus saat Buku Induk disimpan ulang.
+     */
+    public function test_saving_the_form_keeps_the_hidden_parent_family_card_number(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+        $father = Guardian::factory()->create(['relationship' => GuardianRelationship::Father, 'family_card_number' => '3201234567890123']);
+        $student->guardians()->attach($father);
+
+        $this->actingAs($admin)->get(route('admin.buku-induk.edit', $student))
+            ->assertOk()
+            ->assertDontSee('No. Kartu Keluarga');
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'father_name' => 'Ayah Baru',
+            'father_family_card_number' => '9999999999999999',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('guardians', ['id' => $father->id, 'name' => 'Ayah Baru', 'family_card_number' => '3201234567890123']);
+    }
+
+    public function test_empty_riwayat_sections_are_marked_as_having_no_data(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+        StudentAcademicRecord::factory()->create([
+            'student_id' => $student->id,
+            'kindergarten_origin' => 'TK Melati',
+            'graduation_year' => null,
+            'graduation_certificate_date' => null,
+            'graduation_certificate_number' => null,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['A. Pendidikan Sebelumnya', 'TK Melati', 'C. Lulus', 'Belum ada data.', 'D. Meninggalkan Sekolah', 'Belum ada data.', 'E. Putus Sekolah', 'Belum ada data.']);
+    }
+
     public function test_escapes_a_dangerous_student_name(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
