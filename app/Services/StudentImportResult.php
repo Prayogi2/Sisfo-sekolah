@@ -10,6 +10,7 @@ readonly class StudentImportResult
     public function __construct(
         public int $imported,
         public array $errors,
+        public int $updated = 0,
     ) {}
 
     public function hasErrors(): bool

@@ -8,7 +8,7 @@
     <x-favicon />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}" rel="stylesheet">
+    <link href="{{ asset('css/style.css') }}{{ file_exists(public_path('css/style.css')) ? '?v='.filemtime(public_path('css/style.css')) : '' }}" rel="stylesheet">
     @stack('styles')
 </head>
 <body>

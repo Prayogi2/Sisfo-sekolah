@@ -15,6 +15,16 @@ use Illuminate\Support\Facades\DB;
  */
 class StudentEnroller
 {
+    /**
+     * Field identitas inti Student — dipakai di sini dan oleh StudentImporter
+     * saat memperbarui siswa yang sudah ada, supaya kedua tempat tidak
+     * menyimpang satu sama lain.
+     */
+    public const IDENTITY_FIELDS = [
+        'nisn', 'nis', 'name', 'gender', 'classroom_id', 'birth_place', 'birth_date',
+        'address', 'parent_name', 'parent_phone', 'status',
+    ];
+
     public function __construct(private StudentRecordWriter $recordWriter) {}
 
     /**
@@ -23,10 +33,7 @@ class StudentEnroller
     public function enroll(array $data, ?UploadedFile $photo = null): Student
     {
         return DB::transaction(function () use ($data, $photo) {
-            $student = Student::create(collect($data)->only([
-                'nisn', 'nis', 'name', 'gender', 'classroom_id', 'birth_place', 'birth_date',
-                'address', 'parent_name', 'parent_phone', 'status',
-            ])->filter(fn ($value) => $value !== null)->all());
+            $student = Student::create(collect($data)->only(self::IDENTITY_FIELDS)->filter(fn ($value) => $value !== null)->all());
 
             $loginIdentifier = $student->nis ?: $student->nisn;
 

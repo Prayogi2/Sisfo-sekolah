@@ -40,7 +40,7 @@
         @if (session('import_result'))
             @php($importResult = session('import_result'))
             <div class="alert {{ $importResult->hasErrors() ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
-                <p class="fw-semibold mb-1">Impor selesai: {{ $importResult->imported }} siswa berhasil ditambahkan{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal.' : '.' }}</p>
+                <p class="fw-semibold mb-1">Impor selesai: {{ $importResult->imported }} siswa baru ditambahkan, {{ $importResult->updated }} siswa lama diperbarui{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal.' : '.' }}</p>
                 @if ($importResult->hasErrors())
                     <ul class="mb-0 small">
                         @foreach ($importResult->errors as $error)

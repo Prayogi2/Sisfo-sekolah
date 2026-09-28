@@ -23,14 +23,14 @@ use Illuminate\Validation\Rule;
  */
 class StudentRecordWriter
 {
-    private const PROFILE_FIELDS = [
+    public const PROFILE_FIELDS = [
         'nickname', 'nik', 'religion', 'family_status',
         'birth_order', 'siblings_count', 'weight_kg', 'height_cm', 'blood_type',
         'street_address', 'hamlet', 'village', 'district', 'regency', 'province', 'postal_code',
         'residence_type', 'transportation', 'distance_km', 'travel_duration_minutes',
     ];
 
-    private const ACADEMIC_FIELDS = [
+    public const ACADEMIC_FIELDS = [
         // A. Pendidikan sebelumnya
         'kindergarten_origin', 'kindergarten_address', 'kindergarten_npsn',
         'kindergarten_certificate_number', 'kindergarten_certificate_date',
@@ -50,7 +50,7 @@ class StudentRecordWriter
      * No. KK orang tua sengaja tidak ada di sini: kolomnya disembunyikan dari
      * form, tapi data lama di guardians.family_card_number tetap disimpan.
      */
-    private const GUARDIAN_FIELDS = [
+    public const GUARDIAN_FIELDS = [
         'name', 'gender', 'nik', 'birth_place', 'birth_date', 'religion',
         'blood_type', 'last_education', 'occupation', 'monthly_income', 'phone', 'address',
     ];
@@ -178,7 +178,7 @@ class StudentRecordWriter
         $profileData = collect($data)->only(self::PROFILE_FIELDS)->all();
 
         if ($student->profile || $this->hasValues($profileData) || $photo) {
-            $student->profile()->updateOrCreate(['student_id' => $student->id], $profileData);
+            $student->profile()->updateOrCreate(['student_id' => $student->id], $this->filterBlank($profileData));
         }
 
         if ($photo) {
@@ -192,7 +192,7 @@ class StudentRecordWriter
         $academicData = collect($data)->only(self::ACADEMIC_FIELDS)->all();
 
         if ($student->academicRecord || $this->hasValues($academicData)) {
-            $student->academicRecord()->updateOrCreate(['student_id' => $student->id], $academicData);
+            $student->academicRecord()->updateOrCreate(['student_id' => $student->id], $this->filterBlank($academicData));
         }
 
         foreach ([GuardianRelationship::Father, GuardianRelationship::Mother] as $relationship) {
@@ -217,5 +217,18 @@ class StudentRecordWriter
     private function hasValues(array $attributes): bool
     {
         return collect($attributes)->contains(fn ($value) => $value !== null && $value !== '');
+    }
+
+    /**
+     * Buang field yang dikosongkan supaya kolomnya tidak ditimpa jadi null
+     * (mis. default enum di database, atau isian sebelumnya tetap
+     * dipertahankan kalau field itu sengaja tidak diisi ulang).
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function filterBlank(array $attributes): array
+    {
+        return collect($attributes)->filter(fn ($value) => $value !== null && $value !== '')->all();
     }
 }

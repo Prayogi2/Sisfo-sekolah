@@ -38,6 +38,7 @@
                 @endif
                 <a href="{{ route('admin.buku-induk.download') }}" target="_blank" class="btn btn-primary"><i class="bi bi-download me-1"></i>Semua Siswa</a>
                 <a href="{{ route('admin.buku-induk.export.xlsx') }}" class="btn btn-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel Semua</a>
+                <a href="{{ route('admin.data-siswa.import') }}" class="btn btn-outline-success"><i class="bi bi-upload me-1"></i>Isi dari Excel</a>
             </div>
         </div>
 
