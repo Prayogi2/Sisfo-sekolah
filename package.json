@@ -4,7 +4,9 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "wa:dev": "node wa-server.mjs",
+        "wa:start": "NODE_ENV=production node wa-server.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -15,5 +17,9 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "@whiskeysockets/baileys": "^6.7.24",
+        "qrcode-terminal": "^0.12.0"
     }
 }
