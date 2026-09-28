@@ -90,7 +90,9 @@ class SppPaymentController extends Controller
         // Pembayaran tetap dicatat atas nama orang tua/wali pertama siswa
         // di Buku Induk.
         $guardian = $student->guardians()->first();
-        abort_unless($guardian, 422, 'Akun ini belum terhubung dengan data wali. Hubungi admin untuk melengkapi data orang tua/wali di Buku Induk terlebih dahulu.');
+        if (! $guardian) {
+            return back()->with('error', 'Akun ini belum terhubung dengan data wali. Hubungi admin untuk melengkapi data orang tua/wali di Buku Induk terlebih dahulu.');
+        }
 
         // Tagihan harus benar-benar milik anak yang sedang dipilih.
         $bill = SppBill::query()

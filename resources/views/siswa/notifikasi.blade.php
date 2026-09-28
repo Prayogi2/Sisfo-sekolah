@@ -16,12 +16,6 @@
 
     <x-page-guide>Pengumuman dan informasi dari sekolah. Pesan yang belum dibaca ditandai warna biru — klik untuk membaca isi lengkapnya.</x-page-guide>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
 
     <div class="card shadow-sm overflow-hidden">
         @forelse ($notifications as $notification)

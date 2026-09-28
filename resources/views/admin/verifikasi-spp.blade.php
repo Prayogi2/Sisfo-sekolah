@@ -11,9 +11,6 @@
 
         <x-page-guide>Periksa bukti bayar yang diunggah siswa, lalu <strong>Setujui</strong> atau <strong>Tolak</strong>. Status tagihan berubah otomatis setelah disetujui.</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
 
         <!-- Tabel Verifikasi -->
         <div class="card shadow-sm">

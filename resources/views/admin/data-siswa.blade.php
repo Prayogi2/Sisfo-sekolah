@@ -19,13 +19,6 @@
 
         <x-page-guide>Tambah siswa satu per satu, atau sekaligus banyak lewat <strong>Import Excel</strong>. Hanya identitas inti yang wajib diisi — data Buku Induk lainnya bisa dilengkapi menyusul.</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <ul class="mb-0">

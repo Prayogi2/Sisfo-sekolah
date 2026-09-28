@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="container-fluid">
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1 fw-bold">Catatan Prestasi & Tata Tertib</h1><p class="text-muted mb-0">Kelola pencapaian dan catatan pelanggaran siswa.</p></div><div class="d-flex gap-2">@unless($isGuru)<a href="{{ route('admin.prestasi-pelanggaran.export.xlsx', request()->query()) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a><a href="{{ route('admin.prestasi-pelanggaran.export.pdf', request()->query()) }}" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>@endunless<form method="GET" class="d-flex gap-2"><input name="q" value="{{ $query }}" class="form-control" placeholder="Cari nama/NIS/NISN"><button class="btn btn-outline-primary">Cari</button></form></div></div>
 

@@ -207,6 +207,7 @@
     </header>
 
     <main class="content-wrapper">
+        <x-flash-messages />
         @yield('content')
     </main>
 

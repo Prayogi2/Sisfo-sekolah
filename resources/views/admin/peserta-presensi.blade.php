@@ -16,9 +16,6 @@
 
         <x-page-guide>Halaman ini khusus data untuk presensi. Datanya <strong>sama</strong> dengan Data Siswa & Buku Induk (tidak disimpan dobel), jadi perubahan di sini langsung berlaku di sana juga. <strong>Wali kelas</strong> & <strong>tahun pelajaran</strong> mengikuti kelas yang dipilih — ubah lewat menu Pembagian Kelas. Peserta baru otomatis mendapat QR & akun login siswa.</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-        @endif
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>

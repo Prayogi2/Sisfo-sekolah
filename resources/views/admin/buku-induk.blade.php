@@ -126,9 +126,6 @@
                 Tidak ada data siswa yang cocok dengan pencarian. Kosongkan kolom pencarian atau tambahkan siswa lebih dulu pada menu Data Siswa.
             </div>
         @else
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-            @endif
             @if($errors->any())
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <strong>Data tidak disimpan.</strong>

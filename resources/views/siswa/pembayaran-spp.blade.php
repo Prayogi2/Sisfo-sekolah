@@ -20,9 +20,6 @@
 
         <x-page-guide>Transfer sesuai tagihan, lalu unggah bukti transfer di form <strong>Upload Bukti Transfer</strong>. Status berubah menjadi Lunas setelah admin memverifikasi.</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
 
         <div class="row">
             <!-- Kolom Kiri: Riwayat Tagihan & Pembayaran -->

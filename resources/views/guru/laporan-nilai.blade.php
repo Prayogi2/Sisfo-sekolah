@@ -14,13 +14,6 @@
 
     <x-page-guide>Pilih kelas & mapel di filter (hanya menampilkan kelas yang Anda ajarkan untuk mapel tersebut), lalu klik siswa di tabel untuk membuka form input Tugas/Kuis/UTS/UAS. Nilai Kuis terisi otomatis dari hasil kuis CBT.</x-page-guide>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="alert alert-danger border-0 shadow-sm mb-4">
             <ul class="mb-0 ps-3">

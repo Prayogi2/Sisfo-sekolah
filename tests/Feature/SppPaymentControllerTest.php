@@ -209,7 +209,8 @@ class SppPaymentControllerTest extends TestCase
             'proof' => UploadedFile::fake()->image('bukti.jpg'),
         ]);
 
-        $response->assertStatus(422);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertDatabaseCount('spp_payments', 0);
     }
 }

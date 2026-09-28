@@ -24,12 +24,6 @@
 
         <x-page-guide>Pilih kelas/periode dengan filter di bawah, lalu unduh Excel atau PDF untuk arsip atau laporan ke wali kelas. Sakelar <strong>Blokir Scan Telat</strong> menghentikan siswa terlambat untuk bisa absen sama sekali (langsung tercatat alpa).</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
         <!-- Control Bar Admin -->
         <div class="card shadow-sm mb-4 border-start border-danger border-4">

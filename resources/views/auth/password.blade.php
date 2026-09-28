@@ -7,7 +7,6 @@
     <div class="card border-0 shadow-sm"><div class="card-body p-4">
         <h1 class="h4 fw-bold mb-1">Ganti Password</h1>
         <p class="text-muted mb-4">Masukkan password saat ini untuk membuat password baru.</p>
-        @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
         @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
         <form method="POST" action="{{ route('account.password.update') }}">
             @csrf @method('PUT')

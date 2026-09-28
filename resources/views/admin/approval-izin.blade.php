@@ -10,10 +10,6 @@
 
     <x-page-guide>Setujui atau tolak pengajuan izin/sakit siswa. Pastikan sudah ada bukti (surat dokter/foto sakit) sebelum menyetujui — tanpa bukti, siswa tercatat alpa.</x-page-guide>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <div class="card shadow-sm">
         <div class="card-header py-3 bg-white"><h6 class="m-0 fw-bold text-primary">Daftar Pengajuan</h6></div>
         <div class="card-body p-0">

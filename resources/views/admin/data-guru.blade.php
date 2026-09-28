@@ -14,12 +14,6 @@
 
         <x-page-guide>Saat menambah/mengedit guru, tetapkan juga mapel & kelas yang ia ajarkan — guru hanya bisa mengakses kelas yang dipilih di sini (untuk kuis dan nilai).</x-page-guide>
 
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">

@@ -150,7 +150,9 @@ class QuizController extends Controller
     public function destroyQuestion(Request $request, QuizQuestion $question): RedirectResponse
     {
         $this->authorizeQuestion($request, $question);
-        abort_if($question->quizzes()->whereHas('attempts')->exists(), 422, 'Soal yang sudah dipakai dalam kuis tidak dapat dihapus.');
+        if ($question->quizzes()->whereHas('attempts')->exists()) {
+            return back()->with('error', 'Soal yang sudah dipakai dalam kuis tidak dapat dihapus.');
+        }
         $this->deleteQuestionMedia($question);
         $question->delete();
 
@@ -174,7 +176,9 @@ class QuizController extends Controller
         $this->authorizeClassroom($request, (int) $data['subject_id'], (int) $data['classroom_id']);
         $questionIds = $data['question_ids'];
         $validQuestionIds = QuizQuestion::where('subject_id', $data['subject_id'])->whereIn('id', $questionIds)->pluck('id')->all();
-        abort_if(count($validQuestionIds) !== count($questionIds), 422, 'Semua soal harus berasal dari mata pelajaran kuis.');
+        if (count($validQuestionIds) !== count($questionIds)) {
+            return back()->withInput()->with('error', 'Semua soal harus berasal dari mata pelajaran kuis.');
+        }
 
         $quizData = collect($data)->except('question_ids')->all();
         $quizData['created_by'] = $request->user()->id;
@@ -197,7 +201,9 @@ class QuizController extends Controller
     {
         $this->authorizeQuiz($request, $quiz);
 
-        abort_unless($quiz->is_published, 422, 'Publikasikan kuis terlebih dahulu sebelum membukanya.');
+        if (! $quiz->is_published) {
+            return back()->with('error', 'Publikasikan kuis terlebih dahulu sebelum membukanya.');
+        }
 
         $opening = ! $quiz->is_open;
 
@@ -211,10 +217,12 @@ class QuizController extends Controller
             : "Kuis \"{$quiz->title}\" ditutup. Siswa tidak bisa memulai kuis lagi.");
     }
 
-    public function liveHost(Request $request, Quiz $quiz): View
+    public function liveHost(Request $request, Quiz $quiz): View|RedirectResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_unless($quiz->isLive(), 422, 'Kuis ini bukan mode Kahoot.');
+        if (! $quiz->isLive()) {
+            return redirect()->route('guru.bank-soal')->with('error', 'Kuis ini bukan mode Kahoot.');
+        }
 
         $quiz->load(['subject', 'classroom', 'questions']);
 
@@ -224,8 +232,12 @@ class QuizController extends Controller
     public function startLive(Request $request, Quiz $quiz): RedirectResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_unless($quiz->isLive() && $quiz->is_published, 422, 'Publikasikan kuis live terlebih dahulu.');
-        abort_if($quiz->questions()->count() === 0, 422, 'Kuis belum memiliki soal.');
+        if (! ($quiz->isLive() && $quiz->is_published)) {
+            return back()->with('error', 'Publikasikan kuis live terlebih dahulu.');
+        }
+        if ($quiz->questions()->count() === 0) {
+            return back()->with('error', 'Kuis belum memiliki soal.');
+        }
 
         $quiz->update([
             'is_open' => true,
@@ -241,7 +253,9 @@ class QuizController extends Controller
     public function advanceLive(Request $request, Quiz $quiz): RedirectResponse
     {
         $this->authorizeQuiz($request, $quiz);
-        abort_unless($quiz->isLive() && $quiz->is_open, 422, 'Sesi live belum dibuka.');
+        if (! ($quiz->isLive() && $quiz->is_open)) {
+            return back()->with('error', 'Sesi live belum dibuka.');
+        }
 
         $questionCount = $quiz->questions()->count();
         if ($quiz->live_phase === 'question') {
@@ -274,7 +288,9 @@ class QuizController extends Controller
             return $student;
         }
         abort_unless($quiz->isLive() && $quiz->classroom_id === $student->classroom_id && $quiz->is_published, 403);
-        abort_unless(Attendance::hasCheckedInToday($student->id), 422, 'Absen QR terlebih dahulu.');
+        if (! Attendance::hasCheckedInToday($student->id)) {
+            return redirect()->route('siswa.kuis')->with('error', 'Belum bisa mengerjakan kuis. Silakan scan QR presensi di sekolah terlebih dahulu.');
+        }
 
         $attempt = QuizAttempt::firstOrCreate(
             ['quiz_id' => $quiz->id, 'student_id' => $student->id],
@@ -395,7 +411,9 @@ class QuizController extends Controller
                 ->with('error', "Waktu pengerjaan kuis ini sudah habis. Kuis otomatis dikumpulkan dengan nilai {$attempt->fresh()->score}.");
         }
 
-        abort_if($attempt->status === 'submitted', 422, 'Kuis sudah dikumpulkan.');
+        if ($attempt->status === 'submitted') {
+            return redirect()->route('siswa.kuis')->with('error', 'Kuis sudah dikumpulkan.');
+        }
         $attempt->load('answers');
         $quiz->load('questions');
 
@@ -419,9 +437,13 @@ class QuizController extends Controller
         }
 
         $question = $attempt->quiz->questions()->whereKey($data['quiz_question_id'])->firstOrFail();
-        abort_if($attempt->status === 'submitted', 422, 'Kuis sudah dikumpulkan.');
+        if ($attempt->status === 'submitted') {
+            return back()->with('error', 'Kuis sudah dikumpulkan.');
+        }
         $answer = collect($data['answer'] ?? [])->unique()->sort()->values()->all();
-        abort_if($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1, 422, 'Soal ini hanya menerima satu jawaban.');
+        if ($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1) {
+            return back()->with('error', 'Soal ini hanya menerima satu jawaban.');
+        }
         $correctAnswer = collect($question->correct_answer)->sort()->values()->all();
         $isCorrect = $answer !== [] && $answer === $correctAnswer;
         QuizAnswer::updateOrCreate(['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id], ['answer' => $answer === [] ? null : $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]);
@@ -432,7 +454,9 @@ class QuizController extends Controller
     public function submit(Request $request, QuizAttempt $attempt, QuizAttemptFinalizer $finalizer): RedirectResponse
     {
         $this->assertAttemptOwner($request, $attempt);
-        abort_if($attempt->status === 'submitted', 422, 'Kuis sudah dikumpulkan.');
+        if ($attempt->status === 'submitted') {
+            return redirect()->route('siswa.kuis')->with('error', 'Kuis sudah dikumpulkan.');
+        }
 
         if ($finalizer->finalizeIfExpired($attempt)) {
             return redirect()->route('siswa.kuis')

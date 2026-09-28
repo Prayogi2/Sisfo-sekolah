@@ -12,7 +12,6 @@
     $soalFormSubmitted = $errors->any() && old('question') !== null;
 @endphp
 <div class="container-fluid">
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any() && ! $kuisFormSubmitted && ! $soalFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="fw-bold mb-1">Bank Soal & Kuis CBT</h4><p class="text-muted mb-0">Buat soal, susun kuis, dan publikasikan ke kelas.</p></div><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSoal"><i class="bi bi-plus-lg me-1"></i> Tambah Soal</button></div>
     <x-page-guide>Buat soal dulu di <strong>Tambah Soal</strong>, lalu susun jadi kuis lewat <strong>Buat Kuis Baru</strong>. Setelah dipublikasikan, buka <strong>Panel Kahoot</strong> pada kuis itu untuk memulai sesi bersama siswa.</x-page-guide>

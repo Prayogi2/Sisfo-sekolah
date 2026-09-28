@@ -266,6 +266,34 @@ class QuizControllerTest extends TestCase
         $this->assertSame(['A', 'C'], $question->correct_answer);
     }
 
+    public function test_a_question_already_used_in_an_attempted_quiz_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create();
+        $quiz = $this->quizWithQuestions($classroom, questionCount: 1);
+        $question = $quiz->questions()->firstOrFail();
+        [$siswa] = $this->siswaInClassroom($classroom);
+        $this->actingAs($siswa)->get(route('siswa.kuis.start', $quiz));
+
+        $response = $this->actingAs($admin)->delete(route('admin.bank-soal.destroy', $question));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('quiz_questions', ['id' => $question->id]);
+    }
+
+    public function test_deleting_an_unused_question_succeeds(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $question = QuizQuestion::factory()->create(['subject_id' => Subject::factory()->create()->id]);
+
+        $response = $this->actingAs($admin)->delete(route('admin.bank-soal.destroy', $question));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('quiz_questions', ['id' => $question->id]);
+    }
+
     public function test_guru_cannot_add_a_question_for_a_subject_they_do_not_teach(): void
     {
         $guruUser = User::factory()->create(['role' => 'guru']);
@@ -522,7 +550,8 @@ class QuizControllerTest extends TestCase
             'answer' => ['A', 'B'],
         ]);
 
-        $response->assertStatus(422);
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertDatabaseCount('quiz_answers', 0);
     }
 
@@ -604,7 +633,8 @@ class QuizControllerTest extends TestCase
         $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt));
         $response = $this->actingAs($siswa)->post(route('siswa.kuis.submit', $attempt));
 
-        $response->assertStatus(422);
+        $response->assertRedirect(route('siswa.kuis'));
+        $response->assertSessionHas('error');
     }
 
     public function test_a_siswa_cannot_answer_another_students_attempt(): void
@@ -729,6 +759,28 @@ class QuizControllerTest extends TestCase
         $this->assertDatabaseMissing('quizzes', ['title' => 'Kuis Titipan']);
     }
 
+    public function test_creating_a_quiz_with_a_question_from_a_different_subject_is_rejected(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        $otherSubjectQuestion = QuizQuestion::factory()->create(['subject_id' => Subject::factory()->create()->id]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Campur Mapel',
+            'duration_minutes' => 30,
+            'question_ids' => [$otherSubjectQuestion->id],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('quizzes', ['title' => 'Kuis Campur Mapel']);
+    }
+
     public function test_admin_can_create_a_quiz_for_any_classroom(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -778,8 +830,78 @@ class QuizControllerTest extends TestCase
         $guruUser = User::factory()->create(['role' => 'guru']);
         $quiz = Quiz::factory()->draft()->create(['created_by' => $guruUser->id]);
 
-        $this->actingAs($guruUser)->post(route('guru.kuis.toggle-open', $quiz))->assertStatus(422);
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.toggle-open', $quiz));
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
         $this->assertFalse($quiz->fresh()->is_open);
+    }
+
+    public function test_opening_the_live_host_panel_for_a_non_kahoot_quiz_redirects_with_an_error(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $classroom = Classroom::factory()->create();
+        $quiz = $this->quizWithQuestions($classroom);
+        $quiz->update(['created_by' => $guruUser->id]);
+        $this->assertFalse($quiz->fresh()->isLive());
+
+        $response = $this->actingAs($guruUser)->get(route('guru.kuis.live', $quiz));
+
+        $response->assertRedirect(route('guru.bank-soal'));
+        $response->assertSessionHas('error');
+    }
+
+    public function test_starting_a_live_session_requires_the_quiz_to_be_published(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $classroom = Classroom::factory()->create();
+        $quiz = $this->quizWithQuestions($classroom);
+        $quiz->update(['created_by' => $guruUser->id, 'mode' => 'live', 'is_published' => false]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.live.start', $quiz));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertSame('lobby', $quiz->fresh()->live_phase);
+    }
+
+    public function test_starting_a_live_session_requires_at_least_one_question(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $classroom = Classroom::factory()->create();
+        $quiz = Quiz::factory()->create(['classroom_id' => $classroom->id, 'created_by' => $guruUser->id, 'mode' => 'live', 'is_published' => true]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.live.start', $quiz));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertSame('lobby', $quiz->fresh()->live_phase);
+    }
+
+    public function test_advancing_a_live_session_that_is_not_open_redirects_with_an_error(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $classroom = Classroom::factory()->create();
+        $quiz = $this->quizWithQuestions($classroom);
+        $quiz->update(['created_by' => $guruUser->id, 'mode' => 'live', 'is_open' => false]);
+
+        $response = $this->actingAs($guruUser)->post(route('guru.kuis.live.next', $quiz));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+    }
+
+    public function test_joining_a_live_quiz_without_checking_in_redirects_with_an_error(): void
+    {
+        $classroom = Classroom::factory()->create();
+        [$siswa] = $this->siswaInClassroom($classroom, checkedIn: false);
+        $quiz = $this->quizWithQuestions($classroom);
+        $quiz->update(['mode' => 'live', 'is_published' => true]);
+
+        $response = $this->actingAs($siswa)->get(route('siswa.kuis.live', $quiz));
+
+        $response->assertRedirect(route('siswa.kuis'));
+        $response->assertSessionHas('error');
+        $this->assertDatabaseCount('quiz_attempts', 0);
     }
 
     public function test_opening_the_quiz_alone_is_not_enough_without_attendance(): void

@@ -13,9 +13,6 @@
 
     <x-page-guide>Hanya izin dari kelas yang Anda menjadi wali kelasnya yang tampil di sini. Periksa bukti (surat dokter/foto) sebelum menyetujui.</x-page-guide>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
 
     <!-- Tabel Daftar Pengajuan Izin -->
     <div class="card border-0 shadow-sm">
