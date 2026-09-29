@@ -38,6 +38,22 @@ class Classroom extends Model
     }
 
     /**
+     * Barang inventaris kelas ini.
+     */
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
+
+    /**
+     * Riwayat laporan kondisi inventaris dari wali kelas.
+     */
+    public function inventoryReports(): HasMany
+    {
+        return $this->hasMany(InventoryReport::class);
+    }
+
+    /**
      * Tahun ajaran berjalan, mis. "2026/2027". Tahun ajaran baru dimulai Juli.
      */
     public static function currentAcademicYear(): string

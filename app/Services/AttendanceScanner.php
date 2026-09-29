@@ -24,7 +24,7 @@ class AttendanceScanner
     {
         $now ??= Date::now();
 
-        $student = Student::query()->with('classroom')->where('qr_token', $qrToken)->first();
+        $student = Student::query()->with(['classroom', 'profile'])->where('qr_token', $qrToken)->first();
 
         if (! $student) {
             throw new AttendanceScanException('QR Code tidak dikenali.');

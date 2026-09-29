@@ -14,7 +14,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 /**
- * Import siswa ke SATU kelas dari Excel. Siswa harus sudah terdaftar
+ * Import siswa ke SATU kelas dari Excel. Siswa harus sudah terdaftar.
  * (dicari lewat NISN/NIS) — fitur ini tidak membuat siswa baru.
  *
  * Sebagian berhasil: baris yang benar tetap disimpan, baris yang salah

@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\Classroom;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\AttendanceScheduleSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ScanControllerTest extends TestCase
@@ -51,7 +53,26 @@ class ScanControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('student.name', $student->name);
+        $response->assertJsonPath('student.photo_url', null);
         $this->assertDatabaseHas('attendances', ['student_id' => $student->id]);
+    }
+
+    public function test_scanning_returns_the_student_photo_url_when_available(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $classroom = Classroom::factory()->create(['grade_level' => 3]);
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
+        StudentProfile::factory()->create([
+            'student_id' => $student->id,
+            'photo_path' => 'student-photos/foto.jpg',
+        ]);
+
+        $response = $this->actingAs($guru)->postJson(route('scan-qr.store'), [
+            'qr_token' => $student->qr_token,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('student.photo_url', Storage::url('student-photos/foto.jpg'));
     }
 
     public function test_scanning_an_unknown_token_returns_a_friendly_error(): void

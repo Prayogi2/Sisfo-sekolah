@@ -20,13 +20,18 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * tata letak yang sama persis, jadi file hasil export bisa langsung diisi
  * lalu di-import kembali.
  *
- * Tata letak: identitas siswa (baris 3–10), baris Tahun Ajaran (12), header
- * bertingkat Kelas → Sem (13–14), baris mapel (mulai 15), lalu Jumlah
+ * Tata letak mengikuti form fisik: identitas siswa (baris 3–10), judul tabel
+ * (11), header bertingkat Tahun Ajaran → Kelas → Mata Pelajaran/Sem (12–14)
+ * dengan kolom No. membentang ketiganya, baris mapel (mulai 15), lalu Jumlah
  * Nilai, Nilai Rata-rata, dan Naik ke Kelas.
  */
 class ReportBookSpreadsheet
 {
-    private const TITLE = 'NILAI LAPORAN HASIL BELAJAR PESERTA DIDIK';
+    private const TITLE = 'PRESTASI SISWA / PERKEMBANGAN AKADEMIK';
+
+    private const TABLE_TITLE = 'NILAI LAPORAN HASIL BELAJAR PESERTA DIDIK';
+
+    private const TABLE_TITLE_ROW = 11;
 
     private const NISN_CELL = 'C7';
 
@@ -76,15 +81,20 @@ class ReportBookSpreadsheet
         }
         $sheet->getStyle('A3:A10')->getFont()->setBold(true);
 
-        $sheet->setCellValue('A'.self::YEAR_ROW, 'Tahun Ajaran')->mergeCells('A'.self::YEAR_ROW.':B'.self::YEAR_ROW);
-        $sheet->setCellValue('A'.self::HEADER_ROW, 'No.')->mergeCells('A'.self::HEADER_ROW.':A'.self::SEMESTER_ROW);
-        $sheet->setCellValue('B'.self::HEADER_ROW, 'Mata Pelajaran')->mergeCells('B'.self::HEADER_ROW.':B'.self::SEMESTER_ROW);
+        $sheet->setCellValue('A'.self::TABLE_TITLE_ROW, self::TABLE_TITLE)->mergeCells('A'.self::TABLE_TITLE_ROW.":{$lastColumn}".self::TABLE_TITLE_ROW);
+        $sheet->getStyle('A'.self::TABLE_TITLE_ROW)->getFont()->setBold(true);
+        $sheet->getStyle('A'.self::TABLE_TITLE_ROW)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->setCellValue('A'.self::YEAR_ROW, 'No.')->mergeCells('A'.self::YEAR_ROW.':A'.self::SEMESTER_ROW);
+        $sheet->setCellValue('B'.self::YEAR_ROW, 'Tahun Ajaran');
+        $sheet->setCellValue('B'.self::HEADER_ROW, 'Kelas');
+        $sheet->setCellValue('B'.self::SEMESTER_ROW, 'Mata Pelajaran');
 
         foreach (ReportBookGrade::GRADE_LEVELS as $gradeLevel) {
             [$first, $second] = [$this->scoreColumnLetter($gradeLevel, 1), $this->scoreColumnLetter($gradeLevel, 2)];
             $sheet->setCellValueExplicit($first.self::YEAR_ROW, (string) ($summary['years']->get($gradeLevel)?->academic_year ?? ''), DataType::TYPE_STRING)
                 ->mergeCells($first.self::YEAR_ROW.':'.$second.self::YEAR_ROW);
-            $sheet->setCellValue($first.self::HEADER_ROW, "Kelas {$gradeLevel}")->mergeCells($first.self::HEADER_ROW.':'.$second.self::HEADER_ROW);
+            $sheet->setCellValue($first.self::HEADER_ROW, $gradeLevel)->mergeCells($first.self::HEADER_ROW.':'.$second.self::HEADER_ROW);
             $sheet->setCellValue($first.self::SEMESTER_ROW, 'Sem 1');
             $sheet->setCellValue($second.self::SEMESTER_ROW, 'Sem 2');
         }
@@ -206,16 +216,21 @@ class ReportBookSpreadsheet
         return trim((string) $sheet->getCell($coordinate)->getCalculatedValue());
     }
 
+    /**
+     * File hasil export versi lama (header "Kelas N" tanpa baris label Kelas)
+     * tetap diterima: posisi sel data keduanya sama persis.
+     */
     private function assertTemplateLayout(Worksheet $sheet): void
     {
-        $expected = [
-            'A'.self::YEAR_ROW => 'Tahun Ajaran',
-            'A'.self::HEADER_ROW => 'No.',
-            'B'.self::HEADER_ROW => 'Mata Pelajaran',
-            'A7' => 'NISN',
-        ];
+        $isLegacyLayout = strcasecmp($this->cellText($sheet, 'A'.self::YEAR_ROW), 'Tahun Ajaran') === 0;
+
+        $expected = $isLegacyLayout
+            ? ['A'.self::HEADER_ROW => 'No.', 'B'.self::HEADER_ROW => 'Mata Pelajaran']
+            : ['A'.self::YEAR_ROW => 'No.', 'B'.self::YEAR_ROW => 'Tahun Ajaran', 'B'.self::HEADER_ROW => 'Kelas', 'B'.self::SEMESTER_ROW => 'Mata Pelajaran'];
+        $expected['A7'] = 'NISN';
+
         foreach (ReportBookGrade::GRADE_LEVELS as $gradeLevel) {
-            $expected[$this->scoreColumnLetter($gradeLevel, 1).self::HEADER_ROW] = "Kelas {$gradeLevel}";
+            $expected[$this->scoreColumnLetter($gradeLevel, 1).self::HEADER_ROW] = $isLegacyLayout ? "Kelas {$gradeLevel}" : (string) $gradeLevel;
             $expected[$this->scoreColumnLetter($gradeLevel, 1).self::SEMESTER_ROW] = 'Sem 1';
             $expected[$this->scoreColumnLetter($gradeLevel, 2).self::SEMESTER_ROW] = 'Sem 2';
         }
@@ -235,8 +250,9 @@ class ReportBookSpreadsheet
         $sheet->getStyle($table)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $sheet->getStyle('C'.self::YEAR_ROW.":{$lastColumn}{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A'.self::YEAR_ROW.":{$lastColumn}".self::SEMESTER_ROW)->getFont()->setBold(true);
-        $sheet->getStyle('A'.self::HEADER_ROW.":{$lastColumn}".self::SEMESTER_ROW)->getAlignment()
+        $sheet->getStyle('C'.self::HEADER_ROW.":{$lastColumn}".self::SEMESTER_ROW)->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A'.self::YEAR_ROW)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
         $sheet->getStyle("A{$totalRow}:{$lastColumn}{$lastRow}")->getFont()->setBold(true);
         $sheet->getStyle('C'.self::FIRST_SUBJECT_ROW.":{$lastColumn}".($totalRow + 1))->getNumberFormat()->setFormatCode('0.##');
 

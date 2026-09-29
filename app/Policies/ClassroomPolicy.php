@@ -39,4 +39,43 @@ class ClassroomPolicy
     {
         return $user->hasRole('admin');
     }
+
+    /**
+     * Melihat inventaris kelas: admin untuk semua kelas, guru hanya untuk
+     * kelas yang dia jadi wali kelasnya.
+     */
+    public function viewInventory(User $user, Classroom $classroom): bool
+    {
+        return $user->hasRole('admin') || $this->isHomeroomTeacher($user, $classroom);
+    }
+
+    /**
+     * Menambah barang inventaris: admin dan wali kelas yang bersangkutan.
+     */
+    public function addInventoryItem(User $user, Classroom $classroom): bool
+    {
+        return $this->viewInventory($user, $classroom);
+    }
+
+    /**
+     * Menghapus barang inventaris hanya boleh admin.
+     */
+    public function manageInventory(User $user, Classroom $classroom): bool
+    {
+        return $user->hasRole('admin');
+    }
+
+    /**
+     * Mengirim laporan kondisi inventaris hanya wali kelasnya.
+     */
+    public function reportInventory(User $user, Classroom $classroom): bool
+    {
+        return $this->isHomeroomTeacher($user, $classroom);
+    }
+
+    private function isHomeroomTeacher(User $user, Classroom $classroom): bool
+    {
+        return $user->hasRole('guru')
+            && $classroom->homeroomTeacher()->where('user_id', $user->id)->exists();
+    }
 }

@@ -43,14 +43,14 @@ class ReportExportService
         ])->deleteFileAfterSend(true);
     }
 
-    public function pdf(string $view, array $data, string $filename)
+    public function pdf(string $view, array $data, string $filename, string $orientation = 'portrait')
     {
         $options = new Options;
         $options->set('defaultFont', 'Arial');
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml(view($view, $data + ['pdf' => true])->render());
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', $orientation);
         $dompdf->render();
 
         return response($dompdf->output(), 200, [
