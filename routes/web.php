@@ -11,6 +11,7 @@ use App\Http\Controllers\ClassroomImportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeWeightController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\ReportBookController;
@@ -99,6 +100,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/data-mapel/{subject}', [SubjectController::class, 'destroy'])->name('data-mapel.destroy');
         Route::put('/data-mapel/{subject}/guru-pengampu', [SubjectController::class, 'updateTeachers'])->name('data-mapel.guru-pengampu');
 
+        Route::get('/inventaris', [InventoryController::class, 'index'])->name('inventaris');
+        Route::post('/inventaris/{classroom}/barang', [InventoryController::class, 'storeItem'])->name('inventaris.items.store');
+        Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
+        Route::delete('/inventaris/barang/{inventoryItem}', [InventoryController::class, 'destroyItem'])->name('inventaris.items.destroy');
+        Route::get('/inventaris/laporan/{inventoryReport}', [InventoryController::class, 'showReport'])->name('inventaris.laporan.show');
+
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
         Route::post('/data-guru', [TeacherController::class, 'store'])->name('data-guru.store');
         Route::put('/data-guru/{teacher}', [TeacherController::class, 'update'])->name('data-guru.update');
@@ -169,6 +176,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/prestasi-pelanggaran/prestasi/{achievement}', [StudentConductController::class, 'destroyAchievement'])->name('prestasi-pelanggaran.prestasi.destroy');
         Route::post('/prestasi-pelanggaran/pelanggaran', [StudentConductController::class, 'storeViolation'])->name('prestasi-pelanggaran.pelanggaran.store');
         Route::delete('/prestasi-pelanggaran/pelanggaran/{violation}', [StudentConductController::class, 'destroyViolation'])->name('prestasi-pelanggaran.pelanggaran.destroy');
+
+        // Inventaris Kelas (wali kelas)
+        Route::get('/inventaris', [InventoryController::class, 'index'])->name('inventaris');
+        Route::post('/inventaris/{classroom}/barang', [InventoryController::class, 'storeItem'])->name('inventaris.items.store');
+        Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
+        Route::post('/inventaris/{classroom}/laporan', [InventoryController::class, 'storeReport'])->name('inventaris.laporan.store');
+        Route::get('/inventaris/laporan/{inventoryReport}', [InventoryController::class, 'showReport'])->name('inventaris.laporan.show');
 
         // Laporan & Input Nilai
         Route::get('/laporan-nilai', [GradeController::class, 'index'])->name('laporan-nilai');
