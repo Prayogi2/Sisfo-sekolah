@@ -263,19 +263,45 @@
             image.src = URL.createObjectURL(file);
         }
 
-        function processScan(token) {
-            fetch(@json(route(auth()->check() ? 'scan-qr.store' : 'presensi.scan.store')), {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
+        function postScan(token) {
+            return fetch(@json(route(auth()->check() ? 'scan-qr.store' : 'presensi.scan.store')), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-CSRF-TOKEN': csrfMeta.content,
                     'Accept': 'application/json',
                 },
                 body: JSON.stringify({ qr_token: token }),
-            })
-                .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => ok ? showSuccess(data) : showError(data.message ?? 'QR Code tidak dikenali.', data.time))
-                .catch(() => showError('Gagal terhubung ke server.'));
+            });
+        }
+
+        // Halaman pos presensi dibiarkan terbuka berjam-jam, sehingga session &
+        // token CSRF-nya kedaluwarsa (419). Ambil token baru lalu ulangi sekali.
+        async function refreshCsrfToken() {
+            const html = await fetch(window.location.href, { headers: { 'Accept': 'text/html' } }).then(response => response.text());
+            const freshToken = new DOMParser().parseFromString(html, 'text/html').querySelector('meta[name="csrf-token"]')?.content;
+            if (freshToken) csrfMeta.content = freshToken;
+            return Boolean(freshToken);
+        }
+
+        async function processScan(token) {
+            try {
+                let response = await postScan(token);
+                if (response.status === 419 && await refreshCsrfToken()) {
+                    response = await postScan(token);
+                }
+                if (response.status === 401 || response.status === 419) {
+                    showError('Sesi login habis. Muat ulang halaman ini lalu login kembali.');
+                    return;
+                }
+
+                const data = await response.json().catch(() => ({}));
+                response.ok ? showSuccess(data) : showError(data.message ?? 'Terjadi kesalahan di server.', data.time);
+            } catch (error) {
+                showError('Gagal terhubung ke server.');
+            }
         }
 
         function showSuccess(data) {
