@@ -111,7 +111,7 @@
 
                 <div class="result-popup" id="resultPopup">
                     <div class="d-flex align-items-center justify-content-center">
-                        <img id="popupImg" src="" class="rounded-circle me-3" width="60" height="60" alt="">
+                        <img id="popupImg" src="" class="rounded-circle me-3" width="60" height="60" style="object-fit: cover;" alt="">
                         <div class="text-start">
                             <h5 id="popupGreeting" class="mb-0 fw-bold"></h5>
                             <small id="popupDetail" class="text-muted"></small>
@@ -298,11 +298,11 @@
             document.getElementById('popupTime').textContent = data.time + ' WIB';
             document.getElementById('popupStatus').textContent = status.text;
             document.getElementById('popupStatus').className = `badge ${status.class}`;
-            document.getElementById('popupImg').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.student.name)}&background=10b981&color=fff&bold=true`;
+            document.getElementById('popupImg').src = data.student.photo_url ?? initialsAvatar(data.student.name, '10b981');
             popup.classList.add('show');
             setTimeout(() => popup.classList.remove('show'), 3000);
 
-            addLogItem(data.student.name, data.student.classroom, data.time, status.text, status.log);
+            addLogItem(data.student.name, data.student.classroom, data.time, status.text, status.log, data.student.photo_url);
         }
 
         function showError(message, serverTime = null) {
@@ -322,12 +322,16 @@
             addLogItem('Scan Gagal', message, displayTime, 'Ditolak', 'error');
         }
 
-        function addLogItem(name, detail, time, statusText, logClass) {
+        function initialsAvatar(name, background) {
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${background}&color=fff&bold=true`;
+        }
+
+        function addLogItem(name, detail, time, statusText, logClass, photoUrl = null) {
             const logsList = document.getElementById('logsList');
             const logItem = document.createElement('div');
             logItem.className = `log-item ${logClass}`;
             logItem.innerHTML = `
-                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${logClass === 'error' ? 'ef4444' : '10b981'}&color=fff&bold=true" class="rounded-circle me-3" width="45" height="45" alt="">
+                <img src="${photoUrl ?? initialsAvatar(name, logClass === 'error' ? 'ef4444' : '10b981')}" class="rounded-circle me-3" width="45" height="45" style="object-fit: cover;" alt="">
                 <div class="flex-grow-1">
                     <div class="fw-bold text-white">${name}</div>
                     <small class="text-muted">${detail}</small>

@@ -8,6 +8,7 @@ use App\Services\AttendanceScanner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ScanController extends Controller
@@ -39,6 +40,7 @@ class ScanController extends Controller
             'student' => [
                 'name' => $result->student->name,
                 'classroom' => $result->student->classroom->name,
+                'photo_url' => $result->student->profile?->photo_path ? Storage::url($result->student->profile->photo_path) : null,
             ],
             'time' => now()->format('H:i:s'),
         ]);
