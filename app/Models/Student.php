@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Gender;
+use App\Enums\GuardianRelationship;
 use App\Enums\StudentStatus;
 use Database\Factories\StudentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -123,6 +124,22 @@ class Student extends Model
     public function reportBookYears(): HasMany
     {
         return $this->hasMany(ReportBookYear::class);
+    }
+
+    /**
+     * Nomor WhatsApp orang tua untuk notifikasi: No. HP orang tua di data
+     * siswa, atau bila kosong No. WhatsApp ayah → ibu → wali di Buku Induk.
+     */
+    public function parentWhatsAppNumber(): ?string
+    {
+        if (filled($this->parent_phone)) {
+            return $this->parent_phone;
+        }
+
+        return $this->guardians
+            ->sortBy(fn (Guardian $guardian) => array_search($guardian->relationship, [GuardianRelationship::Father, GuardianRelationship::Mother, GuardianRelationship::Guardian], true))
+            ->first(fn (Guardian $guardian) => filled($guardian->phone))
+            ?->phone;
     }
 
     /**

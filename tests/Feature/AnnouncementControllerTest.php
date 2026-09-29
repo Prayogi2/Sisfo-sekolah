@@ -143,18 +143,54 @@ class AnnouncementControllerTest extends TestCase
         Queue::assertNothingPushed();
     }
 
-    public function test_whatsapp_is_not_queued_for_a_scheduled_announcement(): void
+    /**
+     * "Waktu Kirim" juga berlaku untuk WhatsApp: job ditunda sampai waktu
+     * kirim, bukan dikirim sekarang ataupun dilewati.
+     */
+    public function test_whatsapp_for_a_scheduled_announcement_is_delayed_until_its_time(): void
     {
         Queue::fake();
         $admin = User::factory()->create(['role' => 'admin']);
         Student::factory()->create(['parent_phone' => '081234567890']);
+        $sendAt = now()->addDay()->startOfMinute();
 
         $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload([
             'send_whatsapp' => '1',
-            'published_at' => now()->addDay()->format('Y-m-d\TH:i'),
+            'published_at' => $sendAt->format('Y-m-d\TH:i'),
         ]))->assertRedirect();
 
-        Queue::assertNothingPushed();
+        Queue::assertPushed(SendAnnouncementWhatsApp::class, fn (SendAnnouncementWhatsApp $job) => $job->delay instanceof \DateTimeInterface && $sendAt->equalTo($job->delay));
+        $this->assertSame(AnnouncementRecipient::WHATSAPP_PENDING, AnnouncementRecipient::sole()->whatsapp_status);
+    }
+
+    public function test_students_without_a_parent_number_are_reported_and_do_not_stop_the_others(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create(['name' => '5-A']);
+        $withPhone = Student::factory()->create(['parent_phone' => '081234567890']);
+        $withoutPhone = Student::factory()->create(['name' => 'Ahmad', 'parent_phone' => null, 'classroom_id' => $classroom->id]);
+
+        $this->actingAs($admin)->post(route('admin.notifikasi.store'), $this->payload(['send_whatsapp' => '1']))
+            ->assertRedirect()
+            ->assertSessionHas('whatsapp_summary', fn (array $summary) => $summary['queued'] === 1
+                && $summary['missing'] === ['Ahmad (Kelas 5-A): nomor WhatsApp orang tua belum terisi']);
+
+        Queue::assertPushed(SendAnnouncementWhatsApp::class, 1);
+        $this->assertDatabaseHas('announcement_recipients', ['student_id' => $withPhone->id, 'whatsapp_status' => AnnouncementRecipient::WHATSAPP_PENDING]);
+        $this->assertDatabaseHas('announcement_recipients', ['student_id' => $withoutPhone->id, 'whatsapp_status' => AnnouncementRecipient::WHATSAPP_SKIPPED]);
+    }
+
+    public function test_history_shows_the_whatsapp_delivery_status(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$first, $second] = Student::factory(2)->create();
+        $announcement = $this->sendAnnouncementTo($first, $second);
+        $announcement->recipients()->where('student_id', $first->id)->update(['whatsapp_status' => AnnouncementRecipient::WHATSAPP_SENT]);
+        $announcement->recipients()->where('student_id', $second->id)->update(['whatsapp_status' => AnnouncementRecipient::WHATSAPP_FAILED, 'whatsapp_error' => 'Server WhatsApp tidak bisa dihubungi.']);
+
+        $this->actingAs($admin)->get(route('admin.notifikasi'))->assertOk()->assertSee('WA 1/2, 1 gagal');
+        $this->actingAs($admin)->get(route('admin.notifikasi.show', $announcement))->assertOk()->assertSee('Server WhatsApp tidak bisa dihubungi.');
     }
 
     public function test_non_admins_cannot_send_notifications(): void

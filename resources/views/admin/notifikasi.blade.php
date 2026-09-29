@@ -21,6 +21,28 @@
         </div>
     @endif
 
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    @endif
+
+    @if (session('whatsapp_summary'))
+        @php
+            $whatsappSummary = session('whatsapp_summary');
+        @endphp
+        <div class="alert {{ $whatsappSummary['missing'] ? 'alert-warning' : 'alert-info' }} alert-dismissible fade show" role="alert">
+            <p class="fw-semibold mb-1"><i class="bi bi-whatsapp me-1"></i>WhatsApp orang tua:
+                {{ $whatsappSummary['queued'] }} pesan {{ $whatsappSummary['scheduled_at'] ? 'dijadwalkan terkirim '.$whatsappSummary['scheduled_at'].' WIB' : 'sedang dikirim' }}{{ $whatsappSummary['missing'] ? ', '.count($whatsappSummary['missing']).' gagal' : '' }}.</p>
+            @if ($whatsappSummary['missing'])
+                <ul class="small mb-1">@foreach ($whatsappSummary['missing'] as $line)<li>{{ $line }}</li>@endforeach</ul>
+            @endif
+            <p class="small mb-0 text-muted">Hasil akhir tiap pesan (terkirim/gagal beserta alasannya) bisa dilihat di Riwayat Notifikasi → klik notifikasinya.</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row g-4">
         <div class="col-xl-5">
             <div class="card shadow-sm">
@@ -90,7 +112,7 @@
                         <div class="form-check mb-4">
                             <input type="checkbox" name="send_whatsapp" value="1" class="form-check-input" id="send_whatsapp" @checked(old('send_whatsapp'))>
                             <label class="form-check-label" for="send_whatsapp"><i class="bi bi-whatsapp text-success me-1"></i>Kirim juga ke WhatsApp orang tua</label>
-                            <div class="form-text">Butuh nomor HP orang tua terisi di data siswa. Tidak berlaku untuk notifikasi yang dijadwalkan.</div>
+                            <div class="form-text">Judul & isi pesan dikirim ke nomor HP orang tua di data siswa (atau No. WhatsApp ayah/ibu/wali di Buku Induk). Jika Waktu Kirim diisi, WhatsApp ikut terkirim pada waktu itu. Siswa tanpa nomor dicatat gagal tanpa menghentikan pengiriman ke yang lain.</div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send-fill me-1"></i> Kirim Notifikasi</button>
@@ -112,6 +134,15 @@
                                         <span class="badge bg-{{ $announcement->category->color() }} mb-1">{{ $announcement->category->label() }}</span>
                                         @if ($announcement->isScheduled())
                                             <span class="badge bg-warning text-dark mb-1"><i class="bi bi-clock me-1"></i>Terjadwal</span>
+                                        @endif
+                                        @if ($announcement->whatsapp_requested_count > 0)
+                                            @if ($announcement->whatsapp_problem_count > 0)
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning mb-1" title="{{ $announcement->whatsapp_problem_count }} WhatsApp gagal — klik untuk lihat alasannya"><i class="bi bi-exclamation-triangle-fill me-1"></i>WA {{ $announcement->whatsapp_sent_count }}/{{ $announcement->whatsapp_requested_count }}, {{ $announcement->whatsapp_problem_count }} gagal</span>
+                                            @elseif ($announcement->whatsapp_pending_count > 0)
+                                                <span class="badge bg-secondary-subtle text-secondary-emphasis border mb-1" title="Menunggu dikirim"><i class="bi bi-hourglass-split me-1"></i>WA menunggu {{ $announcement->whatsapp_pending_count }}</span>
+                                            @else
+                                                <span class="badge bg-success-subtle text-success-emphasis border border-success mb-1" title="Semua WhatsApp terkirim"><i class="bi bi-check-circle-fill me-1"></i>WA {{ $announcement->whatsapp_sent_count }}/{{ $announcement->whatsapp_requested_count }}</span>
+                                            @endif
                                         @endif
                                         <div class="fw-bold text-dark">{{ $announcement->title }}</div>
                                         <small class="text-muted">

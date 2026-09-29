@@ -11,9 +11,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Status baca satu notifikasi untuk satu siswa.
  */
-#[Fillable(['announcement_id', 'student_id', 'read_at', 'whatsapp_status', 'whatsapp_sent_at'])]
+#[Fillable(['announcement_id', 'student_id', 'read_at', 'whatsapp_status', 'whatsapp_sent_at', 'whatsapp_error'])]
 class AnnouncementRecipient extends Model
 {
+    /**
+     * Status WhatsApp ke orang tua. Null = WhatsApp tidak diminta untuk
+     * notifikasi ini; pending = sudah masuk antrian (termasuk yang terjadwal).
+     */
+    public const WHATSAPP_PENDING = 'pending';
+
     public const WHATSAPP_SENT = 'sent';
 
     public const WHATSAPP_FAILED = 'failed';

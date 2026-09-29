@@ -67,12 +67,18 @@
                                             @switch($recipient->whatsapp_status)
                                                 @case(\App\Models\AnnouncementRecipient::WHATSAPP_SENT)
                                                     <span class="badge bg-success">Terkirim</span>
+                                                    <small class="text-muted d-block">{{ $recipient->whatsapp_sent_at?->translatedFormat('d M Y, H:i') }}</small>
+                                                    @break
+                                                @case(\App\Models\AnnouncementRecipient::WHATSAPP_PENDING)
+                                                    <span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>Menunggu</span>
                                                     @break
                                                 @case(\App\Models\AnnouncementRecipient::WHATSAPP_FAILED)
                                                     <span class="badge bg-danger">Gagal</span>
+                                                    <small class="text-danger d-block">{{ $recipient->whatsapp_error }}</small>
                                                     @break
                                                 @case(\App\Models\AnnouncementRecipient::WHATSAPP_SKIPPED)
-                                                    <span class="badge bg-secondary">No. HP kosong</span>
+                                                    <span class="badge bg-secondary">Tidak terkirim</span>
+                                                    <small class="text-muted d-block">{{ $recipient->whatsapp_error ?? 'Nomor WhatsApp orang tua belum terisi.' }}</small>
                                                     @break
                                                 @default
                                                     <span class="text-muted small">—</span>

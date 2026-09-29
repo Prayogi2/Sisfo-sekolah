@@ -20,10 +20,20 @@ class WhatsAppGateway
      */
     public function send(string $phone, string $message): bool
     {
+        return $this->deliver($phone, $message) === null;
+    }
+
+    /**
+     * Sama dengan send(), tapi mengembalikan alasan gagal (bahasa Indonesia)
+     * untuk ditampilkan ke admin, atau null bila pesan berhasil terkirim.
+     */
+    public function deliver(string $phone, string $message): ?string
+    {
         $number = $this->normalizePhone($phone);
 
-        if ($number === null) {
-            return false;
+        // Nomor Indonesia yang wajar: 62 + 8–13 digit.
+        if ($number === null || strlen($number) < 10 || strlen($number) > 15) {
+            return "Nomor WhatsApp orang tua tidak valid ({$phone}).";
         }
 
         try {
@@ -33,7 +43,7 @@ class WhatsAppGateway
                 ->post('/send-message', ['to' => $number, 'text' => $message]);
 
             if ($response->successful() && $response->json('ok') === true) {
-                return true;
+                return null;
             }
 
             Log::warning('Pengiriman WhatsApp ditolak server.', [
@@ -42,14 +52,14 @@ class WhatsAppGateway
                 'body' => $response->json(),
             ]);
 
-            return false;
+            return 'Server WhatsApp menolak pesan'.($response->json('message') ? ': '.$response->json('message') : '').'.';
         } catch (Throwable $e) {
             Log::error('Tidak bisa menghubungi server WhatsApp.', [
                 'to' => $number,
                 'error' => $e->getMessage(),
             ]);
 
-            return false;
+            return 'Server WhatsApp tidak bisa dihubungi (pastikan wa-server berjalan & sudah login).';
         }
     }
 

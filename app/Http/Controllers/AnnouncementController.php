@@ -34,6 +34,10 @@ class AnnouncementController extends Controller
             ->withCount([
                 'recipients',
                 'recipients as read_count' => fn ($query) => $query->whereNotNull('read_at'),
+                'recipients as whatsapp_requested_count' => fn ($query) => $query->whereNotNull('whatsapp_status'),
+                'recipients as whatsapp_sent_count' => fn ($query) => $query->where('whatsapp_status', AnnouncementRecipient::WHATSAPP_SENT),
+                'recipients as whatsapp_pending_count' => fn ($query) => $query->where('whatsapp_status', AnnouncementRecipient::WHATSAPP_PENDING),
+                'recipients as whatsapp_problem_count' => fn ($query) => $query->whereIn('whatsapp_status', [AnnouncementRecipient::WHATSAPP_FAILED, AnnouncementRecipient::WHATSAPP_SKIPPED]),
             ])
             ->latest('published_at')
             ->paginate(15);
@@ -94,18 +98,55 @@ class AnnouncementController extends Controller
             return $announcement;
         });
 
-        $sendWhatsapp = $request->boolean('send_whatsapp') && ! $announcement->isScheduled();
-        if ($sendWhatsapp) {
-            $announcement->recipients()->pluck('id')->each(
-                fn (int $recipientId) => SendAnnouncementWhatsApp::dispatch($recipientId)
-            );
-        }
+        $whatsappSummary = $request->boolean('send_whatsapp') ? $this->queueWhatsApp($announcement) : null;
 
         $message = $announcement->isScheduled()
             ? "Notifikasi dijadwalkan untuk {$studentIds->count()} siswa pada {$announcement->published_at->translatedFormat('d F Y, H:i')} WIB."
-            : "Notifikasi terkirim ke {$studentIds->count()} siswa.".($sendWhatsapp ? ' Pesan WhatsApp sedang dikirim ke orang tua di latar belakang.' : '');
+            : "Notifikasi terkirim ke {$studentIds->count()} siswa.";
 
-        return redirect()->route('admin.notifikasi')->with('success', $message);
+        return redirect()->route('admin.notifikasi')
+            ->with('success', $message)
+            ->with('whatsapp_summary', $whatsappSummary);
+    }
+
+    /**
+     * Masukkan WhatsApp ke orang tua tiap penerima ke antrian. Siswa tanpa
+     * nomor orang tua langsung dicatat gagal (tidak menghentikan yang lain).
+     * Untuk notifikasi terjadwal, job ditunda sampai waktu kirimnya.
+     *
+     * @return array{queued: int, scheduled_at: ?string, missing: list<string>}
+     */
+    private function queueWhatsApp(Announcement $announcement): array
+    {
+        $delay = $announcement->isScheduled() ? $announcement->published_at : null;
+        $missing = [];
+        $queued = 0;
+
+        $announcement->recipients()->with(['student.classroom', 'student.guardians'])->get()
+            ->sortBy('student.name')
+            ->each(function (AnnouncementRecipient $recipient) use ($delay, &$missing, &$queued) {
+                $student = $recipient->student;
+
+                if (! $student->parentWhatsAppNumber()) {
+                    $recipient->update([
+                        'whatsapp_status' => AnnouncementRecipient::WHATSAPP_SKIPPED,
+                        'whatsapp_error' => 'Nomor WhatsApp orang tua belum terisi.',
+                    ]);
+                    $missing[] = $student->name.($student->classroom ? " (Kelas {$student->classroom->name})" : '').': nomor WhatsApp orang tua belum terisi';
+
+                    return;
+                }
+
+                $recipient->update(['whatsapp_status' => AnnouncementRecipient::WHATSAPP_PENDING, 'whatsapp_error' => null]);
+                SendAnnouncementWhatsApp::dispatch($recipient->id)->delay($delay);
+                $queued++;
+            });
+
+        return [
+            'queued' => $queued,
+            'scheduled_at' => $delay?->translatedFormat('d F Y, H:i'),
+            'missing' => $missing,
+        ];
     }
 
     /**

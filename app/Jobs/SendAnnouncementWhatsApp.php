@@ -8,11 +8,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Mengirim satu notifikasi lewat WhatsApp ke orang tua satu siswa.
+ * Mengirim satu notifikasi lewat WhatsApp ke orang tua satu siswa. Untuk
+ * notifikasi terjadwal, job ini di-dispatch dengan delay sampai waktu kirim.
  *
  * Tidak diberi retry otomatis: mengirim ulang pesan WhatsApp bukan operasi
  * idempoten (bisa dobel terkirim), jadi kalau gagal cukup dicatat sebagai
- * gagal, bukan dicoba lagi begitu saja.
+ * gagal beserta alasannya, bukan dicoba lagi begitu saja.
  */
 class SendAnnouncementWhatsApp implements ShouldQueue
 {
@@ -24,27 +25,32 @@ class SendAnnouncementWhatsApp implements ShouldQueue
 
     public function handle(WhatsAppGateway $gateway): void
     {
-        $recipient = AnnouncementRecipient::with(['announcement', 'student'])->find($this->recipientId);
+        $recipient = AnnouncementRecipient::with(['announcement', 'student.guardians'])->find($this->recipientId);
 
-        if (! $recipient) {
+        // Notifikasi sudah dihapus admin, atau pesan ini sudah pernah terkirim.
+        if (! $recipient || $recipient->whatsapp_status === AnnouncementRecipient::WHATSAPP_SENT) {
             return;
         }
 
-        $phone = $recipient->student->parent_phone;
+        $phone = $recipient->student->parentWhatsAppNumber();
 
         if (! $phone) {
-            $recipient->update(['whatsapp_status' => AnnouncementRecipient::WHATSAPP_SKIPPED]);
+            $recipient->update([
+                'whatsapp_status' => AnnouncementRecipient::WHATSAPP_SKIPPED,
+                'whatsapp_error' => 'Nomor WhatsApp orang tua belum terisi.',
+            ]);
 
             return;
         }
 
         $text = "*{$recipient->announcement->title}*\n\n{$recipient->announcement->message}\n\n_Pesan otomatis dari NURFA.ID, mohon tidak dibalas._";
 
-        $sent = $gateway->send($phone, $text);
+        $error = $gateway->deliver($phone, $text);
 
         $recipient->update([
-            'whatsapp_status' => $sent ? AnnouncementRecipient::WHATSAPP_SENT : AnnouncementRecipient::WHATSAPP_FAILED,
-            'whatsapp_sent_at' => $sent ? now() : null,
+            'whatsapp_status' => $error === null ? AnnouncementRecipient::WHATSAPP_SENT : AnnouncementRecipient::WHATSAPP_FAILED,
+            'whatsapp_sent_at' => $error === null ? now() : null,
+            'whatsapp_error' => $error,
         ]);
     }
 }
