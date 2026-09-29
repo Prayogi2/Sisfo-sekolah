@@ -45,12 +45,19 @@
             <a href="{{ route('admin.dashboard') }}" class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
             
             <div class="menu-title">Manajemen Data</div>
-            <a href="{{ route('admin.data-siswa') }}" class="{{ request()->routeIs('admin.data-siswa*') ? 'active' : '' }}"><i class="bi bi-people-fill"></i> Data Siswa</a>
-            <a href="{{ route('admin.peserta-presensi') }}" class="{{ request()->routeIs('admin.peserta-presensi*') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Peserta Presensi</a>
-            <a href="{{ route('admin.buku-induk') }}" class="{{ request()->routeIs('admin.buku-induk') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill"></i> Buku Induk (Siswa)</a>
+            @php
+                $studentMenuOpen = request()->routeIs('admin.data-siswa*', 'admin.peserta-presensi*', 'admin.buku-induk*', 'admin.pembagian-kelas*', 'admin.data-mapel*', 'admin.laporan-nilai*');
+            @endphp
+            <a href="#menuDataSiswa" class="menu-group-toggle {{ $studentMenuOpen ? '' : 'collapsed' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $studentMenuOpen ? 'true' : 'false' }}" aria-controls="menuDataSiswa"><i class="bi bi-people-fill"></i> Data Siswa <i class="bi bi-chevron-down menu-group-caret"></i></a>
+            <div class="collapse submenu {{ $studentMenuOpen ? 'show' : '' }}" id="menuDataSiswa">
+                <a href="{{ route('admin.data-siswa') }}" class="{{ request()->routeIs('admin.data-siswa*') ? 'active' : '' }}"><i class="bi bi-person-lines-fill"></i> Daftar Siswa</a>
+                <a href="{{ route('admin.peserta-presensi') }}" class="{{ request()->routeIs('admin.peserta-presensi*') ? 'active' : '' }}"><i class="bi bi-qr-code-scan"></i> Peserta Presensi</a>
+                <a href="{{ route('admin.buku-induk') }}" class="{{ request()->routeIs('admin.buku-induk*') ? 'active' : '' }}"><i class="bi bi-journal-bookmark-fill"></i> Buku Induk</a>
+                <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas*') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
+                <a href="{{ route('admin.data-mapel') }}" class="{{ request()->routeIs('admin.data-mapel*') ? 'active' : '' }}"><i class="bi bi-book-half"></i> Kelola Mapel</a>
+                <a href="{{ route('admin.laporan-nilai') }}" class="{{ request()->routeIs('admin.laporan-nilai*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph-fill"></i> Laporan Nilai</a>
+            </div>
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
-            <a href="{{ route('admin.pembagian-kelas') }}" class="{{ request()->routeIs('admin.pembagian-kelas') ? 'active' : '' }}"><i class="bi bi-diagram-3-fill"></i> Pembagian Kelas</a>
-            <a href="{{ route('admin.data-mapel') }}" class="{{ request()->routeIs('admin.data-mapel') ? 'active' : '' }}"><i class="bi bi-book-half"></i> Kelola Mapel</a>
             <a href="{{ route('admin.akun') }}" class="{{ request()->routeIs('admin.akun') ? 'active' : '' }}"><i class="bi bi-key-fill"></i> Kelola Akun & Password</a>
             
             <div class="menu-title">Akademik & Keuangan</div>
@@ -64,7 +71,6 @@
             <div class="menu-title">Laporan & Hasil</div>
             <a href="{{ route('admin.laporan-absensi') }}" class="{{ request()->routeIs('admin.laporan-absensi') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Laporan Absensi</a>
             <a href="{{ route('admin.laporan-spp') }}" class="{{ request()->routeIs('admin.laporan-spp') ? 'active' : '' }}"><i class="bi bi-cash-stack"></i> Laporan Keuangan SPP</a>
-            <a href="{{ route('admin.laporan-nilai') }}" class="{{ request()->routeIs('admin.laporan-nilai') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph-fill"></i> Laporan Nilai</a>
 
         {{-- MENU GURU --}}
         @elseif($role == 'guru')
