@@ -15,11 +15,6 @@ use Illuminate\Support\Facades\DB;
  */
 class ReportBook
 {
-    /**
-     * Form fisik memuat 3 kelas per tabel, jadi Kelas 1–6 dibagi dua tabel.
-     */
-    public const GRADE_GROUPS = [[1, 2, 3], [4, 5, 6]];
-
     public const MAX_SUBJECTS = 50;
 
     /**

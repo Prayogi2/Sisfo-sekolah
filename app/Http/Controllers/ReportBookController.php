@@ -70,6 +70,6 @@ class ReportBookController extends Controller
         return $exporter->pdf('admin.exports.nilai-buku-induk', [
             'student' => $student,
             'summary' => $reportBook->summary($student),
-        ], "nilai-buku-induk-{$student->nisn}-{$slug}.pdf");
+        ], "nilai-buku-induk-{$student->nisn}-{$slug}.pdf", 'landscape');
     }
 }

@@ -41,20 +41,21 @@
                     <table class="table table-bordered table-sm align-middle text-center mb-0 report-book-edit">
                         <thead class="table-light">
                             <tr>
-                                <th colspan="3" class="text-start">Tahun Ajaran</th>
+                                <th rowspan="3" style="width: 44px;">No.</th>
+                                <th class="text-start" style="min-width: 220px;">Tahun Ajaran</th>
+                                <th rowspan="3" style="width: 44px;"><span class="visually-hidden">Hapus</span></th>
                                 @foreach($gradeLevels as $gradeLevel)
                                     <td colspan="2"><input name="years[{{ $gradeLevel }}][academic_year]" class="form-control form-control-sm text-center" value="{{ $yearValue($gradeLevel, 'academic_year') }}" placeholder="2024/2025" pattern="\d{4}/\d{4}" title="Format YYYY/YYYY, mis. 2024/2025" aria-label="Tahun ajaran kelas {{ $gradeLevel }}"></td>
                                 @endforeach
                             </tr>
                             <tr>
-                                <th rowspan="2" style="width: 44px;">No.</th>
-                                <th rowspan="2" style="min-width: 220px;">Mata Pelajaran</th>
-                                <th rowspan="2" style="width: 44px;"><span class="visually-hidden">Hapus</span></th>
+                                <th class="text-start">Kelas</th>
                                 @foreach($gradeLevels as $gradeLevel)
-                                    <th colspan="2">Kelas {{ $gradeLevel }}</th>
+                                    <th colspan="2">{{ $gradeLevel }}</th>
                                 @endforeach
                             </tr>
                             <tr>
+                                <th class="text-start">Mata Pelajaran</th>
                                 @foreach($gradeLevels as $gradeLevel)
                                     @foreach($semesters as $semester)<th>Sem {{ $semester }}</th>@endforeach
                                 @endforeach

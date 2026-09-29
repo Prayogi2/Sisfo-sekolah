@@ -76,8 +76,7 @@ class ReportBookControllerTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.buku-induk', ['student' => $student->id]));
 
         $response->assertOk();
-        $response->assertSeeInOrder(['NILAI LAPORAN HASIL BELAJAR PESERTA DIDIK', 'Tahun Ajaran', 'Kelas 1', 'Kelas 2', 'Kelas 3', 'Sem 1', 'Sem 2']);
-        $response->assertSeeInOrder(['Kelas 4', 'Kelas 5', 'Kelas 6']);
+        $response->assertSeeInOrder(['No. Seri Rapor', 'NILAI LAPORAN HASIL BELAJAR', 'PESERTA DIDIK', 'No.', 'Tahun Ajaran', 'Kelas', 'Mata Pelajaran', 'Sem 1', 'Sem 2', 'Matematika']);
         // Jumlah 80 + 91 = 171, rata-rata 85,5.
         $response->assertSeeInOrder(['Jumlah Nilai', '171', 'Nilai Rata-rata', '85,5', 'Naik ke Kelas']);
     }
@@ -118,6 +117,29 @@ class ReportBookControllerTest extends TestCase
         $this->assertSame(88.5, $subject->grade_2_semester_1);
         $this->assertSame(92.0, $subject->grade_6_semester_2);
         $this->assertDatabaseHas('report_book_years', ['student_id' => $student->id, 'grade_level' => 2, 'academic_year' => '2025/2026', 'promoted_to' => 'Kelas 3']);
+    }
+
+    public function test_excel_exported_with_the_previous_header_layout_can_still_be_imported(): void
+    {
+        $admin = $this->admin();
+        $student = Student::factory()->create(['nisn' => '0012345678']);
+        ReportBookGrade::factory()->create(['student_id' => $student->id, 'subject_name' => 'Matematika', 'grade_1_semester_1' => 80]);
+
+        $file = $this->exportedFile($admin, $student);
+        $spreadsheet = IOFactory::load($file->getRealPath());
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->unmergeCells('A12:A14');
+        $sheet->fromArray([['Tahun Ajaran', null], ['No.', 'Mata Pelajaran'], [null, null]], null, 'A12');
+        foreach (['C', 'E', 'G', 'I', 'K', 'M'] as $index => $column) {
+            $sheet->setCellValue("{$column}13", 'Kelas '.($index + 1));
+        }
+        IOFactory::createWriter($spreadsheet, 'Xlsx')->save($file->getRealPath());
+        $student->reportBookGrades()->delete();
+
+        $this->actingAs($admin)->post(route('admin.buku-induk.nilai.import.xlsx', $student), ['file' => $file])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(80.0, $student->reportBookGrades()->sole()->grade_1_semester_1);
     }
 
     public function test_import_rejects_invalid_scores_without_touching_existing_data(): void
