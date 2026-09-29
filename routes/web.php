@@ -88,7 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/data-siswa/{student}', [StudentController::class, 'destroy'])->name('data-siswa.destroy');
         Route::get('/pembagian-kelas', [ClassroomController::class, 'index'])->name('pembagian-kelas');
         Route::post('/pembagian-kelas', [ClassroomController::class, 'store'])->name('pembagian-kelas.store');
-        Route::get('/pembagian-kelas/cari-siswa', [ClassroomController::class, 'lookupStudent'])->name('pembagian-kelas.cari-siswa');
+        Route::post('/pembagian-kelas/cari-siswa', [ClassroomController::class, 'lookupStudents'])->name('pembagian-kelas.cari-siswa');
         Route::get('/pembagian-kelas/{classroom}/import/template', [ClassroomImportController::class, 'template'])->name('pembagian-kelas.import.template');
         Route::post('/pembagian-kelas/{classroom}/import', [ClassroomImportController::class, 'store'])->name('pembagian-kelas.import');
         Route::put('/pembagian-kelas/{classroom}', [ClassroomController::class, 'update'])->name('pembagian-kelas.update');

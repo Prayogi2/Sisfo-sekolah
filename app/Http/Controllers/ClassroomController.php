@@ -67,34 +67,47 @@ class ClassroomController extends Controller
     }
 
     /**
-     * Pencarian AJAX satu siswa lewat NISN/NIS untuk form Tambah Kelas.
-     * 200 = boleh ditambahkan; 404 = tidak ditemukan; 422 = ditolak (sudah
-     * punya kelas / tidak aktif).
+     * Pencarian AJAX banyak siswa sekaligus lewat NISN/NIS untuk form Tambah
+     * Kelas. Semua dicari dalam satu query; hasilnya dipisah jadi siswa yang
+     * boleh ditambahkan (`students`) dan per-NISN yang gagal (`errors`).
      */
-    public function lookupStudent(Request $request): JsonResponse
+    public function lookupStudents(Request $request): JsonResponse
     {
         Gate::authorize('create', Classroom::class);
 
-        $keyword = $request->string('q')->trim()->toString();
-        if ($keyword === '') {
-            return response()->json(['message' => 'Ketik NISN atau NIS siswa.'], 422);
+        $request->validate(
+            ['keywords' => ['required', 'string', 'max:5000']],
+            ['keywords.required' => 'Ketik minimal satu NISN atau NIS siswa.'],
+        );
+
+        // Pisah baris baru, koma, titik koma, tab, atau spasi; buang duplikat.
+        $keywords = collect(preg_split('/[\s,;]+/', $request->string('keywords')->toString(), -1, PREG_SPLIT_NO_EMPTY))->unique()->values();
+        if ($keywords->count() > 100) {
+            return response()->json(['message' => 'Maksimal 100 NISN/NIS sekali proses.'], 422);
         }
 
         // Excel/salin-tempel sering menghilangkan angka 0 di depan NISN.
-        $nisn = ctype_digit($keyword) && strlen($keyword) < 10 ? str_pad($keyword, 10, '0', STR_PAD_LEFT) : $keyword;
-        $student = Student::query()->with('classroom')
-            ->where(fn ($query) => $query->where('nisn', $keyword)->orWhere('nisn', $nisn)->orWhere('nis', $keyword))
-            ->first();
+        $padded = fn (string $keyword) => ctype_digit($keyword) && strlen($keyword) < 10 ? str_pad($keyword, 10, '0', STR_PAD_LEFT) : $keyword;
+        $candidates = Student::query()->with('classroom')
+            ->where(fn ($query) => $query->whereIn('nisn', $keywords->map($padded)->merge($keywords)->unique())->orWhereIn('nis', $keywords))
+            ->get();
 
-        if (! $student) {
-            return response()->json(['message' => "NISN/NIS {$keyword} tidak ditemukan."], 404);
+        $students = [];
+        $errors = [];
+        foreach ($keywords as $keyword) {
+            $student = $candidates->first(fn (Student $student) => in_array($student->nisn, [$keyword, $padded($keyword)], true) || $student->nis === $keyword);
+
+            if (! $student) {
+                $errors[] = ['keyword' => $keyword, 'message' => "NISN/NIS {$keyword} tidak ditemukan."];
+            } elseif ($issue = $student->newClassroomPlacementIssue()) {
+                $errors[] = ['keyword' => $keyword, 'message' => $issue];
+            } elseif (! isset($students[$student->id])) {
+                // NISN & NIS siswa yang sama sama-sama diketik → cukup sekali.
+                $students[$student->id] = $student->only(['id', 'name', 'nisn', 'nis']);
+            }
         }
 
-        if ($issue = $student->newClassroomPlacementIssue()) {
-            return response()->json(['message' => $issue], 422);
-        }
-
-        return response()->json(['student' => $student->only(['id', 'name', 'nisn', 'nis'])]);
+        return response()->json(['students' => array_values($students), 'errors' => $errors]);
     }
 
     public function update(UpdateClassroomRequest $request, Classroom $classroom): RedirectResponse

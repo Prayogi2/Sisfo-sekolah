@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ClassroomControllerTest extends TestCase
@@ -116,28 +117,58 @@ class ClassroomControllerTest extends TestCase
         $this->assertSame($otherClassroom->id, $student->fresh()->classroom_id);
     }
 
-    public function test_student_lookup_by_nisn_or_nis(): void
+    public function test_student_lookup_accepts_many_nisn_or_nis_at_once(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $otherClassroom = Classroom::factory()->create(['name' => '5-A']);
-        $free = Student::factory()->create(['name' => 'Siti', 'nisn' => '0012345678', 'nis' => 'NIS-01', 'classroom_id' => null]);
+        $siti = Student::factory()->create(['name' => 'Siti', 'nisn' => '0012345678', 'nis' => 'NIS-01', 'classroom_id' => null]);
+        $andi = Student::factory()->create(['name' => 'Andi', 'nisn' => '4444444444', 'nis' => 'NIS-02', 'classroom_id' => null]);
         Student::factory()->create(['name' => 'Budi', 'nisn' => '2222222222', 'classroom_id' => $otherClassroom->id]);
         Student::factory()->create(['name' => 'Rina', 'nisn' => '3333333333', 'classroom_id' => null, 'status' => 'graduated']);
-        $lookup = fn (string $keyword) => $this->actingAs($admin)->getJson(route('admin.pembagian-kelas.cari-siswa', ['q' => $keyword]));
 
-        $lookup('0012345678')->assertOk()->assertJsonPath('student.id', $free->id)->assertJsonPath('student.name', 'Siti');
-        $lookup('12345678')->assertOk()->assertJsonPath('student.id', $free->id);
-        $lookup('NIS-01')->assertOk()->assertJsonPath('student.id', $free->id);
-        $lookup('1234567890')->assertNotFound()->assertJsonPath('message', 'NISN/NIS 1234567890 tidak ditemukan.');
-        $lookup('2222222222')->assertUnprocessable()->assertJsonPath('message', 'Budi sudah terdaftar di kelas 5-A.');
-        $lookup('3333333333')->assertUnprocessable()->assertJsonPath('message', 'Rina berstatus Lulus, bukan siswa aktif.');
+        // Campuran pemisah baris/koma/spasi, NISN tanpa 0 depan, NIS, duplikat, dan NISN+NIS siswa yang sama.
+        $this->actingAs($admin)->postJson(route('admin.pembagian-kelas.cari-siswa'), [
+            'keywords' => "12345678\n4444444444, NIS-01\n1234567890; 2222222222 3333333333\n4444444444\nNIS-02",
+        ])->assertOk()
+            ->assertJsonPath('students', [
+                ['id' => $siti->id, 'name' => 'Siti', 'nisn' => '0012345678', 'nis' => 'NIS-01'],
+                ['id' => $andi->id, 'name' => 'Andi', 'nisn' => '4444444444', 'nis' => 'NIS-02'],
+            ])
+            ->assertJsonPath('errors', [
+                ['keyword' => '1234567890', 'message' => 'NISN/NIS 1234567890 tidak ditemukan.'],
+                ['keyword' => '2222222222', 'message' => 'Budi sudah terdaftar di kelas 5-A.'],
+                ['keyword' => '3333333333', 'message' => 'Rina berstatus Lulus, bukan siswa aktif.'],
+            ]);
+    }
+
+    public function test_looking_up_forty_students_uses_a_single_student_query(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $students = Student::factory(40)->create(['classroom_id' => null]);
+
+        DB::enableQueryLog();
+        $response = $this->actingAs($admin)->postJson(route('admin.pembagian-kelas.cari-siswa'), [
+            'keywords' => $students->pluck('nisn')->implode("\n"),
+        ]);
+        $studentQueries = collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], 'from "students"'));
+
+        $response->assertOk()->assertJsonCount(40, 'students')->assertJsonCount(0, 'errors');
+        $this->assertCount(1, $studentQueries);
+    }
+
+    public function test_student_lookup_requires_at_least_one_keyword(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->postJson(route('admin.pembagian-kelas.cari-siswa'), ['keywords' => ''])
+            ->assertUnprocessable()->assertJsonValidationErrors('keywords');
     }
 
     public function test_guru_cannot_use_the_student_lookup(): void
     {
         $guru = User::factory()->create(['role' => 'guru']);
 
-        $this->actingAs($guru)->getJson(route('admin.pembagian-kelas.cari-siswa', ['q' => '1234567890']))->assertForbidden();
+        $this->actingAs($guru)->postJson(route('admin.pembagian-kelas.cari-siswa'), ['keywords' => '1234567890'])->assertForbidden();
     }
 
     public function test_creating_a_classroom_requires_unique_name_within_the_same_academic_year(): void

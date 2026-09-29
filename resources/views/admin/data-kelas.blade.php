@@ -225,9 +225,11 @@
                         <div class="mb-3">
                             <label for="newClassStudentInput" class="form-label fw-semibold">NISN/NIS Siswa <span class="text-muted fw-normal small">(opsional)</span></label>
                             <div class="input-group">
-                                <input type="text" id="newClassStudentInput" class="form-control" placeholder="Ketik NISN/NIS lalu tekan Enter" autocomplete="off">
+                                <textarea id="newClassStudentInput" class="form-control" rows="3" placeholder="Ketik atau tempel NISN/NIS — satu per baris, atau pisahkan dengan koma" autocomplete="off"></textarea>
                                 <button type="button" class="btn btn-primary" id="newClassStudentAdd"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
                             </div>
+                            <div class="form-text">Bisa banyak sekaligus, mis. tempel satu kolom NISN dari Excel. <kbd>Enter</kbd> = Tambah, <kbd>Shift</kbd>+<kbd>Enter</kbd> = baris baru.</div>
+                            <div class="form-text text-success" id="newClassStudentSuccess" hidden></div>
                             <div class="form-text text-danger" id="newClassStudentError" hidden></div>
                             <ul class="list-group mt-2" id="newClassStudentList">
                                 @foreach ($oldNewClassStudents as $student)
@@ -298,19 +300,36 @@
     </div>
 
     <script>
-        // Tambah Kelas: cari siswa per NISN/NIS lewat AJAX, lalu kumpulkan jadi daftar anggota kelas.
+        // Tambah Kelas: cari banyak siswa sekaligus per NISN/NIS lewat AJAX, lalu kumpulkan jadi daftar anggota kelas.
         (function () {
             const input = document.getElementById('newClassStudentInput');
             const addButton = document.getElementById('newClassStudentAdd');
+            const successText = document.getElementById('newClassStudentSuccess');
             const errorText = document.getElementById('newClassStudentError');
             const list = document.getElementById('newClassStudentList');
             const count = document.getElementById('newClassStudentCount');
             const maxStudents = {{ \App\Models\Classroom::DEFAULT_CAPACITY }};
             const lookupUrl = @json(route('admin.pembagian-kelas.cari-siswa'));
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-            function showError(message) {
-                errorText.textContent = message;
-                errorText.hidden = ! message;
+            function showSuccess(message) {
+                successText.textContent = message;
+                successText.hidden = ! message;
+            }
+
+            // Satu pesan, atau daftar pesan per NISN yang gagal.
+            function showError(messages) {
+                const lines = [].concat(messages || []).filter(Boolean);
+                errorText.replaceChildren();
+                if (lines.length === 1) {
+                    errorText.textContent = lines[0];
+                } else if (lines.length > 1) {
+                    const listElement = document.createElement('ul');
+                    listElement.className = 'mb-0 ps-3';
+                    lines.forEach((line) => listElement.appendChild(Object.assign(document.createElement('li'), { textContent: line })));
+                    errorText.appendChild(listElement);
+                }
+                errorText.hidden = lines.length === 0;
             }
 
             function updateCount() {
@@ -335,27 +354,46 @@
             }
 
             async function lookup() {
-                const keyword = input.value.trim();
-                if (! keyword) {
+                const keywords = input.value.trim();
+                showSuccess('');
+                if (! keywords) {
                     return showError('Ketik NISN atau NIS siswa terlebih dahulu.');
                 }
                 if (list.children.length >= maxStudents) {
-                    return showError(`Maksimal ${maxStudents} siswa (kapasitas kelas baru).`);
+                    return showError(`Daftar sudah penuh (maksimal ${maxStudents} siswa, kapasitas kelas baru).`);
                 }
 
                 addButton.disabled = true;
                 try {
-                    const response = await fetch(`${lookupUrl}?q=${encodeURIComponent(keyword)}`, { headers: { Accept: 'application/json' } });
+                    const response = await fetch(lookupUrl, {
+                        method: 'POST',
+                        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                        body: JSON.stringify({ keywords }),
+                    });
                     const data = await response.json();
                     if (! response.ok) {
-                        return showError(data.message || 'Siswa tidak bisa ditambahkan.');
+                        return showError(data.errors?.keywords?.[0] || data.message || 'Siswa tidak bisa dicari.');
                     }
-                    if (list.querySelector(`[data-student-id="${data.student.id}"]`)) {
-                        return showError(`${data.student.name} sudah ada di daftar.`);
-                    }
-                    addStudentRow(data.student);
-                    showError('');
-                    input.value = '';
+
+                    const failed = data.errors.map((error) => error.message);
+                    const failedKeywords = data.errors.map((error) => error.keyword);
+                    let added = 0;
+                    data.students.forEach((student) => {
+                        if (list.querySelector(`[data-student-id="${student.id}"]`)) {
+                            failed.push(`${student.name} sudah ada di daftar.`);
+                        } else if (list.children.length >= maxStudents) {
+                            failed.push(`${student.name} tidak ditambahkan: daftar sudah penuh (maksimal ${maxStudents} siswa).`);
+                            failedKeywords.push(student.nisn || student.nis);
+                        } else {
+                            addStudentRow(student);
+                            added++;
+                        }
+                    });
+
+                    showSuccess(added ? `${added} siswa ditambahkan ke daftar.` : '');
+                    showError(failed);
+                    // Sisakan hanya NISN yang gagal supaya mudah dibetulkan lalu ditambah ulang.
+                    input.value = failedKeywords.join('\n');
                 } catch (error) {
                     showError('Gagal menghubungi server. Coba lagi.');
                 } finally {
@@ -365,8 +403,8 @@
             }
 
             input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    event.preventDefault(); // Enter di sini untuk mencari siswa, bukan menyimpan form.
+                if (event.key === 'Enter' && ! event.shiftKey) {
+                    event.preventDefault(); // Enter = Tambah (bukan simpan form); Shift+Enter = baris baru.
                     lookup();
                 }
             });
@@ -377,7 +415,10 @@
                     updateCount();
                 }
             });
-            document.getElementById('modalTambahKelas').addEventListener('shown.bs.modal', () => showError(''));
+            document.getElementById('modalTambahKelas').addEventListener('shown.bs.modal', () => {
+                showError('');
+                showSuccess('');
+            });
             updateCount();
 
             // Simpan gagal validasi: buka lagi modalnya dengan isian sebelumnya.
