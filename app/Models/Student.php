@@ -127,6 +127,26 @@ class Student extends Model
     }
 
     /**
+     * Alasan siswa ini TIDAK boleh dimasukkan ke kelas baru (form Tambah
+     * Kelas), atau null bila boleh. Siswa yang sudah punya kelas ditolak,
+     * bukan dipindah otomatis — sama dengan aturan Import Excel per kelas.
+     */
+    public function newClassroomPlacementIssue(): ?string
+    {
+        if ($this->status !== StudentStatus::Active) {
+            return "{$this->name} berstatus {$this->status->label()}, bukan siswa aktif.";
+        }
+
+        if ($this->classroom_id !== null) {
+            $this->loadMissing('classroom');
+
+            return "{$this->name} sudah terdaftar di kelas {$this->classroom?->name}.";
+        }
+
+        return null;
+    }
+
+    /**
      * Nomor WhatsApp orang tua untuk notifikasi: No. HP orang tua di data
      * siswa, atau bila kosong No. WhatsApp ayah → ibu → wali di Buku Induk.
      */

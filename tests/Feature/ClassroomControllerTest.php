@@ -70,14 +70,74 @@ class ClassroomControllerTest extends TestCase
             'name' => '6-C',
             'grade_level' => 6,
             'homeroom_teacher_id' => $teacher->id,
-            'capacity' => 30,
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('classrooms', [
             'name' => '6-C',
             'academic_year' => Classroom::currentAcademicYear(),
+            'capacity' => Classroom::DEFAULT_CAPACITY,
         ]);
+    }
+
+    public function test_creating_a_classroom_can_directly_place_the_listed_students(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$first, $second] = Student::factory(2)->create(['classroom_id' => null]);
+
+        $this->actingAs($admin)->post(route('admin.pembagian-kelas.store'), [
+            'name' => '1-B',
+            'grade_level' => 1,
+            'student_ids' => [$first->id, $second->id],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $classroom = Classroom::query()->where('name', '1-B')->sole();
+        $this->assertSame($classroom->id, $first->fresh()->classroom_id);
+        $this->assertSame($classroom->id, $second->fresh()->classroom_id);
+    }
+
+    /**
+     * Siswa yang sudah punya kelas ditolak (tidak dipindah) — dicek ulang di
+     * server walau pencarian AJAX sebelumnya sudah lolos.
+     */
+    public function test_creating_a_classroom_rejects_a_student_already_in_another_classroom(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $otherClassroom = Classroom::factory()->create(['name' => '5-A']);
+        $student = Student::factory()->create(['name' => 'Budi', 'classroom_id' => $otherClassroom->id]);
+
+        $this->actingAs($admin)->post(route('admin.pembagian-kelas.store'), [
+            'name' => '1-B',
+            'grade_level' => 1,
+            'student_ids' => [$student->id],
+        ])->assertSessionHasErrors(['student_ids' => 'Budi sudah terdaftar di kelas 5-A.']);
+
+        $this->assertDatabaseMissing('classrooms', ['name' => '1-B']);
+        $this->assertSame($otherClassroom->id, $student->fresh()->classroom_id);
+    }
+
+    public function test_student_lookup_by_nisn_or_nis(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $otherClassroom = Classroom::factory()->create(['name' => '5-A']);
+        $free = Student::factory()->create(['name' => 'Siti', 'nisn' => '0012345678', 'nis' => 'NIS-01', 'classroom_id' => null]);
+        Student::factory()->create(['name' => 'Budi', 'nisn' => '2222222222', 'classroom_id' => $otherClassroom->id]);
+        Student::factory()->create(['name' => 'Rina', 'nisn' => '3333333333', 'classroom_id' => null, 'status' => 'graduated']);
+        $lookup = fn (string $keyword) => $this->actingAs($admin)->getJson(route('admin.pembagian-kelas.cari-siswa', ['q' => $keyword]));
+
+        $lookup('0012345678')->assertOk()->assertJsonPath('student.id', $free->id)->assertJsonPath('student.name', 'Siti');
+        $lookup('12345678')->assertOk()->assertJsonPath('student.id', $free->id);
+        $lookup('NIS-01')->assertOk()->assertJsonPath('student.id', $free->id);
+        $lookup('1234567890')->assertNotFound()->assertJsonPath('message', 'NISN/NIS 1234567890 tidak ditemukan.');
+        $lookup('2222222222')->assertUnprocessable()->assertJsonPath('message', 'Budi sudah terdaftar di kelas 5-A.');
+        $lookup('3333333333')->assertUnprocessable()->assertJsonPath('message', 'Rina berstatus Lulus, bukan siswa aktif.');
+    }
+
+    public function test_guru_cannot_use_the_student_lookup(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($guru)->getJson(route('admin.pembagian-kelas.cari-siswa', ['q' => '1234567890']))->assertForbidden();
     }
 
     public function test_creating_a_classroom_requires_unique_name_within_the_same_academic_year(): void
@@ -88,7 +148,6 @@ class ClassroomControllerTest extends TestCase
         $response = $this->actingAs($admin)->post(route('admin.pembagian-kelas.store'), [
             'name' => '6-C',
             'grade_level' => 6,
-            'capacity' => 30,
         ]);
 
         $response->assertSessionHasErrors('name');

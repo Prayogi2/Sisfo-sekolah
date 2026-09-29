@@ -192,8 +192,9 @@
     <!-- Modal Tambah Kelas -->
     <div class="modal fade" id="modalTambahKelas" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form action="{{ route('admin.pembagian-kelas.store') }}" method="POST">
+            <form action="{{ route('admin.pembagian-kelas.store') }}" method="POST" id="formTambahKelas">
                 @csrf
+                <input type="hidden" name="_form" value="tambah-kelas">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Tambah Kelas Baru</h5>
@@ -202,7 +203,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Nama Kelas</label>
-                            <input type="text" name="name" class="form-control" placeholder="Contoh: 6-C" required>
+                            <input type="text" name="name" class="form-control" placeholder="Contoh: 6-C" value="{{ old('_form') === 'tambah-kelas' ? old('name') : '' }}" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Tingkat Kelas</label>
@@ -222,8 +223,22 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Kapasitas Siswa</label>
-                            <input type="number" name="capacity" class="form-control" value="30" min="1" max="60" required>
+                            <label for="newClassStudentInput" class="form-label fw-semibold">NISN/NIS Siswa <span class="text-muted fw-normal small">(opsional)</span></label>
+                            <div class="input-group">
+                                <input type="text" id="newClassStudentInput" class="form-control" placeholder="Ketik NISN/NIS lalu tekan Enter" autocomplete="off">
+                                <button type="button" class="btn btn-primary" id="newClassStudentAdd"><i class="bi bi-plus-lg me-1"></i>Tambah</button>
+                            </div>
+                            <div class="form-text text-danger" id="newClassStudentError" hidden></div>
+                            <ul class="list-group mt-2" id="newClassStudentList">
+                                @foreach ($oldNewClassStudents as $student)
+                                    <li class="list-group-item d-flex justify-content-between align-items-center py-2" data-student-id="{{ $student->id }}">
+                                        <span><span class="fw-semibold">{{ $student->name }}</span> <small class="text-muted">· {{ $student->nisn ?: $student->nis }}</small></span>
+                                        <input type="hidden" name="student_ids[]" value="{{ $student->id }}">
+                                        <button type="button" class="btn-close btn-sm" aria-label="Hapus {{ $student->name }}"></button>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            <div class="form-text" id="newClassStudentCount"></div>
                         </div>
                     </div>
                     <div class="modal-footer bg-light">
@@ -283,6 +298,94 @@
     </div>
 
     <script>
+        // Tambah Kelas: cari siswa per NISN/NIS lewat AJAX, lalu kumpulkan jadi daftar anggota kelas.
+        (function () {
+            const input = document.getElementById('newClassStudentInput');
+            const addButton = document.getElementById('newClassStudentAdd');
+            const errorText = document.getElementById('newClassStudentError');
+            const list = document.getElementById('newClassStudentList');
+            const count = document.getElementById('newClassStudentCount');
+            const maxStudents = {{ \App\Models\Classroom::DEFAULT_CAPACITY }};
+            const lookupUrl = @json(route('admin.pembagian-kelas.cari-siswa'));
+
+            function showError(message) {
+                errorText.textContent = message;
+                errorText.hidden = ! message;
+            }
+
+            function updateCount() {
+                const total = list.children.length;
+                count.textContent = total ? `${total} siswa akan dimasukkan ke kelas ini saat disimpan.` : 'Boleh dikosongkan — siswa bisa ditambahkan belakangan.';
+            }
+
+            function addStudentRow(student) {
+                const item = document.createElement('li');
+                item.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+                item.dataset.studentId = student.id;
+                const label = document.createElement('span');
+                label.innerHTML = '<span class="fw-semibold"></span> <small class="text-muted"></small>';
+                label.children[0].textContent = student.name;
+                label.children[1].textContent = '· ' + (student.nisn || student.nis);
+                const hidden = Object.assign(document.createElement('input'), { type: 'hidden', name: 'student_ids[]', value: student.id });
+                const remove = Object.assign(document.createElement('button'), { type: 'button', className: 'btn-close btn-sm' });
+                remove.setAttribute('aria-label', 'Hapus ' + student.name);
+                item.append(label, hidden, remove);
+                list.appendChild(item);
+                updateCount();
+            }
+
+            async function lookup() {
+                const keyword = input.value.trim();
+                if (! keyword) {
+                    return showError('Ketik NISN atau NIS siswa terlebih dahulu.');
+                }
+                if (list.children.length >= maxStudents) {
+                    return showError(`Maksimal ${maxStudents} siswa (kapasitas kelas baru).`);
+                }
+
+                addButton.disabled = true;
+                try {
+                    const response = await fetch(`${lookupUrl}?q=${encodeURIComponent(keyword)}`, { headers: { Accept: 'application/json' } });
+                    const data = await response.json();
+                    if (! response.ok) {
+                        return showError(data.message || 'Siswa tidak bisa ditambahkan.');
+                    }
+                    if (list.querySelector(`[data-student-id="${data.student.id}"]`)) {
+                        return showError(`${data.student.name} sudah ada di daftar.`);
+                    }
+                    addStudentRow(data.student);
+                    showError('');
+                    input.value = '';
+                } catch (error) {
+                    showError('Gagal menghubungi server. Coba lagi.');
+                } finally {
+                    addButton.disabled = false;
+                    input.focus();
+                }
+            }
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault(); // Enter di sini untuk mencari siswa, bukan menyimpan form.
+                    lookup();
+                }
+            });
+            addButton.addEventListener('click', lookup);
+            list.addEventListener('click', (event) => {
+                if (event.target.classList.contains('btn-close')) {
+                    event.target.closest('li').remove();
+                    updateCount();
+                }
+            });
+            document.getElementById('modalTambahKelas').addEventListener('shown.bs.modal', () => showError(''));
+            updateCount();
+
+            // Simpan gagal validasi: buka lagi modalnya dengan isian sebelumnya.
+            @if (old('_form') === 'tambah-kelas' && $errors->any())
+                document.addEventListener('DOMContentLoaded', () => bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTambahKelas')).show());
+            @endif
+        })();
+
         document.getElementById('modalEditKelas').addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             document.getElementById('formEditKelas').action = button.dataset.action;

@@ -16,6 +16,12 @@ class Classroom extends Model
     use HasFactory;
 
     /**
+     * Kapasitas kelas baru dari form Tambah Kelas (sama dengan nilai bawaan
+     * kolom); bisa diubah belakangan lewat Edit Kelas.
+     */
+    public const DEFAULT_CAPACITY = 30;
+
+    /**
      * The homeroom teacher (wali kelas) for this classroom.
      */
     public function homeroomTeacher(): BelongsTo
