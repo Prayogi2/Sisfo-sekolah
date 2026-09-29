@@ -41,15 +41,16 @@
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
                         <thead class="table-light">
-                            <tr><th style="width: 50px;">No</th><th>Nama Barang</th><th>Kondisi</th><th>Keterangan</th><th>Dilaporkan</th><th class="text-end">Aksi</th></tr>
+                            <tr><th style="width: 50px;">No</th><th>Nama Barang</th><th class="text-center" style="width: 80px;">Jumlah</th><th>Kondisi</th><th>Keterangan</th><th>Dilaporkan</th><th class="text-end">Aksi</th></tr>
                         </thead>
                         <tbody>
                             @forelse($itemsByCategory as $categoryValue => $items)
-                                <tr class="table-primary"><td colspan="6" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
+                                <tr class="table-primary"><td colspan="7" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
                                 @foreach($items as $item)
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td class="fw-semibold">{{ $item->name }}</td>
+                                        <td class="text-center fw-bold">{{ $item->good_quantity + $item->damaged_quantity }}</td>
                                         <td><x-inventaris.condition :good="$item->good_quantity" :damaged="$item->damaged_quantity" :photo-path="$item->photo_path" :name="$item->name" /></td>
                                         <td class="small text-muted">{{ $item->notes ?: '-' }}</td>
                                         <td class="small text-muted">{{ $item->last_reported_at?->translatedFormat('d M Y') ?? 'Belum' }}</td>
@@ -63,7 +64,7 @@
                                     </tr>
                                 @endforeach
                             @empty
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada barang inventaris. Klik <strong>Tambah Daftar Barang Standar</strong> untuk memulai.</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted py-4">Belum ada barang inventaris. Klik <strong>Tambah Daftar Barang Standar</strong> untuk memulai.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

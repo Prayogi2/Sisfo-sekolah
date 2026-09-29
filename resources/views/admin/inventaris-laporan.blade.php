@@ -21,21 +21,22 @@
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead class="table-light">
-                        <tr><th style="width: 50px;">No</th><th>Nama Barang</th><th>Kondisi</th><th>Keterangan</th></tr>
+                        <tr><th style="width: 50px;">No</th><th>Nama Barang</th><th class="text-center" style="width: 80px;">Jumlah</th><th>Kondisi</th><th>Keterangan</th></tr>
                     </thead>
                     <tbody>
                         @forelse($itemsByCategory as $categoryValue => $items)
-                            <tr class="table-primary"><td colspan="4" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
+                            <tr class="table-primary"><td colspan="5" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
                             @foreach($items as $item)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td class="fw-semibold">{{ $item->name }}</td>
+                                    <td class="text-center fw-bold">{{ $item->good_quantity + $item->damaged_quantity }}</td>
                                     <td><x-inventaris.condition :good="$item->good_quantity" :damaged="$item->damaged_quantity" :photo-path="$item->photo_path" :name="$item->name" /></td>
                                     <td class="small text-muted">{{ $item->notes ?: '-' }}</td>
                                 </tr>
                             @endforeach
                         @empty
-                            <tr><td colspan="4" class="text-center text-muted py-4">Laporan ini tidak berisi barang.</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-4">Laporan ini tidak berisi barang.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

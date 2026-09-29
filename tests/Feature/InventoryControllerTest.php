@@ -65,13 +65,14 @@ class InventoryControllerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $classroom = Classroom::factory()->create();
         $otherClassroom = Classroom::factory()->create();
-        InventoryItem::factory()->create(['classroom_id' => $classroom->id, 'name' => 'Proyektor Kelas', 'good_quantity' => 1]);
+        InventoryItem::factory()->create(['classroom_id' => $classroom->id, 'name' => 'Kursi Kelas', 'good_quantity' => 26, 'damaged_quantity' => 2]);
         InventoryItem::factory()->create(['classroom_id' => $otherClassroom->id, 'name' => 'Televisi Kelas Lain']);
 
         $response = $this->actingAs($admin)->get(route('admin.inventaris', ['classroom' => $classroom->id]));
 
         $response->assertOk();
-        $response->assertSee('Proyektor Kelas');
+        // Jumlah total = baik + rusak.
+        $response->assertSeeInOrder(['Kursi Kelas', '28', 'Baik: 26', 'Rusak: 2']);
         $response->assertDontSee('Televisi Kelas Lain');
     }
 
@@ -115,13 +116,32 @@ class InventoryControllerTest extends TestCase
         $this->assertSame($defaultCount, $classroom->inventoryItems()->count());
     }
 
+    public function test_admin_can_add_several_items_at_once_skipping_blank_rows(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.inventaris.items.store', $classroom), [
+            'items' => [
+                ['category' => InventoryCategory::Electronics->value, 'name' => 'Proyektor', 'quantity' => 1],
+                ['category' => InventoryCategory::Electronics->value, 'name' => '   ', 'quantity' => 1],
+                ['category' => InventoryCategory::Furniture->value, 'name' => ' Meja Baca ', 'quantity' => 28],
+            ],
+        ])->assertSessionHasNoErrors()->assertSessionHas('success', '2 barang inventaris berhasil ditambahkan.');
+
+        $this->assertSame(
+            [[InventoryCategory::Electronics, 'Proyektor', 1, 0], [InventoryCategory::Furniture, 'Meja Baca', 28, 0]],
+            $classroom->inventoryItems()->orderBy('sort_order')->get()
+                ->map(fn (InventoryItem $item) => [$item->category, $item->name, $item->good_quantity, $item->damaged_quantity])->all(),
+        );
+    }
+
     public function test_homeroom_teacher_can_add_an_item_to_their_class(): void
     {
         [$user, $classroom] = $this->homeroomTeacher();
 
         $this->actingAs($user)->post(route('guru.inventaris.items.store', $classroom), [
-            'category' => InventoryCategory::Electronics->value,
-            'name' => 'Proyektor',
+            'items' => [['category' => InventoryCategory::Electronics->value, 'name' => 'Proyektor', 'quantity' => 1]],
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertDatabaseHas('inventory_items', [
@@ -132,15 +152,56 @@ class InventoryControllerTest extends TestCase
         ]);
     }
 
-    public function test_adding_an_item_that_already_exists_in_the_category_is_rejected(): void
+    public function test_adding_an_item_that_already_exists_in_the_category_saves_nothing(): void
     {
         [$user, $classroom] = $this->homeroomTeacher();
         InventoryItem::factory()->create(['classroom_id' => $classroom->id, 'category' => InventoryCategory::Furniture, 'name' => 'Lemari']);
 
         $this->actingAs($user)->post(route('guru.inventaris.items.store', $classroom), [
-            'category' => InventoryCategory::Furniture->value,
-            'name' => 'Lemari',
-        ])->assertSessionHasErrors(['name' => 'Barang dengan nama ini sudah ada di kategori tersebut.']);
+            'items' => [
+                ['category' => InventoryCategory::Furniture->value, 'name' => 'Rak Baru', 'quantity' => 1],
+                ['category' => InventoryCategory::Furniture->value, 'name' => 'lemari', 'quantity' => 1],
+            ],
+        ])->assertSessionHasErrors(['items.1.name' => 'Barang "lemari" sudah ada di kategori Mebelair.']);
+
+        $this->assertSame(1, $classroom->inventoryItems()->count());
+    }
+
+    public function test_the_same_item_cannot_be_submitted_twice_in_one_request(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.inventaris.items.store', $classroom), [
+            'items' => [
+                ['category' => InventoryCategory::Cleaning->value, 'name' => 'Ember', 'quantity' => 1],
+                ['category' => InventoryCategory::Cleaning->value, 'name' => 'Ember', 'quantity' => 1],
+            ],
+        ])->assertSessionHasErrors(['items.1.name' => 'Barang "Ember" sudah ada di kategori Perlengkapan Kebersihan.']);
+
+        $this->assertDatabaseCount('inventory_items', 0);
+    }
+
+    public function test_adding_items_with_only_blank_rows_is_rejected(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.inventaris.items.store', $classroom), [
+            'items' => [['category' => InventoryCategory::Cleaning->value, 'name' => '', 'quantity' => 1]],
+        ])->assertSessionHasErrors(['items' => 'Isi minimal satu nama barang.']);
+    }
+
+    public function test_adding_items_rejects_a_negative_quantity(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.inventaris.items.store', $classroom), [
+            'items' => [['category' => InventoryCategory::Furniture->value, 'name' => 'Meja', 'quantity' => -3]],
+        ])->assertSessionHasErrors(['items.0.quantity' => 'Jumlah barang tidak boleh negatif.']);
+
+        $this->assertDatabaseCount('inventory_items', 0);
     }
 
     public function test_guru_cannot_add_items_to_a_class_they_do_not_teach(): void
@@ -149,8 +210,7 @@ class InventoryControllerTest extends TestCase
         $otherClassroom = Classroom::factory()->create();
 
         $this->actingAs($user)->post(route('guru.inventaris.items.store', $otherClassroom), [
-            'category' => InventoryCategory::Furniture->value,
-            'name' => 'Lemari',
+            'items' => [['category' => InventoryCategory::Furniture->value, 'name' => 'Lemari', 'quantity' => 1]],
         ])->assertForbidden();
 
         $this->assertDatabaseCount('inventory_items', 0);

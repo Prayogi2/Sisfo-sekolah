@@ -45,19 +45,21 @@
                                 <th>Nama Barang</th>
                                 <th style="width: 110px;"><i class="bi bi-check-circle-fill text-success me-1"></i>Baik</th>
                                 <th style="width: 110px;"><i class="bi bi-x-circle-fill text-danger me-1"></i>Rusak</th>
+                                <th class="text-center" style="width: 80px;">Jumlah</th>
                                 <th style="min-width: 220px;">Foto Kondisi</th>
                                 <th style="min-width: 200px;">Keterangan</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($itemsByCategory as $categoryValue => $items)
-                                <tr class="table-primary"><td colspan="6" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
+                                <tr class="table-primary"><td colspan="7" class="fw-bold">{{ \App\Enums\InventoryCategory::from($categoryValue)->label() }}</td></tr>
                                 @foreach($items as $item)
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td class="fw-semibold">{{ $item->name }}</td>
                                         <td><input type="number" name="items[{{ $item->id }}][good_quantity]" value="{{ old("items.{$item->id}.good_quantity", $item->good_quantity) }}" min="0" max="9999" class="form-control form-control-sm" required aria-label="Jumlah {{ $item->name }} kondisi baik"></td>
                                         <td><input type="number" name="items[{{ $item->id }}][damaged_quantity]" value="{{ old("items.{$item->id}.damaged_quantity", $item->damaged_quantity) }}" min="0" max="9999" class="form-control form-control-sm" required aria-label="Jumlah {{ $item->name }} rusak"></td>
+                                        <td class="text-center fw-bold item-total">{{ (int) old("items.{$item->id}.good_quantity", $item->good_quantity) + (int) old("items.{$item->id}.damaged_quantity", $item->damaged_quantity) }}</td>
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 @if($item->photo_path)
@@ -70,7 +72,7 @@
                                     </tr>
                                 @endforeach
                             @empty
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada barang inventaris. Klik <strong>Tambah Daftar Barang Standar</strong> di atas untuk memulai.</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted py-4">Belum ada barang inventaris. Klik <strong>Tambah Daftar Barang Standar</strong> di atas untuk memulai.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -92,6 +94,19 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Kolom Jumlah = baik + rusak, ikut berubah saat wali kelas mengetik.
+    document.querySelectorAll('input[name$="[good_quantity]"], input[name$="[damaged_quantity]"]').forEach(input => {
+        input.addEventListener('input', function () {
+            const row = input.closest('tr');
+            const value = name => parseInt(row.querySelector(`input[name$="[${name}]"]`).value, 10) || 0;
+            row.querySelector('.item-total').textContent = value('good_quantity') + value('damaged_quantity');
+        });
+    });
+</script>
+@endpush
 
 @push('styles')
 <style>

@@ -66,14 +66,23 @@ class InventoryController extends Controller
 
     public function storeItem(StoreInventoryItemRequest $request, Classroom $classroom): RedirectResponse
     {
-        $classroom->inventoryItems()->create([
-            'category' => $request->enum('category', InventoryCategory::class),
-            'name' => $request->string('name')->trim()->toString(),
-            'sort_order' => (int) $classroom->inventoryItems()->max('sort_order') + 1,
-            'created_by' => $request->user()->id,
-        ]);
+        $sortOrder = (int) $classroom->inventoryItems()->max('sort_order');
+        $items = $request->validated('items');
 
-        return back()->with('success', 'Barang inventaris berhasil ditambahkan.');
+        DB::transaction(function () use ($classroom, $items, $request, &$sortOrder) {
+            foreach ($items as $item) {
+                $classroom->inventoryItems()->create([
+                    'category' => $item['category'],
+                    'name' => $item['name'],
+                    // Barang yang baru dicatat dianggap dalam kondisi baik.
+                    'good_quantity' => (int) $item['quantity'],
+                    'sort_order' => ++$sortOrder,
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+        });
+
+        return back()->with('success', count($items).' barang inventaris berhasil ditambahkan.');
     }
 
     /**
