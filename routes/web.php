@@ -167,6 +167,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/bank-soal/{question}', [QuizController::class, 'updateQuestion'])->name('bank-soal.update');
         Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
         Route::post('/kuis', [QuizController::class, 'storeQuiz'])->name('kuis.store');
+        Route::post('/kuis/{quiz}/publikasi', [QuizController::class, 'togglePublish'])->name('kuis.toggle-publish');
         Route::post('/kuis/{quiz}/buka-tutup', [QuizController::class, 'toggleOpen'])->name('kuis.toggle-open');
         Route::get('/kuis/{quiz}/live', [QuizController::class, 'liveHost'])->name('kuis.live');
         Route::post('/kuis/{quiz}/live/mulai', [QuizController::class, 'startLive'])->name('kuis.live.start');

@@ -836,6 +836,61 @@ class QuizControllerTest extends TestCase
         $this->assertFalse($quiz->fresh()->is_open);
     }
 
+    public function test_a_new_quiz_is_always_saved_as_a_draft(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $subject = Subject::factory()->create();
+        $classroom = Classroom::factory()->create();
+        $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
+        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
+            'subject_id' => $subject->id,
+            'classroom_id' => $classroom->id,
+            'title' => 'Kuis Baru',
+            'duration_minutes' => 30,
+            'is_published' => 1,
+            'question_ids' => [$question->id],
+        ])->assertSessionHas('success', 'Kuis "Kuis Baru" disimpan sebagai Draft. Klik Publikasikan bila sudah siap dipakai siswa.');
+
+        $this->assertFalse(Quiz::where('title', 'Kuis Baru')->sole()->is_published);
+    }
+
+    public function test_guru_can_publish_a_draft_and_return_it_to_draft(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $quiz = Quiz::factory()->draft()->create(['created_by' => $guruUser->id, 'is_open' => false]);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.toggle-publish', $quiz))
+            ->assertSessionHas('success', "Kuis \"{$quiz->title}\" dipublikasikan. Klik Buka Kuis saat jam pelajaran untuk mulai.");
+        $this->assertTrue($quiz->fresh()->is_published);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.toggle-publish', $quiz))
+            ->assertSessionHas('success', "Kuis \"{$quiz->title}\" dikembalikan ke Draft dan tidak terlihat oleh siswa.");
+        $this->assertFalse($quiz->fresh()->is_published);
+    }
+
+    public function test_an_open_quiz_cannot_be_returned_to_draft(): void
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $quiz = Quiz::factory()->create(['created_by' => $guruUser->id, 'is_published' => true, 'is_open' => true]);
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.toggle-publish', $quiz))
+            ->assertSessionHas('error', "Tutup kuis \"{$quiz->title}\" dulu sebelum mengembalikannya ke Draft.");
+        $this->assertTrue($quiz->fresh()->is_published);
+    }
+
+    public function test_guru_cannot_publish_a_quiz_made_by_another_teacher(): void
+    {
+        $owner = User::factory()->create(['role' => 'guru']);
+        $otherGuru = User::factory()->create(['role' => 'guru']);
+        $quiz = Quiz::factory()->draft()->create(['created_by' => $owner->id]);
+
+        $this->actingAs($otherGuru)->post(route('guru.kuis.toggle-publish', $quiz))->assertForbidden();
+        $this->assertFalse($quiz->fresh()->is_published);
+    }
+
     public function test_opening_the_live_host_panel_for_a_non_kahoot_quiz_redirects_with_an_error(): void
     {
         $guruUser = User::factory()->create(['role' => 'guru']);

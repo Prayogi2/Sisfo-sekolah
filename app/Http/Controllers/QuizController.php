@@ -165,7 +165,7 @@ class QuizController extends Controller
             'subject_id' => ['required', 'integer', 'exists:subjects,id'], 'classroom_id' => ['required', 'integer', 'exists:classrooms,id'],
             'title' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string'],
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'], 'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
-            'is_published' => ['sometimes', 'boolean'], 'question_ids' => ['required', 'array', 'min:1'], 'question_ids.*' => ['integer', 'exists:quiz_questions,id'],
+            'question_ids' => ['required', 'array', 'min:1'], 'question_ids.*' => ['integer', 'exists:quiz_questions,id'],
         ], [
             'subject_id.required' => 'Pilih mata pelajaran untuk kuis ini.',
             'classroom_id.required' => 'Pilih kelas yang akan mengerjakan kuis ini.',
@@ -186,11 +186,33 @@ class QuizController extends Controller
         $quizData['mode'] = 'live';
         $quizData['show_score_per_question'] = (bool) ($quizData['show_score_per_question'] ?? false);
         $quizData['live_phase'] = 'lobby';
+        // Kuis baru selalu Draft; guru mempublikasikannya saat siap dipakai.
+        $quizData['is_published'] = false;
         $quiz = Quiz::create($quizData);
         $questionPoints = QuizQuestion::whereIn('id', $questionIds)->pluck('points', 'id');
         $quiz->questions()->attach(collect($questionIds)->values()->mapWithKeys(fn ($id, $index) => [$id => ['sort_order' => $index + 1, 'points' => $questionPoints[$id]]])->all());
 
-        return back()->with('success', 'Kuis CBT berhasil dibuat.');
+        return back()->with('success', "Kuis \"{$quiz->title}\" disimpan sebagai Draft. Klik Publikasikan bila sudah siap dipakai siswa.");
+    }
+
+    /**
+     * Draft → Dipublikasikan (siswa bisa melihat kuis), atau kembalikan ke
+     * Draft bila belum mau dipakai. Kuis yang sedang dibuka harus ditutup
+     * dulu supaya siswa yang sedang mengerjakan tidak terputus.
+     */
+    public function togglePublish(Request $request, Quiz $quiz): RedirectResponse
+    {
+        $this->authorizeQuiz($request, $quiz);
+
+        if ($quiz->is_published && $quiz->is_open) {
+            return back()->with('error', "Tutup kuis \"{$quiz->title}\" dulu sebelum mengembalikannya ke Draft.");
+        }
+
+        $quiz->update(['is_published' => ! $quiz->is_published]);
+
+        return back()->with('success', $quiz->is_published
+            ? "Kuis \"{$quiz->title}\" dipublikasikan. Klik Buka Kuis saat jam pelajaran untuk mulai."
+            : "Kuis \"{$quiz->title}\" dikembalikan ke Draft dan tidak terlihat oleh siswa.");
     }
 
     /**
