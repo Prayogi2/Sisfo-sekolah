@@ -112,6 +112,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/data-guru/{teacher}', [TeacherController::class, 'update'])->name('data-guru.update');
         Route::delete('/data-guru/{teacher}', [TeacherController::class, 'destroy'])->name('data-guru.destroy');
         Route::post('/data-guru/{teacher}/reset-password', [TeacherController::class, 'resetPassword'])->name('data-guru.reset-password');
+        Route::post('/data-guru/{teacher}/akses-admin', [TeacherController::class, 'grantAdminAccess'])->name('data-guru.admin-access.grant');
+        Route::delete('/data-guru/{teacher}/akses-admin', [TeacherController::class, 'revokeAdminAccess'])->name('data-guru.admin-access.revoke');
         Route::get('/verifikasi-spp', [SppPaymentController::class, 'index'])->name('verifikasi-spp');
         Route::post('/verifikasi-spp/{sppPayment}/approve', [SppPaymentController::class, 'approve'])->name('verifikasi-spp.approve');
         Route::post('/verifikasi-spp/{sppPayment}/reject', [SppPaymentController::class, 'reject'])->name('verifikasi-spp.reject');

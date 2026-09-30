@@ -28,7 +28,7 @@ class QuizController extends Controller
     {
         abort_unless($request->user()->hasRole(['admin', 'guru']), 403);
 
-        $isGuru = $request->user()->hasRole('guru');
+        $isGuru = $this->actingAsGuru($request);
         $teacher = $isGuru ? $this->teacherFor($request) : null;
 
         $subjects = Subject::query()
@@ -56,7 +56,7 @@ class QuizController extends Controller
             ? $teacher->teachingAssignments->groupBy('subject_id')->map(fn ($rows) => $rows->pluck('classroom_id'))
             : collect();
 
-        return view($request->user()->hasRole('admin') ? 'admin.bank-soal' : 'guru.bank-soal', [
+        return view($isGuru ? 'guru.bank-soal' : 'admin.bank-soal', [
             'subjects' => $subjects,
             'classrooms' => $classrooms,
             'subjectClassroomMap' => $subjectClassroomMap,

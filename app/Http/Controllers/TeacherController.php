@@ -10,6 +10,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Services\UserPasswordResetter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -17,19 +18,19 @@ use Illuminate\View\View;
 
 class TeacherController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('viewAny', Teacher::class);
 
         $teachers = Teacher::query()
-            ->with(['homeroomClassrooms', 'subjects', 'teachingAssignments.subject', 'teachingAssignments.classroom'])
+            ->with(['homeroomClassrooms', 'subjects', 'teachingAssignments.subject', 'teachingAssignments.classroom', 'user.roles'])
             ->orderBy('name')
             ->get();
 
         $subjects = Subject::orderBy('name')->get();
         $classrooms = Classroom::orderBy('name')->get();
 
-        $view = auth()->user()->hasRole('admin') ? 'admin.data-guru' : 'guru.data-guru';
+        $view = $this->actingAsGuru($request) ? 'guru.data-guru' : 'admin.data-guru';
 
         return view($view, compact('teachers', 'subjects', 'classrooms'));
     }
@@ -97,6 +98,50 @@ class TeacherController extends Controller
         $newPassword = $resetter->reset($teacher->user);
 
         return back()->with('success', "Password baru untuk {$teacher->name}: {$newPassword}");
+    }
+
+    /**
+     * Beri akun guru akses admin tambahan. Perannya sebagai guru (mapel,
+     * wali kelas) tetap berjalan; dia berpindah lewat menu Akses Role.
+     */
+    public function grantAdminAccess(Teacher $teacher): RedirectResponse
+    {
+        Gate::authorize('manageAdminAccess', $teacher);
+
+        if (! $teacher->user) {
+            return back()->with('error', "{$teacher->name} belum memiliki akun login, jadi belum bisa dijadikan admin.");
+        }
+
+        if ($teacher->user->hasRole('admin')) {
+            return back()->with('error', "{$teacher->name} sudah memiliki akses admin.");
+        }
+
+        $teacher->user->assignRole('admin');
+
+        return back()->with('success', "{$teacher->name} sekarang juga memiliki akses admin. Menu admin bisa dibuka lewat Akses Role di pojok kanan atas.");
+    }
+
+    public function revokeAdminAccess(Request $request, Teacher $teacher): RedirectResponse
+    {
+        Gate::authorize('manageAdminAccess', $teacher);
+
+        $user = $teacher->user;
+
+        if (! $user?->hasRole('admin')) {
+            return back()->with('error', "{$teacher->name} tidak memiliki akses admin.");
+        }
+
+        if ($user->is($request->user())) {
+            return back()->with('error', 'Anda tidak bisa mencabut akses admin akun Anda sendiri.');
+        }
+
+        if ($user->role === 'admin') {
+            return back()->with('error', "Akun {$teacher->name} adalah akun admin utama, aksesnya tidak bisa dicabut dari sini.");
+        }
+
+        $user->removeRole('admin');
+
+        return back()->with('success', "Akses admin {$teacher->name} dicabut. Akunnya kembali hanya sebagai guru.");
     }
 
     /**

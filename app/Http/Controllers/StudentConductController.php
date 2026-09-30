@@ -28,7 +28,7 @@ class StudentConductController extends Controller
         }))->orderBy('name')->get();
         $achievements = StudentAchievement::with('student.classroom')->when($studentId, fn ($builder) => $builder->where('student_id', $studentId))->latest('achieved_at')->latest()->get();
         $violations = StudentViolation::with('student.classroom')->when($studentId, fn ($builder) => $builder->where('student_id', $studentId))->latest('occurred_at')->latest()->get();
-        $isGuru = $request->user()->hasRole('guru');
+        $isGuru = $this->actingAsGuru($request);
 
         return view('admin.prestasi-pelanggaran', compact('students', 'achievements', 'violations', 'studentId', 'query', 'isGuru'));
     }

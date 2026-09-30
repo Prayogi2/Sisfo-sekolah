@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Classroom;
+use App\Models\LeaveRequest;
+use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\User;
@@ -200,5 +202,110 @@ class TeacherControllerTest extends TestCase
 
         $response->assertRedirect();
         $this->assertModelMissing($teacher);
+    }
+
+    /**
+     * @return array{0: User, 1: Teacher}
+     */
+    private function teacherWithAccount(): array
+    {
+        $user = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $user->id]);
+
+        return [$user, $teacher];
+    }
+
+    public function test_admin_can_make_a_teacher_an_admin_who_keeps_the_guru_role(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$user, $teacher] = $this->teacherWithAccount();
+
+        $this->actingAs($admin)->post(route('admin.data-guru.admin-access.grant', $teacher))
+            ->assertSessionHas('success', "{$teacher->name} sekarang juga memiliki akses admin. Menu admin bisa dibuka lewat Akses Role di pojok kanan atas.");
+
+        $user->refresh();
+        $this->assertTrue($user->hasRole('admin'));
+        $this->assertTrue($user->hasRole('guru'));
+        $this->actingAs($user)->get(route('admin.dashboard'))->assertOk();
+    }
+
+    public function test_a_teacher_without_a_login_account_cannot_be_made_admin(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacher = Teacher::factory()->create(['user_id' => null]);
+
+        $this->actingAs($admin)->post(route('admin.data-guru.admin-access.grant', $teacher))
+            ->assertSessionHas('error', "{$teacher->name} belum memiliki akun login, jadi belum bisa dijadikan admin.");
+    }
+
+    public function test_guru_cannot_grant_admin_access(): void
+    {
+        [$guru] = $this->teacherWithAccount();
+        [$otherUser, $otherTeacher] = $this->teacherWithAccount();
+
+        $this->actingAs($guru)->post(route('admin.data-guru.admin-access.grant', $otherTeacher))->assertForbidden();
+
+        $this->assertFalse($otherUser->fresh()->hasRole('admin'));
+    }
+
+    public function test_admin_can_revoke_admin_access_from_a_teacher(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$user, $teacher] = $this->teacherWithAccount();
+        $user->assignRole('admin');
+
+        $this->actingAs($admin)->delete(route('admin.data-guru.admin-access.revoke', $teacher))
+            ->assertSessionHas('success', "Akses admin {$teacher->name} dicabut. Akunnya kembali hanya sebagai guru.");
+
+        $user->refresh();
+        $this->assertFalse($user->hasRole('admin'));
+        $this->assertTrue($user->hasRole('guru'));
+        $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();
+    }
+
+    public function test_a_teacher_admin_cannot_revoke_their_own_admin_access(): void
+    {
+        [$user, $teacher] = $this->teacherWithAccount();
+        $user->assignRole('admin');
+
+        $this->actingAs($user)->delete(route('admin.data-guru.admin-access.revoke', $teacher))
+            ->assertSessionHas('error', 'Anda tidak bisa mencabut akses admin akun Anda sendiri.');
+
+        $this->assertTrue($user->fresh()->hasRole('admin'));
+    }
+
+    public function test_the_primary_admin_account_cannot_be_revoked(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $primaryAdmin = User::factory()->create(['role' => 'admin']);
+        $teacher = Teacher::factory()->create(['user_id' => $primaryAdmin->id]);
+
+        $this->actingAs($admin)->delete(route('admin.data-guru.admin-access.revoke', $teacher))
+            ->assertSessionHas('error', "Akun {$teacher->name} adalah akun admin utama, aksesnya tidak bisa dicabut dari sini.");
+
+        $this->assertTrue($primaryAdmin->fresh()->hasRole('admin'));
+    }
+
+    public function test_a_teacher_with_admin_access_still_gets_the_guru_pages_under_guru_urls(): void
+    {
+        [$user, $teacher] = $this->teacherWithAccount();
+        $user->assignRole('admin');
+        $homeroom = Classroom::factory()->create(['homeroom_teacher_id' => $teacher->id]);
+        $ownStudent = Student::factory()->create(['classroom_id' => $homeroom->id]);
+        $otherStudent = Student::factory()->create();
+        LeaveRequest::factory()->create(['student_id' => $ownStudent->id]);
+        LeaveRequest::factory()->create(['student_id' => $otherStudent->id]);
+
+        $this->actingAs($user)->get(route('guru.data-guru'))->assertViewIs('guru.data-guru');
+        $this->actingAs($user)->get(route('guru.bank-soal'))->assertViewIs('guru.bank-soal');
+        $this->actingAs($user)->get(route('guru.approval-izin'))
+            ->assertViewIs('guru.approval-izin')
+            ->assertSee($ownStudent->name)
+            ->assertDontSee($otherStudent->name);
+
+        // Di halaman admin, dia melihat semua data seperti admin.
+        $this->actingAs($user)->get(route('admin.approval-izin'))
+            ->assertViewIs('admin.approval-izin')
+            ->assertSee($otherStudent->name);
     }
 }

@@ -29,7 +29,7 @@ class GradeController extends Controller
 
         $subjects = Subject::query()
             ->when(
-                $user->hasRole('guru'),
+                $this->actingAsGuru($request),
                 fn ($query) => $query->whereHas('teachers', fn ($query) => $query->where('user_id', $user->id))
             )
             ->orderBy('name')
@@ -118,7 +118,8 @@ class GradeController extends Controller
     private function gradeSheet(Request $request, $subjects): array
     {
         $user = $request->user();
-        $teacher = $user->hasRole('guru') ? Teacher::where('user_id', $user->id)->first() : null;
+        $isGuru = $this->actingAsGuru($request);
+        $teacher = $isGuru ? Teacher::where('user_id', $user->id)->first() : null;
 
         $academicYear = $request->string('academic_year', Classroom::currentAcademicYear())->toString();
         $semester = Semester::tryFrom($request->string('semester')->toString()) ?? Semester::current();
@@ -134,7 +135,7 @@ class GradeController extends Controller
         // tidak melihat kelas apa pun — hanya admin yang unrestricted.
         $classrooms = match (true) {
             $teacher !== null && $subjectId => $teacher->classroomsForSubject($subjectId),
-            $user->hasRole('guru') => collect(),
+            $isGuru => collect(),
             default => Classroom::orderBy('name')->get(),
         };
 

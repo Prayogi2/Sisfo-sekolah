@@ -35,4 +35,12 @@ class TeacherPolicy
     {
         return $user->hasRole('admin');
     }
+
+    /**
+     * Memberi atau mencabut akses admin untuk akun guru.
+     */
+    public function manageAdminAccess(User $user, Teacher $teacher): bool
+    {
+        return $user->hasRole('admin');
+    }
 }

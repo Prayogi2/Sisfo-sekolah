@@ -24,7 +24,7 @@ class LeaveRequestController extends Controller
 
         $leaveRequests = LeaveRequest::query()
             ->with(['student.classroom', 'guardian'])
-            ->when($user->hasRole('guru'), function ($query) use ($user) {
+            ->when($this->actingAsGuru($request), function ($query) use ($user) {
                 $classroomIds = Classroom::query()
                     ->whereHas('homeroomTeacher', fn ($query) => $query->where('user_id', $user->id))
                     ->pluck('id');
@@ -34,7 +34,7 @@ class LeaveRequestController extends Controller
             ->orderByDesc('created_at')
             ->paginate(15);
 
-        $view = $user->hasRole('admin') ? 'admin.approval-izin' : 'guru.approval-izin';
+        $view = $this->actingAsGuru($request) ? 'guru.approval-izin' : 'admin.approval-izin';
 
         return view($view, compact('leaveRequests'));
     }

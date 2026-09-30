@@ -89,6 +89,9 @@
                                         @else
                                             <span class="badge bg-primary-soft text-primary">Guru Mapel</span>
                                         @endif
+                                        @if ($teacher->user?->hasRole('admin'))
+                                            <span class="badge bg-danger-subtle text-danger"><i class="bi bi-shield-lock-fill me-1"></i>Admin</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div><i class="bi bi-whatsapp text-success me-1"></i>{{ $teacher->phone ?: '-' }}</div>
@@ -118,6 +121,18 @@
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-light" title="Reset Password"><i class="bi bi-key text-secondary"></i></button>
                                         </form>
+                                        @if ($teacher->user?->hasRole('admin'))
+                                            <form action="{{ route('admin.data-guru.admin-access.revoke', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Cabut akses admin {{ addslashes($teacher->name) }}? Akunnya kembali hanya sebagai guru.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-light" title="Cabut Akses Admin"><i class="bi bi-shield-x text-danger"></i></button>
+                                            </form>
+                                        @elseif ($teacher->user)
+                                            <form action="{{ route('admin.data-guru.admin-access.grant', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Jadikan {{ addslashes($teacher->name) }} sebagai admin? Guru ini akan bisa membuka dan mengubah semua menu admin.');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-light" title="Jadikan Admin"><i class="bi bi-shield-plus text-primary"></i></button>
+                                            </form>
+                                        @endif
                                         <form action="{{ route('admin.data-guru.destroy', $teacher) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus data {{ $teacher->name }}?');">
                                             @csrf
                                             @method('DELETE')
