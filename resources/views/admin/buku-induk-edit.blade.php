@@ -42,19 +42,18 @@
             <x-page-guide>Formulir ini menyimpan semua bagian Buku Induk sekaligus. Bagian yang masih kosong boleh dilengkapi bertahap — klik Simpan Semua Data setiap kali selesai mengisi sebagian.</x-page-guide>
         @endif
 
-        <form action="{{ $isNew ? route('admin.data-siswa.store') : route('admin.buku-induk.update', $student) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ $isNew ? route('admin.data-siswa.store') : route('admin.buku-induk.update', $student) }}" method="POST" enctype="multipart/form-data" id="studentRecordForm">
             @csrf
             @unless($isNew)@method('PUT')@endunless
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-start">
                     <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Identitas Peserta Didik</h6>
                     <div class="text-center flex-shrink-0 ms-3">
-                        @if($profile?->photo_path)
-                            <img src="{{ Storage::url($profile->photo_path) }}" alt="Foto {{ $student->name }}" class="img-thumbnail" style="width:90px;height:112px;object-fit:cover;">
-                        @else
-                            <div class="img-thumbnail d-flex align-items-center justify-content-center text-muted small bg-light" style="width:90px;height:112px;">Belum ada foto</div>
-                        @endif
-                        <input name="photo" type="file" class="form-control form-control-sm mt-1" accept="image/jpeg,image/png,image/webp" style="width:90px;">
+                        <img id="photoPreview" src="{{ $profile?->photo_path ? Storage::url($profile->photo_path) : '' }}" alt="Foto {{ $student->name }}" class="img-thumbnail {{ $profile?->photo_path ? '' : 'd-none' }}" style="width:90px;height:112px;object-fit:cover;">
+                        <div id="photoPlaceholder" class="img-thumbnail d-flex align-items-center justify-content-center text-muted small bg-light {{ $profile?->photo_path ? 'd-none' : '' }}" style="width:90px;height:112px;">Belum ada foto</div>
+                        <input name="photo" id="photoInput" type="file" class="form-control form-control-sm mt-1 @error('photo') is-invalid @enderror" accept="image/jpeg,image/png,image/webp" style="width:90px;">
+                        <div id="photoStatus" class="small text-muted mt-1" style="max-width:90px;"></div>
+                        @error('photo')<div class="small text-danger" style="max-width:120px;">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="card-body"><div class="row g-3">
@@ -180,7 +179,85 @@
             </div></div></div>
             @endunless
 
+            <div id="formInvalidAlert" class="alert alert-danger d-none" role="alert"></div>
             <div class="d-flex justify-content-end gap-2 mb-5"><a href="{{ $backUrl }}" class="btn btn-secondary">Batal</a><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>{{ $isNew ? 'Simpan Siswa Baru' : 'Simpan Semua Data' }}</button></div>
         </form>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    (function () {
+        const form = document.getElementById('studentRecordForm');
+        const photoInput = document.getElementById('photoInput');
+        const preview = document.getElementById('photoPreview');
+        const placeholder = document.getElementById('photoPlaceholder');
+        const photoStatus = document.getElementById('photoStatus');
+        const invalidAlert = document.getElementById('formInvalidAlert');
+        const maxSide = 1200;
+        let resizing = null;
+
+        // Foto dari HP bisa 3–8 MB dan melebihi batas upload server. Kecilkan
+        // dulu di browser (sisi terpanjang 1200 px, JPEG) sebelum dikirim.
+        photoInput.addEventListener('change', function () {
+            const file = photoInput.files[0];
+            if (!file) return;
+
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+            placeholder.classList.add('d-none');
+            photoStatus.textContent = 'Menyiapkan foto…';
+
+            resizing = new Promise(resolve => {
+                const image = new Image();
+                image.onload = () => {
+                    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(image.naturalWidth * scale);
+                    canvas.height = Math.round(image.naturalHeight * scale);
+                    canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(blob => {
+                        if (blob && blob.size < file.size) {
+                            const transfer = new DataTransfer();
+                            transfer.items.add(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+                            photoInput.files = transfer.files;
+                        }
+                        photoStatus.textContent = 'Foto siap (' + Math.round(photoInput.files[0].size / 1024) + ' KB)';
+                        resolve();
+                    }, 'image/jpeg', 0.85);
+                };
+                image.onerror = () => {
+                    photoStatus.textContent = 'File bukan gambar yang valid.';
+                    resolve();
+                };
+                image.src = preview.src;
+            });
+        });
+
+        // Tunggu proses pengecilan foto selesai sebelum form benar-benar dikirim.
+        form.addEventListener('submit', function (event) {
+            if (!resizing) return;
+            event.preventDefault();
+            resizing.then(() => {
+                resizing = null;
+                form.requestSubmit();
+            });
+        });
+
+        // Browser menahan form bila ada kolom tidak valid; tampilkan di dekat tombol Simpan.
+        const invalidFields = new Set();
+        form.addEventListener('invalid', function (event) {
+            const field = event.target;
+            const label = field.closest('[class*="col-"]')?.querySelector('.form-label')?.textContent.replace('*', '').trim() || field.name;
+            if (invalidFields.size === 0) {
+                setTimeout(() => {
+                    invalidAlert.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Data belum tersimpan. Periksa kolom berikut: <strong>' + [...invalidFields].join(', ') + '</strong>.';
+                    invalidAlert.classList.remove('d-none');
+                    invalidFields.clear();
+                });
+            }
+            invalidFields.add(label + (field.validationMessage ? ' (' + field.validationMessage + ')' : ''));
+        }, true);
+    })();
+</script>
+@endpush

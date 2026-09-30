@@ -155,6 +155,10 @@ class StudentRecordWriter
     {
         return [
             'nisn.digits' => 'NISN harus berupa 10 digit angka.',
+            'photo.image' => 'Foto siswa harus berupa gambar (JPG, PNG, atau WEBP).',
+            'photo.mimes' => 'Foto siswa harus berformat JPG, PNG, atau WEBP.',
+            'photo.max' => 'Ukuran foto siswa maksimal 5 MB.',
+            'photo.uploaded' => 'Foto gagal diunggah, kemungkinan ukurannya melebihi batas server. Coba foto yang lebih kecil.',
             'birth_date.date' => 'Tanggal lahir tidak valid.',
             'birth_date.before' => 'Tanggal lahir harus sebelum hari ini.',
             'report_book_serial_number.max' => 'No. seri rapor maksimal 100 karakter.',

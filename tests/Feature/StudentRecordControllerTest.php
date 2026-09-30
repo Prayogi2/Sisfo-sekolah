@@ -12,6 +12,8 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class StudentRecordControllerTest extends TestCase
@@ -286,6 +288,37 @@ class StudentRecordControllerTest extends TestCase
             'exam_number' => '2-26-05-01-001-002-3',
             'graduation_certificate_number' => 'MI-26-0012345',
         ]);
+    }
+
+    public function test_admin_can_upload_a_student_photo_replacing_the_old_one(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+        Storage::disk('public')->put('student-photos/lama.jpg', 'foto lama');
+        StudentProfile::factory()->create(['student_id' => $student->id, 'photo_path' => 'student-photos/lama.jpg']);
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'photo' => UploadedFile::fake()->image('foto.jpg', 900, 1200),
+        ]))->assertSessionHasNoErrors()->assertRedirect(route('admin.buku-induk', ['student' => $student->id]));
+
+        $photoPath = $student->profile()->value('photo_path');
+        $this->assertStringStartsWith('student-photos/', $photoPath);
+        Storage::disk('public')->assertExists($photoPath);
+        Storage::disk('public')->assertMissing('student-photos/lama.jpg');
+    }
+
+    public function test_a_non_image_photo_is_rejected(): void
+    {
+        Storage::fake('public');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'photo' => UploadedFile::fake()->create('foto.pdf', 100, 'application/pdf'),
+        ]))->assertSessionHasErrors(['photo' => 'Foto siswa harus berupa gambar (JPG, PNG, atau WEBP).']);
+
+        $this->assertNull($student->profile()->value('photo_path'));
     }
 
     public function test_buku_induk_rejects_a_non_numeric_nisn_and_a_future_birth_date(): void
