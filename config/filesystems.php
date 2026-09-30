@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Tidak disajikan lewat route: route /storage dipakai disk public.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -42,6 +43,9 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Foto upload tetap tampil walau hosting belum punya symlink
+            // public/storage: Laravel yang menyajikan filenya lewat route.
+            'serve' => true,
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
