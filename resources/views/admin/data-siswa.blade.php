@@ -7,7 +7,9 @@
         <!-- Page Heading -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Data Siswa</h1>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('admin.data-siswa.unduh', ['format' => 'xlsx'] + request()->only('search', 'classroom_id')) }}" class="btn btn-outline-success shadow-sm"><i class="bi bi-file-earmark-excel me-1"></i> Excel</a>
+                <a href="{{ route('admin.data-siswa.unduh', ['format' => 'pdf'] + request()->only('search', 'classroom_id')) }}" class="btn btn-outline-danger shadow-sm"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
                 <a href="{{ route('admin.data-siswa.import') }}" class="btn btn-outline-primary shadow-sm">
                     <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import Excel
                 </a>

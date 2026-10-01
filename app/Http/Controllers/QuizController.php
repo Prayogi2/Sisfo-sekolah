@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesQuizContent;
 use App\Http\Controllers\Concerns\ResolvesCurrentStudent;
 use App\Models\Attendance;
 use App\Models\Classroom;
@@ -12,17 +13,22 @@ use App\Models\QuizQuestion;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\CurrentStudentResolver;
+use App\Services\LiveQuizSession;
+use App\Services\QuizAnswerGrader;
 use App\Services\QuizAttemptFinalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class QuizController extends Controller
 {
-    use ResolvesCurrentStudent;
+    use AuthorizesQuizContent, ResolvesCurrentStudent;
 
     public function questionBank(Request $request): View
     {
@@ -40,6 +46,18 @@ class QuizController extends Controller
             ->get();
         $questions = QuizQuestion::with('subject')->when($isGuru, fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
         $quizzes = Quiz::with(['subject', 'classroom', 'questions'])->when($isGuru, fn ($query) => $query->where('created_by', $request->user()->id))->latest()->get();
+
+        // Jumlah jawaban essay yang sudah dikirim siswa tapi belum dikoreksi, per kuis.
+        $pendingEssays = QuizAnswer::query()
+            ->join('quiz_attempts', 'quiz_attempts.id', '=', 'quiz_answers.quiz_attempt_id')
+            ->join('quiz_questions', 'quiz_questions.id', '=', 'quiz_answers.quiz_question_id')
+            ->where('quiz_questions.type', QuizQuestion::TYPE_ESSAY)
+            ->whereNull('quiz_answers.graded_at')
+            ->whereNotNull('quiz_answers.answer')
+            ->whereIn('quiz_attempts.quiz_id', $quizzes->pluck('id'))
+            ->groupBy('quiz_attempts.quiz_id')
+            ->selectRaw('quiz_attempts.quiz_id, count(*) as total')
+            ->pluck('total', 'quiz_id');
 
         // Kelas yang boleh dipilih guru saat membuat kuis: gabungan semua
         // kelas dari semua mapel yang ia ajarkan. Pasangan mapel+kelas yang
@@ -62,89 +80,8 @@ class QuizController extends Controller
             'subjectClassroomMap' => $subjectClassroomMap,
             'questions' => $questions,
             'quizzes' => $quizzes,
+            'pendingEssays' => $pendingEssays,
         ]);
-    }
-
-    public function storeQuestion(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
-            'type' => ['required', 'in:single,multiple'],
-            'question' => ['required', 'string', 'max:10000'],
-            'media' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,mp4,webm,mov', 'max:51200'],
-            'options' => ['required', 'array:A,B,C,D'],
-            'options.A' => ['required', 'string', 'max:1000'],
-            'options.B' => ['required', 'string', 'max:1000'],
-            'options.C' => ['required', 'string', 'max:1000'],
-            'options.D' => ['required', 'string', 'max:1000'],
-            'correct_answer' => ['required', 'array', 'min:1', 'max:4', $this->correctAnswerCountRule($request)],
-            'correct_answer.*' => ['distinct', 'in:A,B,C,D'],
-            'explanation' => ['nullable', 'string', 'max:5000'],
-            'points' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ], [
-            'subject_id.required' => 'Pilih mata pelajaran untuk soal ini.',
-            'correct_answer.required' => 'Pilih kunci jawaban.',
-        ]);
-        $this->authorizeSubject($request, (int) $data['subject_id']);
-        $data['created_by'] = $request->user()->id;
-        $data['points'] ??= 1;
-        $this->storeQuestionMedia($request, $data);
-        QuizQuestion::create($data);
-
-        return back()->with('success', 'Soal berhasil ditambahkan ke bank soal.');
-    }
-
-    public function updateQuestion(Request $request, QuizQuestion $question): RedirectResponse
-    {
-        $this->authorizeQuestion($request, $question);
-        $data = $request->validate([
-            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
-            'type' => ['required', 'in:single,multiple'],
-            'question' => ['required', 'string', 'max:10000'],
-            'media' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,mp4,webm,mov', 'max:51200'],
-            'options' => ['required', 'array:A,B,C,D'],
-            'options.A' => ['required', 'string', 'max:1000'], 'options.B' => ['required', 'string', 'max:1000'],
-            'options.C' => ['required', 'string', 'max:1000'], 'options.D' => ['required', 'string', 'max:1000'],
-            'correct_answer' => ['required', 'array', 'min:1', 'max:4', $this->correctAnswerCountRule($request)],
-            'correct_answer.*' => ['distinct', 'in:A,B,C,D'], 'explanation' => ['nullable', 'string', 'max:5000'],
-            'points' => ['required', 'integer', 'min:1', 'max:100'], 'is_active' => ['sometimes', 'boolean'],
-        ]);
-        $this->authorizeSubject($request, (int) $data['subject_id']);
-        $removeMedia = $request->boolean('remove_media');
-        unset($data['media'], $data['remove_media']);
-        if ($request->hasFile('media')) {
-            $this->deleteQuestionMedia($question);
-            $data['media_path'] = $request->file('media')->store('quiz-media', 'public');
-            $data['media_type'] = str_starts_with($request->file('media')->getMimeType(), 'video/') ? 'video' : 'image';
-        } elseif ($removeMedia) {
-            $this->deleteQuestionMedia($question);
-            $data['media_path'] = null;
-            $data['media_type'] = null;
-        }
-        $question->update($data);
-
-        return back()->with('success', 'Soal berhasil diperbarui.');
-    }
-
-    /**
-     * Menjaga jumlah kunci jawaban sesuai jenis soal: pilihan ganda biasa
-     * harus tepat satu jawaban benar, pilihan ganda kompleks lebih dari satu.
-     */
-    private function correctAnswerCountRule(Request $request): callable
-    {
-        return function (string $attribute, mixed $value, callable $fail) use ($request): void {
-            if (! is_array($value)) {
-                return;
-            }
-
-            $count = count($value);
-            if ($request->input('type') === QuizQuestion::TYPE_SINGLE && $count !== 1) {
-                $fail('Soal pilihan ganda biasa harus memiliki tepat satu jawaban benar.');
-            }
-            if ($request->input('type') === QuizQuestion::TYPE_MULTIPLE && $count < 2) {
-                $fail('Soal pilihan ganda kompleks harus memiliki lebih dari satu jawaban benar.');
-            }
-        };
     }
 
     public function destroyQuestion(Request $request, QuizQuestion $question): RedirectResponse
@@ -164,13 +101,18 @@ class QuizController extends Controller
         $data = $request->validate([
             'subject_id' => ['required', 'integer', 'exists:subjects,id'], 'classroom_id' => ['required', 'integer', 'exists:classrooms,id'],
             'title' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string'],
-            'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'], 'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'mode' => ['sometimes', 'in:live,async'],
+            'duration_minutes' => ['required', 'integer', 'min:1', 'max:600'],
+            'question_minutes' => ['nullable', 'numeric', 'min:0.25', 'max:30'],
+            'show_score_per_question' => ['sometimes', 'boolean'], 'starts_at' => ['nullable', 'date'],
             'question_ids' => ['required', 'array', 'min:1'], 'question_ids.*' => ['integer', 'exists:quiz_questions,id'],
         ], [
             'subject_id.required' => 'Pilih mata pelajaran untuk kuis ini.',
             'classroom_id.required' => 'Pilih kelas yang akan mengerjakan kuis ini.',
             'question_ids.required' => 'Pilih minimal satu soal dari bank soal untuk dimasukkan ke kuis ini.',
             'question_ids.min' => 'Pilih minimal satu soal dari bank soal untuk dimasukkan ke kuis ini.',
+            'question_minutes.min' => 'Waktu per soal minimal 0,25 menit (15 detik).',
+            'question_minutes.max' => 'Waktu per soal maksimal 30 menit.',
         ]);
         $this->authorizeSubject($request, (int) $data['subject_id']);
         $this->authorizeClassroom($request, (int) $data['subject_id'], (int) $data['classroom_id']);
@@ -180,15 +122,23 @@ class QuizController extends Controller
             return back()->withInput()->with('error', 'Semua soal harus berasal dari mata pelajaran kuis.');
         }
 
-        $quizData = collect($data)->except('question_ids')->all();
-        $quizData['created_by'] = $request->user()->id;
-        // Semua kuis dibuat sebagai kuis Kahoot (serentak, dikendalikan guru).
-        $quizData['mode'] = 'live';
-        $quizData['show_score_per_question'] = (bool) ($quizData['show_score_per_question'] ?? false);
-        $quizData['live_phase'] = 'lobby';
-        // Kuis baru selalu Draft; guru mempublikasikannya saat siap dipakai.
-        $quizData['is_published'] = false;
-        $quiz = Quiz::create($quizData);
+        $startsAt = filled($data['starts_at'] ?? null) ? Carbon::parse($data['starts_at']) : null;
+
+        $quiz = Quiz::create([
+            ...collect($data)->except(['question_ids', 'question_minutes', 'starts_at'])->all(),
+            'created_by' => $request->user()->id,
+            // Kahoot: guru memindahkan soal & tiap soal ada hitung mundur.
+            // Mandiri: siswa bebas pindah soal dalam durasi total.
+            'mode' => $data['mode'] ?? 'live',
+            'question_seconds' => (int) round(($data['question_minutes'] ?? 0.5) * 60),
+            'show_score_per_question' => (bool) ($data['show_score_per_question'] ?? false),
+            'live_phase' => 'lobby',
+            // Waktu selesai selalu mengikuti waktu mulai + durasi, tidak diisi manual.
+            'starts_at' => $startsAt,
+            'ends_at' => $startsAt?->copy()->addMinutes((int) $data['duration_minutes']),
+            // Kuis baru selalu Draft; guru mempublikasikannya saat siap dipakai.
+            'is_published' => false,
+        ]);
         $questionPoints = QuizQuestion::whereIn('id', $questionIds)->pluck('points', 'id');
         $quiz->questions()->attach(collect($questionIds)->values()->mapWithKeys(fn ($id, $index) => [$id => ['sort_order' => $index + 1, 'points' => $questionPoints[$id]]])->all());
 
@@ -261,6 +211,13 @@ class QuizController extends Controller
             return back()->with('error', 'Kuis belum memiliki soal.');
         }
 
+        // Mengulang sesi = mulai dari nol: jawaban sesi sebelumnya dihapus
+        // supaya siswa bisa menjawab lagi (satu soal hanya boleh dijawab sekali).
+        DB::transaction(function () use ($quiz) {
+            QuizAnswer::query()->whereIn('quiz_attempt_id', $quiz->attempts()->select('id'))->delete();
+            $quiz->attempts()->update(['status' => 'in_progress', 'submitted_at' => null, 'score' => null, 'correct_answers' => 0]);
+        });
+
         $quiz->update([
             'is_open' => true,
             'opened_at' => now(),
@@ -323,7 +280,7 @@ class QuizController extends Controller
         return view('siswa.kuis-live', compact('quiz', 'attempt', 'student'));
     }
 
-    public function liveState(Request $request, Quiz $quiz, CurrentStudentResolver $resolver)
+    public function liveState(Request $request, Quiz $quiz, CurrentStudentResolver $resolver, LiveQuizSession $session)
     {
         $student = $this->resolveStudentOrRedirect($request->user(), $resolver);
         if ($student instanceof RedirectResponse) {
@@ -339,45 +296,83 @@ class QuizController extends Controller
         $question = $quiz->live_question_index === null ? null : $questions->get($quiz->live_question_index);
         $answer = $question ? $attempt->answers()->where('quiz_question_id', $question->id)->first() : null;
 
+        $showRanking = in_array($quiz->live_phase, ['reveal', 'finished'], true);
+        $ranking = $showRanking ? $session->leaderboard($quiz, null) : collect();
+
         return response()->json([
             'phase' => $quiz->live_phase,
             'is_open' => $quiz->is_open,
             'index' => $quiz->live_question_index,
             'total' => $questions->count(),
-            'question' => $question ? [
-                'id' => $question->id,
-                'text' => $question->question,
-                'type' => $question->type,
-                'options' => $question->options,
-                'media_url' => $question->media_path ? Storage::disk('public')->url($question->media_path) : null,
-                'media_type' => $question->media_type,
-                'correct' => $quiz->live_phase === 'reveal' ? $question->correct_answer : null,
-            ] : null,
+            'question' => $question ? $this->liveQuestionPayload($question, $quiz->live_phase === 'reveal') : null,
             'answer' => $answer?->answer,
+            'time_limit' => $question ? $session->timeLimit($quiz, $question) : null,
+            'seconds_left' => $question ? $session->secondsLeft($quiz, $question) : null,
+            'gained_points' => $answer?->game_points,
+            'game_points' => (int) $attempt->answers()->sum('game_points'),
+            'rank' => $ranking->firstWhere('student_id', $student->id)['rank'] ?? null,
+            'leaderboard' => $ranking->take(5)->values(),
             'score' => $this->liveScore($attempt, $questions),
             'show_score' => $quiz->show_score_per_question,
             'correct_count' => $attempt->answers()->where('is_correct', true)->count(),
         ]);
     }
 
-    public function liveAnswer(Request $request, QuizAttempt $attempt): JsonResponse
+    public function liveAnswer(Request $request, QuizAttempt $attempt, QuizAnswerGrader $grader, LiveQuizSession $session): JsonResponse
     {
         $this->assertAttemptOwner($request, $attempt);
         $quiz = $attempt->quiz;
         abort_unless($quiz->isLive() && $quiz->live_phase === 'question', 422);
         $question = $quiz->questions()->get()->get($quiz->live_question_index);
         abort_unless($question, 422);
-        $data = $request->validate(['answer' => ['nullable', 'array'], 'answer.*' => ['string', 'in:A,B,C,D']]);
-        $answer = collect($data['answer'] ?? [])->unique()->sort()->values()->all();
-        abort_if($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1, 422, 'Soal ini hanya menerima satu jawaban.');
-        $correctAnswer = collect($question->correct_answer)->sort()->values()->all();
-        $isCorrect = $answer !== [] && $answer === $correctAnswer;
+
+        // Seperti Kahoot: satu kali jawab per soal, dan hanya selama waktunya berjalan.
+        if ($attempt->answers()->where('quiz_question_id', $question->id)->whereNotNull('answer')->exists()) {
+            return response()->json(['message' => 'Kamu sudah menjawab soal ini.'], 422);
+        }
+        if (! $session->acceptsAnswers($quiz, $question)) {
+            return response()->json(['message' => 'Waktu menjawab sudah habis.'], 422);
+        }
+
+        $points = (int) $question->pivot->points;
+        $graded = $grader->grade($question, $points, $request->input('answer'));
+        $responseMs = $session->responseMs($quiz);
+
         QuizAnswer::updateOrCreate(
             ['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id],
-            ['answer' => $answer === [] ? null : $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]
+            $graded + [
+                'response_ms' => $responseMs,
+                'game_points' => $session->gamePoints($quiz, $question, $graded['awarded_points'], $points, $responseMs),
+            ]
         );
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Lembar soal siap cetak/simpan PDF untuk siswa yang mengerjakan di
+     * kertas; ?kunci=1 menampilkan versi kunci jawaban untuk guru.
+     */
+    public function printSheet(Request $request, Quiz $quiz): View
+    {
+        $this->authorizeQuiz($request, $quiz);
+
+        return view('guru.kuis-cetak', [
+            'quiz' => $quiz->load(['subject', 'classroom', 'questions']),
+            'withKey' => $request->boolean('kunci'),
+        ]);
+    }
+
+    /**
+     * Data layar proyektor guru (soal, hitung mundur, jumlah yang sudah
+     * menjawab, sebaran jawaban, dan papan peringkat).
+     */
+    public function liveHostState(Request $request, Quiz $quiz, LiveQuizSession $session): JsonResponse
+    {
+        $this->authorizeQuiz($request, $quiz);
+        abort_unless($quiz->isLive(), 404);
+
+        return response()->json($session->hostState($quiz));
     }
 
     public function available(Request $request, CurrentStudentResolver $resolver, QuizAttemptFinalizer $finalizer): View|RedirectResponse
@@ -442,12 +437,10 @@ class QuizController extends Controller
         return view('siswa.kuis', compact('quiz', 'attempt'));
     }
 
-    public function answer(Request $request, QuizAttempt $attempt, QuizAttemptFinalizer $finalizer): RedirectResponse
+    public function answer(Request $request, QuizAttempt $attempt, QuizAttemptFinalizer $finalizer, QuizAnswerGrader $grader): RedirectResponse
     {
         $data = $request->validate([
             'quiz_question_id' => ['required', 'integer', 'exists:quiz_questions,id'],
-            'answer' => ['nullable', 'array'],
-            'answer.*' => ['string', 'in:A,B,C,D'],
         ]);
         $this->assertAttemptOwner($request, $attempt);
 
@@ -462,13 +455,12 @@ class QuizController extends Controller
         if ($attempt->status === 'submitted') {
             return back()->with('error', 'Kuis sudah dikumpulkan.');
         }
-        $answer = collect($data['answer'] ?? [])->unique()->sort()->values()->all();
-        if ($question->type === QuizQuestion::TYPE_SINGLE && count($answer) > 1) {
-            return back()->with('error', 'Soal ini hanya menerima satu jawaban.');
+        try {
+            $graded = $grader->grade($question, (int) $question->pivot->points, $request->input('answer'));
+        } catch (ValidationException $exception) {
+            return back()->with('error', $exception->validator->errors()->first());
         }
-        $correctAnswer = collect($question->correct_answer)->sort()->values()->all();
-        $isCorrect = $answer !== [] && $answer === $correctAnswer;
-        QuizAnswer::updateOrCreate(['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id], ['answer' => $answer === [] ? null : $answer, 'is_correct' => $isCorrect, 'awarded_points' => $isCorrect ? $question->pivot->points : 0]);
+        QuizAnswer::updateOrCreate(['quiz_attempt_id' => $attempt->id, 'quiz_question_id' => $question->id], $graded);
 
         return back()->with('success', 'Jawaban tersimpan.');
     }
@@ -499,15 +491,6 @@ class QuizController extends Controller
         $attempts = QuizAttempt::with(['quiz.subject', 'quiz.classroom'])->where('student_id', $student->id)->where('status', 'submitted')->latest('submitted_at')->get();
 
         return view('siswa.hasil-kuis', compact('student', 'attempts'));
-    }
-
-    private function authorizeSubject(Request $request, int $subjectId): void
-    {
-        abort_unless(
-            $request->user()->hasRole('admin')
-            || Subject::whereKey($subjectId)->whereHas('teachers', fn ($query) => $query->where('user_id', $request->user()->id))->exists(),
-            403
-        );
     }
 
     /**
@@ -564,19 +547,33 @@ class QuizController extends Controller
             ->get();
     }
 
-    private function authorizeQuiz(Request $request, Quiz $quiz): void
-    {
-        abort_unless($request->user()->hasRole('admin') || $quiz->created_by === $request->user()->id, 403);
-    }
-
-    private function authorizeQuestion(Request $request, QuizQuestion $question): void
-    {
-        abort_unless($request->user()->hasRole('admin') || $question->created_by === $request->user()->id, 403);
-    }
-
     private function assertAttemptOwner(Request $request, QuizAttempt $attempt): void
     {
         abort_unless($request->user()->hasRole('siswa') && $request->user()->student?->is($attempt->student), 403);
+    }
+
+    /**
+     * Data soal untuk layar siswa. Kunci jawaban baru dikirim saat fase
+     * "reveal" supaya tidak bisa diintip lewat jaringan.
+     *
+     * @return array<string, mixed>
+     */
+    private function liveQuestionPayload(QuizQuestion $question, bool $reveal): array
+    {
+        return [
+            'id' => $question->id,
+            'text' => $question->question,
+            'type' => $question->type,
+            'options' => $question->isChoice() ? $question->options : null,
+            'matching_left' => $question->type === QuizQuestion::TYPE_MATCHING ? array_column($question->matchingPairs(), 'left') : null,
+            'matching_choices' => $question->type === QuizQuestion::TYPE_MATCHING ? $question->shuffledMatchingChoices() : null,
+            'media_url' => $question->media_path ? Storage::disk('public')->url($question->media_path) : null,
+            'media_type' => $question->media_type,
+            'correct' => $reveal ? match ($question->type) {
+                QuizQuestion::TYPE_MATCHING => array_column($question->matchingPairs(), 'right'),
+                default => $question->correct_answer,
+            } : null,
+        ];
     }
 
     private function liveScore(QuizAttempt $attempt, Collection $questions): float
@@ -592,19 +589,6 @@ class QuizController extends Controller
             fn (QuizAttempt $attempt) => app(QuizAttemptFinalizer::class)->finalize($attempt)
         );
         $quiz->update(['is_open' => false, 'live_phase' => 'finished']);
-    }
-
-    private function storeQuestionMedia(Request $request, array &$data): void
-    {
-        unset($data['media']);
-
-        if (! $request->hasFile('media')) {
-            return;
-        }
-
-        $file = $request->file('media');
-        $data['media_path'] = $file->store('quiz-media', 'public');
-        $data['media_type'] = str_starts_with($file->getMimeType(), 'video/') ? 'video' : 'image';
     }
 
     private function deleteQuestionMedia(QuizQuestion $question): void

@@ -2,14 +2,23 @@
 @section('title', $quiz->title)
 @section('content')
 <div class="container-fluid">
-    <x-page-guide>Halaman ini otomatis memperbarui diri. Jangan tutup/refresh — tunggu soal muncul, lalu ketuk pilihan jawaban secepatnya sebelum guru lanjut ke soal berikutnya.</x-page-guide>
+    <x-page-guide>Halaman ini otomatis memperbarui diri. Jangan tutup/refresh — tunggu soal muncul, lalu jawab (pilih, tulis, atau jodohkan) sebelum waktunya habis. Makin cepat jawaban benar, makin besar poin permainanmu!</x-page-guide>
     <div class="card shadow-sm">
         <div class="card-body text-center">
             <h1 class="h3 fw-bold">{{ $quiz->title }}</h1>
             <p class="text-muted">Tunggu guru menampilkan soal berikutnya.</p>
-            <div class="display-6 fw-bold mb-3" id="phase">Menunggu...</div>
+            <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
+                <div class="display-6 fw-bold" id="phase">Menunggu...</div>
+                <div class="live-timer d-none" id="timerWrap"><span id="timer">0</span></div>
+            </div>
             <div class="h4 mb-4" id="question"></div>
             <div class="row g-2" id="options"></div>
+            <div class="alert d-none mt-3" id="answerStatus"></div>
+            <div class="d-none mt-3" id="roundResult">
+                <div class="round-points" id="roundPoints"></div>
+                <div class="fw-bold mb-2" id="roundRank"></div>
+                <ol class="live-top5 text-start mx-auto" id="roundTop5"></ol>
+            </div>
             <div class="alert alert-info mt-4" id="score">Skor sementara: 0</div>
         </div>
     </div>
@@ -31,6 +40,17 @@
 
 @push('styles')
 <style>
+.live-timer { width: 64px; height: 64px; border-radius: 50%; background: #46178f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 900; }
+.live-timer.urgent { background: #e21b3c; animation: pulse .5s infinite alternate; }
+@keyframes pulse { to { transform: scale(1.1); } }
+.round-points { font-size: 2.4rem; font-weight: 900; color: #26890c; animation: popupPopIn .5s; }
+.round-points.zero { color: #6b7280; }
+.live-top5 { max-width: 360px; padding-left: 0; list-style: none; }
+.live-top5 li { display: flex; justify-content: space-between; background: #f3f0ff; border-radius: 8px; padding: 6px 12px; margin-bottom: 4px; font-weight: 700; }
+.live-top5 li.me { background: #ffe9a8; }
+.option.opt-A { --kahoot: #e21b3c; } .option.opt-B { --kahoot: #1368ce; } .option.opt-C { --kahoot: #d89e00; } .option.opt-D { --kahoot: #26890c; }
+.option.btn-outline-primary { border-color: var(--kahoot); color: var(--kahoot); border-width: 3px; }
+.option.btn-primary { background: var(--kahoot); border-color: var(--kahoot); }
 .result-popup-overlay {
     position: fixed; inset: 0; z-index: 2000;
     background: rgba(20, 20, 45, .78);
@@ -92,13 +112,37 @@ let current = null;
 let popupShown = false;
 let pollTimer = null;
 let selectedKeys = [];
+let deadline = null;
+let myStudentId = @json($student->id);
+const shapes = { A: '▲', B: '◆', C: '●', D: '■' };
+
+function showAnswerStatus(message, type) {
+    const box = document.getElementById('answerStatus');
+    box.className = 'alert mt-3 alert-' + type;
+    box.textContent = message;
+}
+
+function lockAnswers() {
+    document.querySelectorAll('#options button, #options select, #options textarea').forEach(item => item.disabled = true);
+}
 
 async function sendAnswer(keys) {
-    return fetch(answerUrl, {
+    const response = await fetch(answerUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
         body: JSON.stringify({ answer: keys })
     });
+    if (response.ok) {
+        showAnswerStatus('Jawaban terkirim! Tunggu guru menampilkan jawaban yang benar…', 'success');
+    } else {
+        const data = await response.json().catch(() => ({}));
+        showAnswerStatus(data.message || 'Jawaban gagal dikirim, coba lagi.', 'danger');
+        if (response.status === 422 && /habis|sudah menjawab/i.test(data.message || '')) {
+            lockAnswers();
+            return { ok: true };
+        }
+    }
+    return response;
 }
 
 function launchConfetti() {
@@ -141,7 +185,9 @@ function showResultPopup(data) {
 
     document.getElementById('resultEmoji').textContent = emoji;
     document.getElementById('resultSubtitle').textContent = subtitle;
-    document.getElementById('resultDetail').textContent = `Kamu menjawab benar ${correct} dari ${total} soal.`;
+    document.getElementById('resultDetail').textContent = `Kamu menjawab benar ${correct} dari ${total} soal.`
+        + (data.rank ? ` Peringkat #${data.rank} dengan ${data.game_points.toLocaleString('id-ID')} poin permainan.` : '')
+        + ' Nilai essay (jika ada) menyusul setelah dikoreksi guru.';
     document.getElementById('resultScore').textContent = '0';
     document.getElementById('resultPopup').style.display = 'flex';
 
@@ -167,27 +213,153 @@ async function refresh() {
 
     if (!data.question) return;
 
+    if (data.phase === 'question' && data.seconds_left !== null) {
+        deadline = Date.now() + data.seconds_left * 1000;
+        document.getElementById('timerWrap').classList.remove('d-none');
+    } else {
+        deadline = null;
+        document.getElementById('timerWrap').classList.add('d-none');
+    }
+
     // Gambar ulang hanya saat soal atau fasenya berubah (question -> reveal).
     const renderKey = data.question.id + ':' + data.phase;
     if (current === renderKey) return;
     current = renderKey;
     selectedKeys = [];
+    renderRoundResult(data);
+    if (data.phase === 'question') {
+        document.getElementById('answerStatus').className = 'alert d-none mt-3';
+        if (data.answer) showAnswerStatus('Jawaban terkirim! Tunggu guru menampilkan jawaban yang benar…', 'success');
+    }
 
     const media = data.question.media_url
         ? (data.question.media_type === 'video'
             ? '<video src="' + escapeHtml(data.question.media_url) + '" class="img-fluid rounded mb-3" controls></video>'
             : '<img src="' + escapeHtml(data.question.media_url) + '" class="img-fluid rounded mb-3" alt="Media soal">')
         : '';
-    const isMultiple = data.question.type === 'multiple';
-    const badge = isMultiple ? '<div class="badge bg-info text-dark mb-2">Pilih semua jawaban yang benar</div><br>' : '';
-    document.getElementById('question').innerHTML = media + badge + '<div>' + escapeHtml(data.question.text) + '</div>';
+    document.getElementById('question').innerHTML = media + typeBadge(data.question.type) + '<div>' + escapeHtml(data.question.text) + '</div>';
 
     const isAnswering = data.phase === 'question' && !data.answer;
+    if (data.question.type === 'essay') return renderEssay(data, isAnswering);
+    if (data.question.type === 'matching') return renderMatching(data, isAnswering);
+    renderChoice(data, isAnswering);
+}
+
+function renderRoundResult(data) {
+    const box = document.getElementById('roundResult');
+    if (data.phase !== 'reveal') {
+        box.classList.add('d-none');
+        return;
+    }
+    document.getElementById('answerStatus').className = 'alert d-none mt-3';
+    box.classList.remove('d-none');
+    const gained = data.gained_points ?? 0;
+    const points = document.getElementById('roundPoints');
+    points.textContent = data.question.type === 'essay' ? 'Menunggu koreksi guru ✍️' : (gained > 0 ? '+' + gained.toLocaleString('id-ID') + ' poin' : (data.answer ? 'Belum tepat 😅' : 'Tidak menjawab ⏰'));
+    points.classList.toggle('zero', gained === 0);
+    document.getElementById('roundRank').textContent = data.rank ? 'Peringkatmu: #' + data.rank + ' · Total ' + data.game_points.toLocaleString('id-ID') + ' poin' : '';
+    document.getElementById('roundTop5').innerHTML = (data.leaderboard || []).map(row =>
+        '<li class="' + (row.student_id === myStudentId ? 'me' : '') + '"><span>' + row.rank + '. ' + escapeHtml(row.name) + '</span><span>' + row.points.toLocaleString('id-ID') + '</span></li>'
+    ).join('');
+}
+
+setInterval(() => {
+    if (!deadline) return;
+    const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    document.getElementById('timer').textContent = left;
+    document.getElementById('timerWrap').classList.toggle('urgent', left <= 5);
+    if (left === 0) {
+        lockAnswers();
+        if (!document.getElementById('answerStatus').classList.contains('alert-success')) showAnswerStatus('Waktu habis! ⏰', 'warning');
+        deadline = null;
+    }
+}, 250);
+
+function typeBadge(type) {
+    const badges = {
+        multiple: 'Pilih semua jawaban yang benar',
+        essay: 'Tulis jawabanmu',
+        matching: 'Jodohkan pasangan yang tepat',
+    };
+    return badges[type] ? '<div class="badge bg-info text-dark mb-2">' + badges[type] + '</div><br>' : '';
+}
+
+async function submitWith(button, payload, lockSelector) {
+    document.querySelectorAll(lockSelector).forEach(item => item.disabled = true);
+    button.disabled = true;
+    const response = await sendAnswer(payload);
+    if (response.ok) {
+        button.textContent = 'Jawaban terkirim ✓';
+        button.classList.replace('btn-warning', 'btn-success');
+    } else {
+        document.querySelectorAll(lockSelector).forEach(item => item.disabled = false);
+        button.disabled = false;
+    }
+}
+
+function renderEssay(data, isAnswering) {
+    const text = data.answer?.text ?? '';
+    let html = '<div class="col-12"><textarea id="essayAnswer" class="form-control" rows="5" maxlength="5000" placeholder="Tulis jawabanmu di sini..."' + (isAnswering ? '' : ' disabled') + '>' + escapeHtml(text) + '</textarea></div>';
+    if (isAnswering) {
+        html += '<div class="col-12 mt-2"><button type="button" id="submitEssay" class="btn btn-warning w-100">Kirim Jawaban</button></div>';
+    } else if (data.phase === 'reveal') {
+        const key = Array.isArray(data.question.correct) && data.question.correct[0] ? '<div class="mt-1">Pedoman jawaban: <strong>' + escapeHtml(data.question.correct[0]) + '</strong></div>' : '';
+        html += '<div class="col-12 mt-2"><div class="alert alert-secondary mb-0 text-start">Jawaban essay akan dinilai oleh guru.' + key + '</div></div>';
+    } else if (text) {
+        html += '<div class="col-12 mt-2"><div class="alert alert-success mb-0">Jawaban terkirim ✓</div></div>';
+    }
+    document.getElementById('options').innerHTML = html;
+
+    if (!isAnswering) return;
+    const button = document.getElementById('submitEssay');
+    button.onclick = () => {
+        const answer = document.getElementById('essayAnswer').value.trim();
+        if (answer === '') return;
+        submitWith(button, answer, '#essayAnswer');
+    };
+}
+
+function renderMatching(data, isAnswering) {
+    const answer = data.answer ?? {};
+    const correct = data.question.correct;
+    const rows = data.question.matching_left.map((left, index) => {
+        const chosen = answer[index] ?? '';
+        let status = '';
+        if (data.phase === 'reveal' && Array.isArray(correct)) {
+            const isRight = chosen === correct[index];
+            status = '<div class="small mt-1 ' + (isRight ? 'text-success' : 'text-danger') + '">' + (isRight ? '✓ Benar' : '✗ Jawaban benar: ' + escapeHtml(correct[index])) + '</div>';
+        }
+        const options = ['<option value="">— Pilih pasangan —</option>'].concat(
+            data.question.matching_choices.map(choice => '<option value="' + escapeHtml(choice) + '"' + (choice === chosen ? ' selected' : '') + '>' + escapeHtml(choice) + '</option>')
+        ).join('');
+        return '<div class="col-12"><div class="row g-2 align-items-center text-start border rounded p-2 mx-0">'
+            + '<div class="col-md-5 fw-semibold">' + escapeHtml(left) + '</div>'
+            + '<div class="col-md-7"><select class="form-select matching-choice" data-index="' + index + '"' + (isAnswering ? '' : ' disabled') + '>' + options + '</select>' + status + '</div>'
+            + '</div></div>';
+    }).join('');
+    const submit = isAnswering ? '<div class="col-12 mt-2"><button type="button" id="submitMatching" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>' : '';
+    document.getElementById('options').innerHTML = rows + submit;
+
+    if (!isAnswering) return;
+    const button = document.getElementById('submitMatching');
+    const selects = [...document.querySelectorAll('.matching-choice')];
+    selects.forEach(select => select.onchange = () => {
+        button.disabled = !selects.every(item => item.value !== '');
+    });
+    button.onclick = () => {
+        const payload = {};
+        selects.forEach(select => payload[select.dataset.index] = select.value);
+        submitWith(button, payload, '.matching-choice');
+    };
+}
+
+function renderChoice(data, isAnswering) {
+    const isMultiple = data.question.type === 'multiple';
     const submitButtonHtml = (isAnswering && isMultiple)
         ? '<div class="col-12 mt-2"><button type="button" id="submitMultiAnswer" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>'
         : '';
     document.getElementById('options').innerHTML = Object.entries(data.question.options).map(([key, value]) =>
-        '<div class="col-md-6"><button class="btn ' + optionClass(key, data) + ' w-100 py-3 option" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><strong>' + escapeHtml(key) + '</strong> ' + escapeHtml(value) + '</button></div>'
+        '<div class="col-md-6"><button class="btn ' + optionClass(key, data) + ' w-100 py-3 option opt-' + escapeHtml(key) + '" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><strong>' + (shapes[key] || escapeHtml(key)) + '</strong> ' + escapeHtml(value) + '</button></div>'
     ).join('') + submitButtonHtml;
 
     if (!isAnswering) return;

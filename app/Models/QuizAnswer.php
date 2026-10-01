@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['quiz_attempt_id', 'quiz_question_id', 'answer', 'is_correct', 'awarded_points'])]
+#[Fillable(['quiz_attempt_id', 'quiz_question_id', 'answer', 'is_correct', 'awarded_points', 'response_ms', 'game_points', 'graded_at'])]
 class QuizAnswer extends Model
 {
     protected function casts(): array
     {
-        return ['answer' => 'array', 'is_correct' => 'boolean', 'awarded_points' => 'integer'];
+        return ['answer' => 'array', 'is_correct' => 'boolean', 'awarded_points' => 'integer', 'response_ms' => 'integer', 'game_points' => 'integer', 'graded_at' => 'datetime'];
     }
 
     public function attempt(): BelongsTo

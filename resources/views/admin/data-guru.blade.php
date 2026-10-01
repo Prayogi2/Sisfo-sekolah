@@ -7,9 +7,13 @@
         <!-- Header -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800 fw-bold">Manajemen Data Guru & Wali Kelas</h1>
-            <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahGuru">
-                <i class="bi bi-person-plus-fill me-1"></i> Tambah Guru Baru
-            </button>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('admin.data-guru.unduh', 'xlsx') }}" class="btn btn-outline-success shadow-sm"><i class="bi bi-file-earmark-excel me-1"></i> Excel</a>
+                <a href="{{ route('admin.data-guru.unduh', 'pdf') }}" class="btn btn-outline-danger shadow-sm"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahGuru">
+                    <i class="bi bi-person-plus-fill me-1"></i> Tambah Guru Baru
+                </button>
+            </div>
         </div>
 
         <x-page-guide>Saat menambah/mengedit guru, tetapkan juga mapel & kelas yang ia ajarkan — guru hanya bisa mengakses kelas yang dipilih di sini (untuk kuis dan nilai).</x-page-guide>
@@ -209,6 +213,12 @@
                         <div class="assignment-rows"></div>
                         <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (tahan Ctrl/Cmd untuk pilih lebih dari satu). Guru hanya akan bisa mengakses kelas yang dipilih di sini.</p>
                         <p class="text-muted small mt-2 mb-0">Akun login guru (username = email) akan dibuat otomatis dengan password acak yang ditampilkan setelah data disimpan.</p>
+                        <hr>
+                        <label class="form-check border rounded p-3 ps-5 mb-0 bg-light">
+                            <input type="checkbox" name="is_admin" value="1" class="form-check-input">
+                            <span class="form-check-label fw-semibold"><i class="bi bi-shield-lock-fill text-danger me-1"></i>Jadikan juga administrator/operator</span>
+                            <span class="d-block small text-muted">Guru ini tetap bisa mengajar, sekaligus bisa membuka semua menu admin lewat menu Akses Role di pojok kanan atas.</span>
+                        </label>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

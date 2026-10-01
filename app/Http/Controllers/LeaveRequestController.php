@@ -23,7 +23,7 @@ class LeaveRequestController extends Controller
         $user = $request->user();
 
         $leaveRequests = LeaveRequest::query()
-            ->with(['student.classroom', 'guardian'])
+            ->with(['student.classroom.homeroomTeacher', 'guardian', 'reviewer'])
             ->when($this->actingAsGuru($request), function ($query) use ($user) {
                 $classroomIds = Classroom::query()
                     ->whereHas('homeroomTeacher', fn ($query) => $query->where('user_id', $user->id))

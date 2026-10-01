@@ -68,6 +68,10 @@ class AuthController extends Controller
 
     public function updatePassword(Request $request)
     {
+        if ($request->session()->has(AccountController::IMPERSONATOR_KEY)) {
+            return back()->with('error', 'Password tidak bisa diganti saat admin sedang masuk sebagai pengguna ini.');
+        }
+
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
             'password' => ['required', 'confirmed', Password::min(8)],
@@ -79,6 +83,29 @@ class AuthController extends Controller
         $request->user()->update(['password' => $validated['password']]);
 
         return back()->with('success', 'Password berhasil diubah.');
+    }
+
+    /**
+     * Nama akun guru dan siswa mengikuti Data Guru/Data Siswa, jadi hanya akun
+     * admin yang bisa mengganti namanya sendiri di sini.
+     */
+    public function updateName(Request $request)
+    {
+        abort_unless($request->user()->role === 'admin', 403);
+
+        if ($request->session()->has(AccountController::IMPERSONATOR_KEY)) {
+            return back()->with('error', 'Nama tidak bisa diganti saat admin sedang masuk sebagai pengguna ini.');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ], [
+            'name.required' => 'Nama wajib diisi.',
+        ]);
+
+        $request->user()->update(['name' => $validated['name']]);
+
+        return back()->with('success', 'Nama akun berhasil diubah.');
     }
 
     public function logout(Request $request)

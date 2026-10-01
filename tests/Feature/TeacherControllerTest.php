@@ -67,6 +67,25 @@ class TeacherControllerTest extends TestCase
         $this->assertTrue($teacher->subjects->contains($subject));
         $this->assertTrue($teacher->teaches($subject->id, $classroomA->id));
         $this->assertTrue($teacher->teaches($subject->id, $classroomB->id));
+        $this->assertFalse($teacher->user->hasRole('admin'));
+    }
+
+    public function test_admin_can_create_a_teacher_who_is_also_an_administrator(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post(route('admin.data-guru.store'), [
+            'nip' => '9876543210',
+            'name' => 'Operator Sekolah',
+            'gender' => 'P',
+            'email' => 'operator@guru.local',
+            'is_admin' => '1',
+        ])->assertSessionHas('success', fn (string $message) => str_starts_with($message, 'Guru berhasil ditambahkan sebagai guru sekaligus administrator. Login: operator@guru.local'));
+
+        $user = Teacher::where('nip', '9876543210')->sole()->user;
+        $this->assertTrue($user->hasRole('guru'));
+        $this->assertTrue($user->hasRole('admin'));
+        $this->actingAs($user)->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_admin_can_save_the_teacher_biodata(): void

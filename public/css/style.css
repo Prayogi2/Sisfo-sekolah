@@ -37,7 +37,8 @@ body {
 }
 .sidebar.active { margin-left: calc(-1 * var(--sidebar-width)); }
 .sidebar-header { padding: 15px; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; text-align: center; border-radius: 0 0 15px 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-.sidebar-header img, .sidebar-header .logo-fallback { border: 2px solid rgba(255,255,255,0.5); background-color: white; flex-shrink: 0; }
+.sidebar-header .logo-fallback { border: 2px solid rgba(255,255,255,0.5); background-color: white; flex-shrink: 0; }
+.sidebar-header img { flex-shrink: 0; object-fit: contain; }
 .sidebar-user-info { font-size: 0.8rem; margin-top: 2px; opacity: 0.9; }
 .sidebar-menu { padding: 10px 0; }
 .sidebar-menu .menu-title { padding: 15px 20px 5px; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: #94a3b8; letter-spacing: 1px; }

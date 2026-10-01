@@ -30,7 +30,7 @@
            isinya tidak meluber keluar layar HP. */
         .form-panel { flex: 1; min-width: 0; background: #fff; display: flex; align-items: center; justify-content: center; padding: 40px; }
         .login-box { width: 100%; max-width: 400px; }
-        .login-logo { width: 78px; height: 78px; object-fit: cover; border-radius: 50%; border: 3px solid #e7f1ff; box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+        .login-logo { width: 78px; height: 78px; object-fit: contain; }
         @media (max-width: 768px) { .brand-panel { display: none; } .form-panel { min-height: 100vh; padding: 24px; } }
         @media (prefers-reduced-motion: reduce) { .brand-logo-wrap::after { animation: none; } }
     </style>
@@ -59,7 +59,7 @@
             <div class="brand-content">
                 <div class="brand-logo-wrap">
                     @if(file_exists($logoPath))
-                        <img src="{{ $logoUrl }}" alt="Logo NURFA.ID" class="rounded-circle shadow-lg p-3 bg-white" width="110" height="110" style="object-fit: cover;">
+                        <img src="{{ $logoUrl }}" alt="Logo NURFA.ID" width="110" height="110" style="object-fit: contain;">
                     @else
                         <div class="rounded-circle bg-white text-primary fw-bold d-flex align-items-center justify-content-center" style="width:110px;height:110px;font-size:2.5rem;">NF</div>
                     @endif

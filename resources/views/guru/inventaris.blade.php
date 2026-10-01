@@ -31,6 +31,11 @@
 
         <p class="small text-muted mb-3"><i class="bi bi-door-open me-1"></i>Kelas <strong class="text-dark">{{ $classroom->name }}</strong> · Laporan terakhir: <strong class="text-dark">{{ $reports->first()?->created_at->translatedFormat('d F Y, H:i') ?? 'Belum ada' }}</strong></p>
 
+        <div class="d-flex justify-content-end gap-2 mb-3">
+            <a href="{{ route('guru.inventaris.unduh', [$classroom, 'xlsx']) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            <a href="{{ route('guru.inventaris.unduh', [$classroom, 'pdf']) }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+        </div>
+
         <x-inventaris.add-item-form :classroom="$classroom" :categories="$categories" route-prefix="guru.inventaris" />
 
         <form action="{{ route('guru.inventaris.laporan.store', $classroom) }}" method="POST" enctype="multipart/form-data" class="card border-0 shadow-sm mb-4">

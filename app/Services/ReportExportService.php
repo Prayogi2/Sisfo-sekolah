@@ -14,11 +14,12 @@ class ReportExportService
     {
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->fromArray([$headers], null, 'A1');
+        // strictNullComparison: tanpa ini angka 0 dianggap kosong & tidak ditulis.
+        $sheet->fromArray([$headers], null, 'A1', true);
         $rowNumber = 2;
 
         foreach ($rows as $row) {
-            $sheet->fromArray([$row], null, 'A'.$rowNumber++);
+            $sheet->fromArray([array_values((array) $row)], null, 'A'.$rowNumber++, true);
         }
 
         $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->getFont()->setBold(true);
@@ -28,6 +29,26 @@ class ReportExportService
         }
 
         return $this->downloadSpreadsheet($spreadsheet, $filename);
+    }
+
+    /**
+     * Unduh tabel yang sama sebagai Excel atau PDF (template exports.tabel).
+     *
+     * @param  list<string>  $headers
+     * @param  iterable<int, list<mixed>>  $rows
+     */
+    public function table(string $format, string $filename, string $title, array $headers, iterable $rows, ?string $subtitle = null, string $orientation = 'portrait')
+    {
+        if ($format === 'pdf') {
+            return $this->pdf('exports.tabel', [
+                'title' => $title,
+                'subtitle' => $subtitle,
+                'headers' => $headers,
+                'rows' => collect($rows)->all(),
+            ], "{$filename}.pdf", $orientation);
+        }
+
+        return $this->xlsx("{$filename}.xlsx", $headers, $rows);
     }
 
     /**

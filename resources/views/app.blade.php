@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') - SISFO Sekolah</title>
-    
+
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
+
     <style>
         :root {
             --sidebar-width: 260px;
@@ -17,13 +17,13 @@
             --sidebar-bg: #2c3e50;
             --sidebar-hover: #34495e;
         }
-        
+
         body {
             background-color: #f8f9fc;
             font-family: 'Nunito', 'Segoe UI', Roboto, sans-serif;
             overflow-x: hidden;
         }
-        
+
         /* Sidebar Styles */
         .sidebar {
             width: var(--sidebar-width);
@@ -37,34 +37,34 @@
             transition: all 0.3s ease;
             overflow-y: auto;
         }
-        
+
         .sidebar.active {
             margin-left: calc(-1 * var(--sidebar-width));
         }
-        
+
         .sidebar-header {
             padding: 20px;
             background-color: rgba(0,0,0,0.2);
             text-align: center;
         }
-        
+
         .sidebar-header img {
             width: 50px;
             height: 50px;
             border-radius: 50%;
             margin-bottom: 10px;
         }
-        
+
         .sidebar-user-info {
             font-size: 0.9rem;
             margin-top: 5px;
             opacity: 0.8;
         }
-        
+
         .sidebar-menu {
             padding: 15px 0;
         }
-        
+
         .sidebar-menu .menu-title {
             padding: 10px 20px;
             font-size: 0.75rem;
@@ -72,7 +72,7 @@
             color: rgba(255,255,255,0.4);
             letter-spacing: 1px;
         }
-        
+
         .sidebar-menu a {
             display: flex;
             align-items: center;
@@ -82,20 +82,20 @@
             transition: 0.2s;
             border-left: 4px solid transparent;
         }
-        
+
         .sidebar-menu a:hover, .sidebar-menu a.active {
             background-color: var(--sidebar-hover);
             color: white;
             border-left-color: var(--primary-color);
         }
-        
+
         .sidebar-menu a i {
             font-size: 1.2rem;
             margin-right: 15px;
             width: 20px;
             text-align: center;
         }
-        
+
         /* Main Content Styles */
         .main-content {
             margin-left: var(--sidebar-width);
@@ -104,11 +104,11 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         .main-content.active {
             margin-left: 0;
         }
-        
+
         /* Topbar Styles */
         .topbar {
             height: 60px;
@@ -121,12 +121,12 @@
             top: 0;
             z-index: 1020;
         }
-        
+
         .content-wrapper {
             padding: 25px;
             flex: 1;
         }
-        
+
         .footer {
             background-color: white;
             padding: 15px 25px;
@@ -135,7 +135,7 @@
             color: #6c757d;
             border-top: 1px solid #e3e6f0;
         }
-        
+
         /* Responsive Adjustments */
         @media (max-width: 992px) {
             .sidebar {
@@ -165,22 +165,22 @@
         <div class="sidebar-menu">
             <div class="menu-title">Menu Utama</div>
             <a href="#" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a>
-            
+
             <div class="menu-title">Administrasi</div>
             <a href="#"><i class="bi bi-people-fill"></i> Data Siswa</a>
             <a href="#"><i class="bi bi-building-fill"></i> Data Kelas</a>
             <a href="#"><i class="bi bi-person-badge-fill"></i> Data Guru</a>
-            
+
             <div class="menu-title">Keuangan & Absensi</div>
             <a href="#"><i class="bi bi-credit-card-2-front-fill"></i> Verifikasi SPP</a>
             <a href="#"><i class="bi bi-calendar-check-fill"></i> Approval Izin</a>
-            
+
             <div class="menu-title">Akademik & Laporan</div>
             <a href="#"><i class="bi bi-bank"></i> Bank Soal & Kuis</a>
             <a href="#"><i class="bi bi-clipboard2-data-fill"></i> Laporan Absensi</a>
             <a href="#"><i class="bi bi-cash-stack"></i> Laporan SPP</a>
             <a href="#"><i class="bi bi-bar-chart-line-fill"></i> Laporan Nilai</a>
-            
+
             <div class="menu-title">Pengaturan</div>
             <a href="#"><i class="bi bi-gear-fill"></i> Konfigurasi</a>
             <a href="#" style="color: #ff6b6b;"><i class="bi bi-box-arrow-right"></i> Logout</a>
@@ -189,20 +189,20 @@
 
     <!-- Main Content -->
     <div class="main-content" id="main-content">
-        
+
         <!-- Topbar -->
         <header class="topbar">
             <button class="btn btn-link text-dark p-0 me-3" id="sidebarToggle">
                 <i class="bi bi-list fs-3"></i>
             </button>
-            
+
             <nav aria-label="breadcrumb" class="d-none d-md-block">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="#">Home</a></li>
                     <li class="breadcrumb-item active" aria-current="page">@yield('title', 'Dashboard')</li>
                 </ol>
             </nav>
-            
+
             <div class="ms-auto d-flex align-items-center">
                 <div class="dropdown me-3">
                     <a href="#" class="text-dark position-relative" data-bs-toggle="dropdown">
@@ -216,7 +216,7 @@
                         <a class="dropdown-item" href="#"><i class="bi bi-envelope text-primary"></i> 1 Pengajuan Izin Baru</a>
                     </div>
                 </div>
-                
+
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center text-dark text-decoration-none" data-bs-toggle="dropdown">
                         <img src="https://ui-avatars.com/api/?name=Admin+School&background=4e73df&color=fff" class="rounded-circle me-2" width="35" height="35" alt="User">
@@ -239,8 +239,8 @@
 
         <!-- Footer -->
         <footer class="footer">
-            Copyright &copy; 2024 SISFO Sekolah. All rights reserved. <br>
-            <small>Versi 1.0.0 | Laravel 11 & PHP 8.4</small>
+            Copyright &copy; 2026 SISFO Sekolah. All rights reserved. <br>
+            <small>Versi 1.0.0   </small>
         </footer>
     </div>
 
@@ -248,7 +248,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
+
     <script>
         // Sidebar Toggle Logic
         document.getElementById('sidebarToggle').addEventListener('click', function(e) {
@@ -267,7 +267,7 @@
             });
         }
     </script>
-    
+
     @stack('scripts')
 </body>
 </html>

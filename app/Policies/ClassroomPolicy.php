@@ -73,6 +73,14 @@ class ClassroomPolicy
         return $this->isHomeroomTeacher($user, $classroom);
     }
 
+    /**
+     * Melihat & mengoreksi absensi harian kelas: hanya wali kelasnya.
+     */
+    public function manageAttendance(User $user, Classroom $classroom): bool
+    {
+        return $this->isHomeroomTeacher($user, $classroom);
+    }
+
     private function isHomeroomTeacher(User $user, Classroom $classroom): bool
     {
         return $user->hasRole('guru')

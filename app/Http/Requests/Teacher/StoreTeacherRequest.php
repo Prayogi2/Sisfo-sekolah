@@ -31,6 +31,7 @@ class StoreTeacherRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255', 'unique:teachers,email'],
             ...$this->profileRules(),
+            'is_admin' => ['sometimes', 'boolean'],
             'assignments' => ['array'],
             'assignments.*.subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'assignments.*.classroom_ids' => ['required', 'array', 'min:1'],

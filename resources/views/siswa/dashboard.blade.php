@@ -47,7 +47,7 @@
                             @php($attempt = $quiz->attempts->first())
                             <div class="list-group-item d-flex justify-content-between align-items-center gap-3">
                                 <div><div class="fw-semibold">{{ $quiz->title }}</div><small class="text-muted">{{ $quiz->subject?->name ?? 'Tanpa mapel' }} · {{ $quiz->duration_minutes }} menit</small></div>
-                                @if($attempt?->status === 'submitted') <span class="badge bg-success">{{ $attempt->score }}%</span> @else <a href="{{ route('siswa.kuis.start', $quiz) }}" class="btn btn-sm btn-primary">Kerjakan</a> @endif
+                                @if($attempt?->status === 'submitted') <span class="badge bg-success">{{ $attempt->score }}%</span> @else <a href="{{ route($quiz->isLive() ? 'siswa.kuis.live' : 'siswa.kuis.start', $quiz) }}" class="btn btn-sm btn-primary">{{ $quiz->isLive() ? 'Masuk Kahoot' : 'Kerjakan' }}</a> @endif
                             </div>
                         @empty
                             <div class="list-group-item text-muted">Belum ada kuis yang tersedia.</div>

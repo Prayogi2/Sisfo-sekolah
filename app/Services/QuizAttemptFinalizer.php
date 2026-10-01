@@ -59,6 +59,42 @@ class QuizAttemptFinalizer
 
     public function finalize(QuizAttempt $attempt, ?CarbonInterface $submittedAt = null): QuizAttempt
     {
+        DB::transaction(function () use ($attempt, $submittedAt) {
+            $attempt->update([
+                'status' => 'submitted',
+                'submitted_at' => $submittedAt ?? now(),
+                ...$this->scoreAttributes($attempt),
+            ]);
+
+            $this->syncQuizGrade($attempt);
+        });
+
+        return $attempt;
+    }
+
+    /**
+     * Hitung ulang nilai kuis yang sudah dikumpulkan, mis. setelah guru
+     * mengoreksi jawaban essay. Status & waktu pengumpulan tidak berubah.
+     */
+    public function recalculate(QuizAttempt $attempt): QuizAttempt
+    {
+        if ($attempt->status !== 'submitted') {
+            return $attempt;
+        }
+
+        DB::transaction(function () use ($attempt) {
+            $attempt->update($this->scoreAttributes($attempt));
+            $this->syncQuizGrade($attempt);
+        });
+
+        return $attempt;
+    }
+
+    /**
+     * @return array{score: float, correct_answers: int, total_questions: int}
+     */
+    private function scoreAttributes(QuizAttempt $attempt): array
+    {
         $attempt->loadMissing('quiz');
 
         $questions = $attempt->quiz->questions()->get();
@@ -67,19 +103,11 @@ class QuizAttemptFinalizer
         $totalPoints = $questions->sum(fn (QuizQuestion $question) => $question->pivot->points);
         $earnedPoints = $answers->sum('awarded_points');
 
-        DB::transaction(function () use ($attempt, $submittedAt, $totalPoints, $earnedPoints, $answers, $questions) {
-            $attempt->update([
-                'status' => 'submitted',
-                'submitted_at' => $submittedAt ?? now(),
-                'score' => $totalPoints > 0 ? round($earnedPoints / $totalPoints * 100, 2) : 0,
-                'correct_answers' => $answers->where('is_correct', true)->count(),
-                'total_questions' => $questions->count(),
-            ]);
-
-            $this->syncQuizGrade($attempt);
-        });
-
-        return $attempt;
+        return [
+            'score' => $totalPoints > 0 ? round($earnedPoints / $totalPoints * 100, 2) : 0,
+            'correct_answers' => $answers->where('is_correct', true)->count(),
+            'total_questions' => $questions->count(),
+        ];
     }
 
     /**

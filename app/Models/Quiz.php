@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['subject_id', 'classroom_id', 'created_by', 'title', 'description', 'duration_minutes', 'mode', 'show_score_per_question', 'starts_at', 'ends_at', 'is_published', 'is_open', 'opened_at', 'live_phase', 'live_question_index', 'live_question_started_at'])]
+#[Fillable(['subject_id', 'classroom_id', 'created_by', 'title', 'description', 'duration_minutes', 'question_seconds', 'mode', 'show_score_per_question', 'starts_at', 'ends_at', 'is_published', 'is_open', 'opened_at', 'live_phase', 'live_question_index', 'live_question_started_at'])]
 class Quiz extends Model
 {
     /** @use HasFactory<QuizFactory> */
@@ -18,7 +18,7 @@ class Quiz extends Model
 
     protected function casts(): array
     {
-        return ['starts_at' => 'datetime', 'ends_at' => 'datetime', 'opened_at' => 'datetime', 'live_question_started_at' => 'datetime', 'is_published' => 'boolean', 'is_open' => 'boolean', 'show_score_per_question' => 'boolean', 'duration_minutes' => 'integer', 'live_question_index' => 'integer'];
+        return ['starts_at' => 'datetime', 'ends_at' => 'datetime', 'opened_at' => 'datetime', 'live_question_started_at' => 'datetime', 'is_published' => 'boolean', 'is_open' => 'boolean', 'show_score_per_question' => 'boolean', 'duration_minutes' => 'integer', 'question_seconds' => 'integer', 'live_question_index' => 'integer'];
     }
 
     public function subject(): BelongsTo

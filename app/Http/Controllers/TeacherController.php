@@ -39,17 +39,22 @@ class TeacherController extends Controller
     {
         $validated = $request->validated();
         $assignments = $validated['assignments'] ?? [];
-        unset($validated['assignments']);
+        $makeAdmin = (bool) ($validated['is_admin'] ?? false);
+        unset($validated['assignments'], $validated['is_admin']);
 
         $password = Str::password(12);
 
-        $user = DB::transaction(function () use ($validated, $assignments, $password) {
+        $user = DB::transaction(function () use ($validated, $assignments, $password, $makeAdmin) {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? "{$validated['nip']}@guru.local",
                 'password' => $password,
                 'role' => 'guru',
             ]);
+
+            if ($makeAdmin) {
+                $user->assignRole('admin');
+            }
 
             $teacher = Teacher::create($validated + ['user_id' => $user->id]);
             $teacher->teachingAssignments()->createMany($this->flattenAssignments($assignments));
@@ -59,7 +64,7 @@ class TeacherController extends Controller
 
         return back()->with(
             'success',
-            "Guru berhasil ditambahkan. Login: {$user->email}, Password: {$password}"
+            'Guru berhasil ditambahkan'.($makeAdmin ? ' sebagai guru sekaligus administrator' : '').". Login: {$user->email}, Password: {$password}"
         );
     }
 

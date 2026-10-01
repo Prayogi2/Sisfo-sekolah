@@ -9,14 +9,13 @@
     // sebelumnya modal langsung tertutup dan isian hilang tanpa penjelasan
     // yang terlihat, sehingga tombolnya terasa "tidak berfungsi".
     $kuisFormSubmitted = $errors->any() && (old('title') !== null || old('duration_minutes') !== null);
-    $soalFormSubmitted = $errors->any() && old('question') !== null;
 @endphp
 <div class="container-fluid">
-    @if($errors->any() && ! $kuisFormSubmitted && ! $soalFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-    <div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="fw-bold mb-1">Bank Soal & Kuis CBT</h4><p class="text-muted mb-0">Buat soal, susun kuis, dan publikasikan ke kelas.</p></div><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSoal"><i class="bi bi-plus-lg me-1"></i> Tambah Soal</button></div>
-    <x-page-guide>Buat soal dulu di <strong>Tambah Soal</strong>, lalu susun jadi kuis lewat <strong>Buat Kuis Baru</strong>. Setelah dipublikasikan, buka <strong>Panel Kahoot</strong> pada kuis itu untuk memulai sesi bersama siswa.</x-page-guide>
+    @if($errors->any() && ! $kuisFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+    <div class="d-flex justify-content-between align-items-center mb-4"><div><h4 class="fw-bold mb-1">Bank Soal & Kuis CBT</h4><p class="text-muted mb-0">Buat soal, susun kuis, dan publikasikan ke kelas.</p></div><div class="d-flex gap-2"><button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalImportSoal"><i class="bi bi-file-earmark-excel me-1"></i> Import Excel</button><a href="{{ route('guru.bank-soal.tambah') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Tambah Soal</a></div></div>
+    <x-page-guide>Buat soal dulu di <strong>Tambah Soal</strong> (bisa banyak sekaligus: pilihan ganda, essay, menjodohkan) atau <strong>Import Excel</strong>, lalu susun jadi kuis lewat <strong>Buat Kuis Baru</strong>. Setelah dipublikasikan, buka <strong>Panel Kahoot</strong> pada kuis itu untuk memulai sesi bersama siswa.</x-page-guide>
 
-    <div class="card shadow-sm mb-4"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="fw-bold mb-0">Kuis yang Dibuat</h6><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalKuis">Buat Kuis Baru</button></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Judul</th><th>Mapel</th><th>Kelas</th><th>Soal</th><th>Durasi</th><th>Status</th><th class="text-center">Akses Siswa</th></tr></thead><tbody>@forelse($quizzes as $quiz)<tr><td class="fw-semibold">{{ $quiz->title }}</td><td>{{ $quiz->subject->name }}</td><td>{{ $quiz->classroom->name }}</td><td>{{ $quiz->questions_count ?? $quiz->questions->count() }}</td><td>{{ $quiz->duration_minutes }} menit</td><td><span class="badge {{ $quiz->is_published ? 'bg-success' : 'bg-secondary' }}">{{ $quiz->is_published ? 'Dipublikasikan' : 'Draft' }}</span></td>
+    <div class="card shadow-sm mb-4"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="fw-bold mb-0">Kuis yang Dibuat</h6><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalKuis">Buat Kuis Baru</button></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Judul</th><th>Mapel</th><th>Kelas</th><th>Soal</th><th>Durasi</th><th>Status</th><th class="text-center">Akses Siswa</th></tr></thead><tbody>@forelse($quizzes as $quiz)<tr><td class="fw-semibold">{{ $quiz->title }}<div><span class="badge {{ $quiz->isLive() ? 'bg-warning text-dark' : 'bg-info text-dark' }}">{{ $quiz->isLive() ? '🎮 Kahoot' : '📝 Mandiri' }}</span></div></td><td>{{ $quiz->subject->name }}</td><td>{{ $quiz->classroom->name }}</td><td>{{ $quiz->questions_count ?? $quiz->questions->count() }}</td><td>{{ $quiz->duration_minutes }} menit @if($quiz->isLive())<div class="small text-muted">{{ rtrim(rtrim(number_format($quiz->question_seconds / 60, 2, ',', ''), '0'), ',') }} menit/soal</div>@endif @if($quiz->starts_at)<div class="small text-muted">{{ $quiz->starts_at->translatedFormat('d M H:i') }}–{{ $quiz->ends_at?->format('H:i') }}</div>@endif</td><td><span class="badge {{ $quiz->is_published ? 'bg-success' : 'bg-secondary' }}">{{ $quiz->is_published ? 'Dipublikasikan' : 'Draft' }}</span></td>
                     <td class="text-center">
                         @if(! $quiz->is_published)
                             <form action="{{ route('guru.kuis.toggle-publish', $quiz) }}" method="POST" class="d-inline" onsubmit="return confirm('Publikasikan kuis {{ addslashes($quiz->title) }}? Kuis akan terlihat oleh siswa kelas {{ addslashes($quiz->classroom->name) }}.')">
@@ -24,9 +23,14 @@
                                 <button class="btn btn-sm btn-primary"><i class="bi bi-send me-1"></i> Publikasikan</button>
                             </form>
                             <div class="small text-muted mt-1">Belum terlihat siswa</div>
+                            <div class="mt-1"><a href="{{ route('guru.kuis.cetak', $quiz) }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer me-1"></i> Cetak Soal</a></div>
                         @else
                             @if($quiz->isLive())
                                 <a href="{{ route('guru.kuis.live', $quiz) }}" class="btn btn-sm btn-outline-primary mb-1"><i class="bi bi-broadcast me-1"></i> Panel Kahoot</a>
+                            @endif
+                            <div class="mb-1"><a href="{{ route('guru.kuis.cetak', $quiz) }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer me-1"></i> Cetak Soal</a> <a href="{{ route('guru.kuis.cetak', ['quiz' => $quiz, 'kunci' => 1]) }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-key me-1"></i> Kunci</a></div>
+                            @if($quiz->questions->contains('type', \App\Models\QuizQuestion::TYPE_ESSAY))
+                                <a href="{{ route('guru.kuis.koreksi', $quiz) }}" class="btn btn-sm btn-outline-dark mb-1"><i class="bi bi-pencil-square me-1"></i> Koreksi Essay @if(($pendingEssays[$quiz->id] ?? 0) > 0)<span class="badge bg-danger">{{ $pendingEssays[$quiz->id] }}</span>@endif</a>
                             @endif
                             <form action="{{ route('guru.kuis.toggle-open', $quiz) }}" method="POST" class="d-inline">
                                 @csrf
@@ -47,12 +51,136 @@
                         @endif
                     </td></tr>@empty<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kuis.</td></tr>@endforelse</tbody></table></div></div>
 
-    <div class="card shadow-sm"><div class="card-header bg-white"><h6 class="fw-bold mb-0">Bank Soal Saya</h6></div><div class="card-body"><div class="row g-3">@forelse($questions as $question)<div class="col-lg-6"><div class="border rounded p-3 h-100"><div class="d-flex justify-content-between"><span class="badge bg-primary">{{ $question->subject->name }}</span><span class="small text-muted">{{ $question->points }} poin</span></div><div class="fw-semibold mt-2">{{ $question->question }}</div>@if($question->media_path)@if($question->media_type === 'video')<video src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" controls></video>@else<img src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" alt="Media soal">@endif @endif<ol type="A" class="small text-muted mt-2 mb-0">@foreach($question->options as $option)<li>{{ $option }}</li>@endforeach</ol><div class="small text-success mt-2">Kunci: {{ implode(', ', $question->correct_answer) }} @if($question->type === 'multiple')<span class="badge bg-info text-dark">Kompleks</span>@endif</div></div></div>@empty<div class="col-12 text-center text-muted py-4">Belum ada soal. Tambahkan soal pertama.</div>@endforelse</div></div></div>
+    @php
+        // Bank soal dipisah per mapel yang diajar guru (plus mapel lain yang sudah punya soal).
+        $bankSubjects = $subjects->concat($questions->pluck('subject'))->unique('id')->sortBy('name')->values();
+        $questionsBySubject = $questions->groupBy('subject_id');
+        $activeSubjectId = (int) request('mapel', $bankSubjects->first()?->id);
+    @endphp
+    <div class="card shadow-sm">
+        <div class="card-header bg-white"><h6 class="fw-bold mb-0">Bank Soal Saya</h6></div>
+        <div class="card-body">
+            @if($bankSubjects->isEmpty())
+                <div class="text-center text-muted py-4">Anda belum ditugaskan mengajar mata pelajaran apa pun.</div>
+            @else
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    @foreach($bankSubjects as $bankSubject)
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {{ $bankSubject->id === $activeSubjectId ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#bank-mapel-{{ $bankSubject->id }}" type="button" role="tab">
+                                {{ $bankSubject->name }} <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">{{ $questionsBySubject->get($bankSubject->id, collect())->count() }}</span>
+                            </button>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="tab-content">
+                    @foreach($bankSubjects as $bankSubject)
+                        @php
+                            $subjectQuestions = $questionsBySubject->get($bankSubject->id, collect());
+                        @endphp
+                        <div class="tab-pane fade {{ $bankSubject->id === $activeSubjectId ? 'show active' : '' }}" id="bank-mapel-{{ $bankSubject->id }}" role="tabpanel">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                <div class="small text-muted">
+                                    {{ $subjectQuestions->count() }} soal ·
+                                    @foreach(\App\Models\QuizQuestion::typeLabels() as $typeValue => $typeLabel)
+                                        {{ $typeLabel }}: {{ $subjectQuestions->where('type', $typeValue)->count() }}@if(! $loop->last), @endif
+                                    @endforeach
+                                </div>
+                                <a href="{{ route('guru.bank-soal.tambah', ['subject_id' => $bankSubject->id]) }}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg me-1"></i>Tambah Soal {{ $bankSubject->name }}</a>
+                            </div>
+                            <div class="row g-3">
+                                @forelse($subjectQuestions as $question)
+                                    <div class="col-lg-6"><div class="border rounded p-3 h-100 d-flex flex-column">
+                                        <div class="d-flex justify-content-between align-items-start gap-2">
+                                            <span class="badge bg-light text-dark border">{{ $question->typeLabel() }}</span>
+                                            <span class="small text-muted text-nowrap">{{ $question->points }} poin</span>
+                                        </div>
+                                        <div class="fw-semibold mt-2">{{ $question->question }}</div>
+                                        @if($question->media_path)
+                                            @if($question->media_type === 'video')<video src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" controls></video>@else<img src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mt-2" alt="Media soal">@endif
+                                        @endif
+                                        @if($question->isChoice())
+                                            <ol type="A" class="small text-muted mt-2 mb-0">@foreach($question->options as $option)<li>{{ $option }}</li>@endforeach</ol>
+                                            <div class="small text-success mt-2">Kunci: {{ implode(', ', $question->correct_answer ?? []) }}</div>
+                                        @elseif($question->type === \App\Models\QuizQuestion::TYPE_MATCHING)
+                                            <ul class="small text-muted mt-2 mb-0">@foreach($question->matchingPairs() as $pair)<li>{{ $pair['left'] }} <i class="bi bi-arrow-right"></i> <span class="text-success">{{ $pair['right'] }}</span></li>@endforeach</ul>
+                                        @else
+                                            <div class="small text-muted mt-2">Kunci/pedoman: {{ $question->correct_answer[0] ?? '-' }}</div>
+                                        @endif
+                                        <div class="d-flex justify-content-end gap-2 mt-auto pt-2">
+                                            <a href="{{ route('guru.bank-soal.edit', $question) }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil-square me-1"></i>Edit</a>
+                                            <form action="{{ route('guru.bank-soal.destroy', $question) }}" method="POST" onsubmit="return confirm('Hapus soal ini dari bank soal?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                                        </div>
+                                    </div></div>
+                                @empty
+                                    <div class="col-12 text-center text-muted py-4">Belum ada soal {{ $bankSubject->name }}. Klik <strong>Tambah Soal</strong> atau <strong>Import Excel</strong>.</div>
+                                @endforelse
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
 </div>
 
-<div class="modal fade" id="modalSoal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form action="{{ route('guru.bank-soal.simpan') }}" method="POST" enctype="multipart/form-data">@csrf<div class="modal-header"><h5 class="modal-title">Tambah Soal Pilihan Ganda</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">@if($soalFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif<div class="row g-3 mb-3"><div class="col-md-7"><label class="form-label">Mata Pelajaran</label><select name="subject_id" class="form-select" required><option value="">Pilih mapel</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}" @selected(old('subject_id') == $subject->id)>{{ $subject->name }}</option>@endforeach</select></div><div class="col-md-5"><label class="form-label">Jenis Soal</label><select name="type" id="tipeSoal" class="form-select" required><option value="single" @selected(old('type', 'single') === 'single')>Pilihan Ganda (satu jawaban benar)</option><option value="multiple" @selected(old('type') === 'multiple')>Pilihan Ganda Kompleks (jawaban benar lebih dari satu)</option></select></div></div><div class="mb-3"><label class="form-label">Pertanyaan</label><textarea name="question" rows="3" class="form-control" required>{{ old('question') }}</textarea></div><div class="mb-3"><label class="form-label">Gambar / Video (opsional)</label><input type="file" name="media" class="form-control" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"><div class="form-text">Gambar atau video maksimal 50 MB.</div></div><div class="mb-3"><p class="text-muted small mb-2" id="tipeSoalKeterangan">Centang satu opsi sebagai kunci jawaban.</p><div class="row g-2">@foreach(['A','B','C','D'] as $letter)<div class="col-md-6"><div class="input-group"><span class="input-group-text">{{ $letter }}</span><input name="options[{{ $letter }}]" class="form-control" value="{{ old('options.'.$letter) }}" required><span class="input-group-text"><input type="checkbox" class="kunci-jawaban" name="correct_answer[]" value="{{ $letter }}" @checked(in_array($letter, old('correct_answer', [])))> Kunci</span></div></div>@endforeach</div></div><div class="mt-3"><label class="form-label">Penjelasan (opsional)</label><textarea name="explanation" rows="2" class="form-control">{{ old('explanation') }}</textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary">Simpan Soal</button></div></form></div></div></div>
+<div class="modal fade" id="modalImportSoal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><form action="{{ route('guru.bank-soal.import') }}" method="POST" enctype="multipart/form-data">@csrf
+    <div class="modal-header"><h5 class="modal-title">Import Soal dari Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <ol class="small text-muted ps-3">
+            <li>Unduh template, isi satu soal per baris (PG, PG Kompleks, Essay, Menjodohkan). Petunjuk ada di sheet "Petunjuk".</li>
+            <li>Pilih mata pelajaran, lalu upload file yang sudah diisi.</li>
+            <li>Bila ada baris yang salah, tidak ada soal yang disimpan dan kesalahan tiap baris ditampilkan.</li>
+        </ol>
+        <a href="{{ route('guru.bank-soal.import.template') }}" class="btn btn-sm btn-outline-success mb-3"><i class="bi bi-download me-1"></i>Unduh Template Excel</a>
+        <div class="mb-3"><label class="form-label">Mata Pelajaran</label><select name="subject_id" class="form-select" required><option value="">Pilih mapel</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}">{{ $subject->name }}</option>@endforeach</select></div>
+        <div><label class="form-label">File Excel (.xlsx)</label><input type="file" name="file" class="form-control" accept=".xlsx" required></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-success"><i class="bi bi-upload me-1"></i>Import</button></div>
+</form></div></div></div>
 
-<div class="modal fade" id="modalKuis" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form action="{{ route('guru.kuis.store') }}" method="POST">@csrf<div class="modal-header"><h5 class="modal-title">Buat Kuis CBT</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">@if($kuisFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif @if($questions->isEmpty())<div class="alert alert-warning">Anda belum punya soal di bank soal. Tambahkan soal lewat <strong>Tambah Soal</strong> dulu sebelum bisa membuat kuis.</div>@endif<div class="row g-3"><div class="col-md-6"><label class="form-label">Judul</label><input name="title" class="form-control" value="{{ old('title') }}" required></div><div class="col-md-3"><label class="form-label">Mapel</label><select name="subject_id" id="kuisSubjectSelect" class="form-select" required><option value="">Pilih</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}" @selected(old('subject_id') == $subject->id)>{{ $subject->name }}</option>@endforeach</select></div><div class="col-md-3"><label class="form-label">Kelas</label><select name="classroom_id" id="kuisClassroomSelect" class="form-select" required><option value="">Pilih mapel dulu</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected(old('classroom_id') == $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div><div class="col-md-4"><label class="form-label">Durasi (menit)</label><input name="duration_minutes" type="number" min="1" max="600" value="{{ old('duration_minutes', 30) }}" class="form-control" required></div><div class="col-md-4"><label class="form-label">Mulai</label><input name="starts_at" type="datetime-local" class="form-control" value="{{ old('starts_at') }}"></div><div class="col-md-4"><label class="form-label">Selesai</label><input name="ends_at" type="datetime-local" class="form-control" value="{{ old('ends_at') }}"></div><div class="col-12"><label class="form-label">Deskripsi</label><textarea name="description" class="form-control" rows="2">{{ old('description') }}</textarea></div><div class="col-12"><div class="alert alert-info py-2 px-3 mb-0"><i class="bi bi-broadcast me-1"></i> Kuis ini akan dikerjakan serentak (model Kahoot) — Anda mengendalikan perpindahan soal lewat Panel Kahoot setelah kuis dipublikasikan.</div></div><div class="col-12"><label class="form-check"><input type="checkbox" name="show_score_per_question" value="1" class="form-check-input" @checked(old('show_score_per_question'))><span class="form-check-label">Tampilkan skor tiap soal (bukan hanya di akhir)</span></label></div><div class="col-12"><label class="form-label">Pilih soal</label><div class="row g-2">@forelse($questions as $question)<div class="col-md-6"><label class="border rounded p-2 d-block"><input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="me-2" @checked(in_array($question->id, old('question_ids', [])))>{{ \Illuminate\Support\Str::limit($question->question, 90) }} <small class="text-muted">({{ $question->subject->name }})</small></label></div>@empty<div class="text-muted">Buat soal terlebih dahulu.</div>@endforelse</div></div><div class="col-12"><div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Kuis disimpan sebagai <strong>Draft</strong> dulu. Klik <strong>Publikasikan</strong> di daftar kuis bila sudah siap dipakai siswa.</div></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" @disabled($questions->isEmpty())>Simpan Kuis</button></div></form></div></div></div>
+<div class="modal fade" id="modalKuis" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><form action="{{ route('guru.kuis.store') }}" method="POST" id="kuisForm">@csrf
+    <div class="modal-header"><h5 class="modal-title">Buat Kuis</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        @if($kuisFormSubmitted)<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @if($questions->isEmpty())<div class="alert alert-warning">Anda belum punya soal di bank soal. Tambahkan soal lewat <strong>Tambah Soal</strong> dulu sebelum bisa membuat kuis.</div>@endif
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Judul</label><input name="title" class="form-control" value="{{ old('title') }}" required></div>
+            <div class="col-md-3"><label class="form-label">Mapel</label><select name="subject_id" id="kuisSubjectSelect" class="form-select" required><option value="">Pilih</option>@foreach($subjects as $subject)<option value="{{ $subject->id }}" @selected(old('subject_id') == $subject->id)>{{ $subject->name }}</option>@endforeach</select></div>
+            <div class="col-md-3"><label class="form-label">Kelas</label><select name="classroom_id" id="kuisClassroomSelect" class="form-select" required><option value="">Pilih mapel dulu</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected(old('classroom_id') == $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
+
+            <div class="col-12">
+                <label class="form-label">Model Kuis</label>
+                <div class="row g-2">
+                    <div class="col-md-6"><label class="border rounded p-3 d-block h-100"><input type="radio" name="mode" value="live" class="form-check-input me-2 kuis-mode" @checked(old('mode', 'live') === 'live')><strong>🎮 Kahoot (dipandu guru)</strong><div class="small text-muted mt-1">Semua siswa mengerjakan bersamaan. Guru memindahkan soal lewat Panel Kahoot, tiap soal ada hitung mundur & papan peringkat.</div></label></div>
+                    <div class="col-md-6"><label class="border rounded p-3 d-block h-100"><input type="radio" name="mode" value="async" class="form-check-input me-2 kuis-mode" @checked(old('mode') === 'async')><strong>📝 Mandiri</strong><div class="small text-muted mt-1">Siswa mengerjakan sendiri di perangkatnya, bebas berpindah nomor soal selama durasi kuis.</div></label></div>
+                </div>
+            </div>
+
+            <div class="col-md-3"><label class="form-label">Durasi (menit)</label><input name="duration_minutes" id="kuisDuration" type="number" min="1" max="600" value="{{ old('duration_minutes', 60) }}" class="form-control" required></div>
+            <div class="col-md-3 kahoot-only"><label class="form-label">Waktu per soal (menit)</label><input name="question_minutes" type="number" min="0.25" max="30" step="0.25" value="{{ old('question_minutes', 1) }}" class="form-control"><div class="form-text">Essay ×3, menjodohkan ×2.</div></div>
+            <div class="col-md-3"><label class="form-label">Mulai</label><input name="starts_at" id="kuisStartsAt" type="datetime-local" class="form-control" value="{{ old('starts_at') }}"></div>
+            <div class="col-md-3"><label class="form-label">Selesai (otomatis)</label><input type="text" id="kuisEndsAt" class="form-control bg-light" value="-" readonly tabindex="-1"><div class="form-text">Mulai + durasi.</div></div>
+
+            <div class="col-12"><label class="form-label">Deskripsi</label><textarea name="description" class="form-control" rows="2">{{ old('description') }}</textarea></div>
+            <div class="col-12 kahoot-only"><label class="form-check"><input type="checkbox" name="show_score_per_question" value="1" class="form-check-input" @checked(old('show_score_per_question'))><span class="form-check-label">Tampilkan skor sementara ke siswa setiap soal</span></label></div>
+
+            <div class="col-12">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <label class="form-label mb-0">Pilih soal <span class="text-muted small" id="kuisQuestionCount"></span></label>
+                    <label class="form-check mb-0"><input type="checkbox" id="kuisSelectAll" class="form-check-input"> <span class="form-check-label fw-semibold">Pilih semua soal</span></label>
+                </div>
+                <div class="text-muted small mb-2" id="kuisPickSubjectHint">Pilih mapel dulu untuk menampilkan soalnya.</div>
+                <div class="row g-2" id="kuisQuestionList" style="max-height: 320px; overflow-y: auto;">
+                    @foreach($questions as $question)
+                        <div class="col-md-6 kuis-question-item" data-subject="{{ $question->subject_id }}"><label class="border rounded p-2 d-block h-100"><input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="me-2 kuis-question-check" @checked(in_array($question->id, old('question_ids', [])))>{{ \Illuminate\Support\Str::limit($question->question, 90) }} <small class="text-muted">({{ $question->typeLabel() }} · {{ $question->points }} poin)</small></label></div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="col-12"><div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Kuis disimpan sebagai <strong>Draft</strong> dulu. Klik <strong>Publikasikan</strong> di daftar kuis bila sudah siap dipakai siswa.</div></div>
+        </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" @disabled($questions->isEmpty())>Simpan Kuis</button></div>
+</form></div></div></div>
 
 <script>
     (function () {
@@ -77,45 +205,73 @@
         });
     })();
 
+
     (function () {
-        const tipeSoal = document.getElementById('tipeSoal');
-        const keterangan = document.getElementById('tipeSoalKeterangan');
-        const kunciCheckboxes = document.querySelectorAll('.kunci-jawaban');
-        if (! tipeSoal) {
-            return;
-        }
+        const form = document.getElementById('kuisForm');
+        if (! form) return;
+        const subjectSelect = document.getElementById('kuisSubjectSelect');
+        const items = [...form.querySelectorAll('.kuis-question-item')];
+        const selectAll = document.getElementById('kuisSelectAll');
+        const count = document.getElementById('kuisQuestionCount');
+        const hint = document.getElementById('kuisPickSubjectHint');
 
-        function terapkanTipeSoal() {
-            const isKompleks = tipeSoal.value === 'multiple';
-            keterangan.textContent = isKompleks
-                ? 'Centang lebih dari satu opsi sebagai kunci jawaban.'
-                : 'Centang satu opsi sebagai kunci jawaban.';
-            if (! isKompleks) {
-                let sudahDicentang = false;
-                kunciCheckboxes.forEach((checkbox) => {
-                    if (checkbox.checked) {
-                        if (sudahDicentang) {
-                            checkbox.checked = false;
-                        }
-                        sudahDicentang = true;
-                    }
-                });
-            }
-        }
-
-        tipeSoal.addEventListener('change', terapkanTipeSoal);
-        kunciCheckboxes.forEach((checkbox) => {
-            checkbox.addEventListener('change', function () {
-                if (tipeSoal.value === 'single' && checkbox.checked) {
-                    kunciCheckboxes.forEach((other) => {
-                        if (other !== checkbox) {
-                            other.checked = false;
-                        }
-                    });
-                }
+        // Model Kahoot vs Mandiri: waktu per soal hanya berlaku di Kahoot.
+        function applyMode() {
+            const isKahoot = form.querySelector('.kuis-mode:checked')?.value === 'live';
+            form.querySelectorAll('.kahoot-only').forEach(element => {
+                element.classList.toggle('d-none', !isKahoot);
+                element.querySelectorAll('input').forEach(input => input.disabled = !isKahoot);
             });
-        });
-        terapkanTipeSoal();
+        }
+
+        // Daftar soal hanya dari mapel yang dipilih; soal mapel lain tidak ikut terkirim.
+        function applySubject() {
+            const subjectId = subjectSelect.value;
+            items.forEach(item => {
+                const visible = subjectId !== '' && item.dataset.subject === subjectId;
+                item.classList.toggle('d-none', !visible);
+                const checkbox = item.querySelector('.kuis-question-check');
+                checkbox.disabled = !visible;
+                if (!visible) checkbox.checked = false;
+            });
+            hint.textContent = subjectId === '' ? 'Pilih mapel dulu untuk menampilkan soalnya.' : (visibleChecks().length === 0 ? 'Belum ada soal untuk mapel ini.' : '');
+            hint.classList.toggle('d-none', hint.textContent === '');
+            updateCount();
+        }
+
+        function visibleChecks() {
+            return items.filter(item => !item.classList.contains('d-none')).map(item => item.querySelector('.kuis-question-check'));
+        }
+
+        function updateCount() {
+            const checks = visibleChecks();
+            const selected = checks.filter(check => check.checked).length;
+            count.textContent = checks.length ? '(' + selected + ' dari ' + checks.length + ' dipilih)' : '';
+            selectAll.checked = checks.length > 0 && selected === checks.length;
+            selectAll.indeterminate = selected > 0 && selected < checks.length;
+            selectAll.disabled = checks.length === 0;
+        }
+
+        // Waktu selesai = mulai + durasi (hanya ditampilkan, dihitung ulang di server).
+        function updateEndsAt() {
+            const startsAt = document.getElementById('kuisStartsAt').value;
+            const minutes = parseInt(document.getElementById('kuisDuration').value, 10) || 0;
+            const output = document.getElementById('kuisEndsAt');
+            if (!startsAt) { output.value = '-'; return; }
+            const end = new Date(new Date(startsAt).getTime() + minutes * 60000);
+            output.value = end.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        form.querySelectorAll('.kuis-mode').forEach(radio => radio.addEventListener('change', applyMode));
+        subjectSelect.addEventListener('change', applySubject);
+        selectAll.addEventListener('change', () => { visibleChecks().forEach(check => check.checked = selectAll.checked); updateCount(); });
+        items.forEach(item => item.querySelector('.kuis-question-check').addEventListener('change', updateCount));
+        document.getElementById('kuisStartsAt').addEventListener('input', updateEndsAt);
+        document.getElementById('kuisDuration').addEventListener('input', updateEndsAt);
+
+        applyMode();
+        applySubject();
+        updateEndsAt();
     })();
 
     // Kalau validasi gagal, buka ulang modal yang barusan disubmit supaya
@@ -124,10 +280,6 @@
     @if($kuisFormSubmitted)
         document.addEventListener('DOMContentLoaded', function () {
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKuis')).show();
-        });
-    @elseif($soalFormSubmitted)
-        document.addEventListener('DOMContentLoaded', function () {
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSoal')).show();
         });
     @endif
 </script>

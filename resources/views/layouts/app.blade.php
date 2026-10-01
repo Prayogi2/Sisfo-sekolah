@@ -63,7 +63,7 @@
             
             <div class="menu-title">Akademik & Keuangan</div>
             <a href="{{ route('admin.verifikasi-spp') }}" class="{{ request()->routeIs('admin.verifikasi-spp') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill"></i> Verifikasi SPP</a>
-            <a href="{{ route('admin.approval-izin') }}" class="{{ request()->routeIs('admin.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Approval Izin</a>
+            <a href="{{ route('admin.approval-izin') }}" class="{{ request()->routeIs('admin.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Data Izin Siswa</a>
             <a href="{{ route('admin.bank-soal') }}" class="{{ request()->routeIs('admin.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Bank Soal Kuis</a>
             <a href="{{ route('admin.prestasi-pelanggaran') }}" class="{{ request()->routeIs('admin.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Prestasi & Pelanggaran</a>
             <a href="{{ route('admin.kritik-saran') }}" class="{{ request()->routeIs('admin.kritik-saran') ? 'active' : '' }}"><i class="bi bi-chat-square-text-fill"></i> Kritik & Saran</a>
@@ -80,6 +80,7 @@
             
             <div class="menu-title">Kelola Akademik</div>
             <a href="{{ route('guru.data-guru') }}" class="{{ request()->routeIs('guru.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
+            <a href="{{ route('guru.absensi-kelas') }}" class="{{ request()->routeIs('guru.absensi-kelas*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> Absensi Kelas</a>
             <a href="{{ route('guru.approval-izin') }}" class="{{ request()->routeIs('guru.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Approval Izin & Sakit</a>
             <a href="{{ route('guru.bank-soal') }}" class="{{ request()->routeIs('guru.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Manajemen Bank Soal & Kuis</a>
             <a href="{{ route('guru.prestasi-pelanggaran') }}" class="{{ request()->routeIs('guru.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
@@ -96,6 +97,7 @@
 
             <div class="menu-title">Absensi</div>
             <a href="{{ route('siswa.absensi') }}" class="{{ request()->routeIs('siswa.absensi') ? 'active' : '' }}"><i class="bi bi-calendar-check-fill"></i> Riwayat Absensi</a>
+            <a href="{{ route('siswa.izin') }}" class="{{ request()->routeIs('siswa.izin*') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Ajukan Izin / Sakit</a>
 
             <div class="menu-title">Akademik</div>
             <a href="{{ route('siswa.kuis') }}" class="{{ request()->routeIs('siswa.kuis*') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill"></i> Kuis & Ranking</a>
@@ -199,7 +201,7 @@
                         <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Guru</a></li>
                         <li><a class="dropdown-item" href="{{ route('admin.akun') }}"><i class="bi bi-key me-2"></i> Kelola Password</a></li>
                     @endif
-                    <li><a class="dropdown-item" href="{{ route('account.password.edit') }}"><i class="bi bi-shield-lock me-2"></i> Ganti Password</a></li>
+                    <li><a class="dropdown-item" href="{{ route('account.password.edit') }}"><i class="bi bi-shield-lock me-2"></i> {{ auth()->user()->role === 'admin' ? 'Ganti Nama & Password' : 'Ganti Password' }}</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST">
@@ -215,6 +217,15 @@
     </header>
 
     <main class="content-wrapper">
+        @if (session()->has(\App\Http\Controllers\AccountController::IMPERSONATOR_KEY))
+            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 shadow-sm">
+                <span><i class="bi bi-person-badge me-1"></i>Anda sedang masuk sebagai <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->role }}). Semua perubahan tercatat atas nama akun ini.</span>
+                <form action="{{ route('account.impersonate.stop') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-dark"><i class="bi bi-box-arrow-left me-1"></i>Kembali ke Admin</button>
+                </form>
+            </div>
+        @endif
         <x-flash-messages />
         @yield('content')
     </main>
@@ -249,6 +260,7 @@
         ],
         'guru' => [
             ['route' => 'guru.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
+            ['route' => 'guru.absensi-kelas', 'icon' => 'bi-clipboard-check', 'label' => 'Absensi'],
             ['route' => 'guru.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Guru'],
             ['route' => 'guru.approval-izin', 'icon' => 'bi-envelope-paper-heart', 'label' => 'Izin'],
             ['route' => 'guru.bank-soal', 'icon' => 'bi-file-earmark-play-fill', 'label' => 'Kuis'],
@@ -262,6 +274,7 @@
             ['route' => 'siswa.status-spp', 'icon' => 'bi-cash-coin', 'label' => 'SPP'],
             ['route' => 'siswa.notifikasi', 'icon' => 'bi-bell-fill', 'label' => 'Notifikasi'],
             ['route' => 'siswa.absensi', 'icon' => 'bi-calendar-check-fill', 'label' => 'Absensi'],
+            ['route' => 'siswa.izin', 'icon' => 'bi-envelope-paper-heart', 'label' => 'Izin'],
             ['route' => 'siswa.hasil-kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Hasil Kuis'],
             ['route' => 'siswa.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
             ['route' => 'siswa.spp', 'icon' => 'bi-upload', 'label' => 'Bayar SPP'],
@@ -301,7 +314,7 @@
                 </a>
             @endforeach
             <a href="{{ route('account.password.edit') }}" class="mobile-more-item">
-                <i class="bi bi-shield-lock-fill"></i><span>Ganti Password</span>
+                <i class="bi bi-shield-lock-fill"></i><span>{{ auth()->user()->role === 'admin' ? 'Ganti Nama & Password' : 'Ganti Password' }}</span>
             </a>
         </div>
     </div>

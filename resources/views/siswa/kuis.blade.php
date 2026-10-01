@@ -29,9 +29,27 @@
                             <img src="{{ Storage::url($question->media_path) }}" class="img-fluid rounded mb-3" alt="Media soal">
                         @endif
                     @endif
-                    @foreach($question->options as $key => $option)
-                        <label class="d-block mb-2"><input type="{{ $question->type === 'multiple' ? 'checkbox' : 'radio' }}" name="answer[]" value="{{ $key }}" {{ in_array($key, $savedAnswer, true) ? 'checked' : '' }}> {{ $key }}. {{ $option }}</label>
-                    @endforeach
+                    @if($question->type === \App\Models\QuizQuestion::TYPE_ESSAY)
+                        <textarea name="answer" rows="4" maxlength="5000" class="form-control mb-2" placeholder="Tulis jawabanmu di sini...">{{ $savedAnswer['text'] ?? '' }}</textarea>
+                    @elseif($question->type === \App\Models\QuizQuestion::TYPE_MATCHING)
+                        @foreach($question->matchingPairs() as $pairIndex => $pair)
+                            <div class="row g-2 align-items-center mb-2">
+                                <div class="col-md-5 fw-semibold">{{ $pair['left'] }}</div>
+                                <div class="col-md-7">
+                                    <select name="answer[{{ $pairIndex }}]" class="form-select form-select-sm">
+                                        <option value="">— Pilih pasangan —</option>
+                                        @foreach($question->shuffledMatchingChoices() as $choice)
+                                            <option value="{{ $choice }}" @selected(($savedAnswer[$pairIndex] ?? null) === $choice)>{{ $choice }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        @foreach($question->options as $key => $option)
+                            <label class="d-block mb-2"><input type="{{ $question->type === 'multiple' ? 'checkbox' : 'radio' }}" name="answer[]" value="{{ $key }}" {{ in_array($key, $savedAnswer, true) ? 'checked' : '' }}> {{ $key }}. {{ $option }}</label>
+                        @endforeach
+                    @endif
                     <button class="btn btn-sm btn-outline-primary">Simpan Jawaban</button>
                 </form>
             @endforeach

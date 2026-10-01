@@ -19,15 +19,11 @@ class LeaveRequestPolicy
     }
 
     /**
-     * Approve/reject: admin bisa untuk semua, guru hanya untuk siswa
-     * di kelas yang dia jadi wali kelasnya.
+     * Approve/reject hanya oleh wali kelas siswa tersebut. Admin cukup
+     * memantau di halaman admin (atau masuk ke akun wali kelasnya).
      */
     public function update(User $user, LeaveRequest $leaveRequest): bool
     {
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-
         if (! $user->hasRole('guru')) {
             return false;
         }

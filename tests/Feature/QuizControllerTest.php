@@ -174,10 +174,12 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'single',
-            'question' => 'Berapa hasil 2 + 2?',
-            'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
-            'correct_answer' => ['A'],
+            'questions' => [[
+                'type' => 'single',
+                'question' => 'Berapa hasil 2 + 2?',
+                'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
+                'correct_answer' => ['A'],
+            ]],
         ]);
 
         $response->assertRedirect();
@@ -197,13 +199,15 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'single',
-            'question' => 'Berapa hasil 2 + 2?',
-            'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
-            'correct_answer' => ['A', 'B'],
+            'questions' => [[
+                'type' => 'single',
+                'question' => 'Berapa hasil 2 + 2?',
+                'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
+                'correct_answer' => ['A', 'B'],
+            ]],
         ]);
 
-        $response->assertSessionHasErrors('correct_answer');
+        $response->assertSessionHasErrors('questions.0.correct_answer');
         $this->assertDatabaseCount('quiz_questions', 0);
     }
 
@@ -216,13 +220,15 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'multiple',
-            'question' => 'Manakah bilangan genap?',
-            'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
-            'correct_answer' => ['A'],
+            'questions' => [[
+                'type' => 'multiple',
+                'question' => 'Manakah bilangan genap?',
+                'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
+                'correct_answer' => ['A'],
+            ]],
         ]);
 
-        $response->assertSessionHasErrors('correct_answer');
+        $response->assertSessionHasErrors('questions.0.correct_answer');
         $this->assertDatabaseCount('quiz_questions', 0);
     }
 
@@ -235,13 +241,15 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'single',
-            'question' => 'Berapa hasil 2 + 2?',
-            'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
-            'correct_answer' => 'A',
+            'questions' => [[
+                'type' => 'single',
+                'question' => 'Berapa hasil 2 + 2?',
+                'options' => ['A' => '4', 'B' => '3', 'C' => '5', 'D' => '6'],
+                'correct_answer' => 'A',
+            ]],
         ]);
 
-        $response->assertSessionHasErrors('correct_answer');
+        $response->assertSessionHasErrors('questions.0.correct_answer');
         $this->assertDatabaseCount('quiz_questions', 0);
     }
 
@@ -254,10 +262,12 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'multiple',
-            'question' => 'Manakah bilangan genap?',
-            'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
-            'correct_answer' => ['A', 'C'],
+            'questions' => [[
+                'type' => 'multiple',
+                'question' => 'Manakah bilangan genap?',
+                'options' => ['A' => '2', 'B' => '3', 'C' => '4', 'D' => '5'],
+                'correct_answer' => ['A', 'C'],
+            ]],
         ]);
 
         $response->assertRedirect();
@@ -302,10 +312,12 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $otherSubject->id,
-            'type' => 'single',
-            'question' => 'Soal titipan.',
-            'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
-            'correct_answer' => ['A'],
+            'questions' => [[
+                'type' => 'single',
+                'question' => 'Soal titipan.',
+                'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
+                'correct_answer' => ['A'],
+            ]],
         ]);
 
         $response->assertForbidden();
@@ -332,10 +344,12 @@ class QuizControllerTest extends TestCase
 
         $response = $this->actingAs($guruUser)->post(route('guru.bank-soal.simpan'), [
             'subject_id' => $subject->id,
-            'type' => 'single',
-            'question' => 'Soal titipan.',
-            'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
-            'correct_answer' => ['A'],
+            'questions' => [[
+                'type' => 'single',
+                'question' => 'Soal titipan.',
+                'options' => ['A' => '1', 'B' => '2', 'C' => '3', 'D' => '4'],
+                'correct_answer' => ['A'],
+            ]],
         ]);
 
         $response->assertForbidden();
@@ -621,6 +635,79 @@ class QuizControllerTest extends TestCase
         $response->assertJsonPath('question.correct', ['A', 'C']);
     }
 
+    private function matchingQuestion(): QuizQuestion
+    {
+        return QuizQuestion::factory()->create([
+            'type' => QuizQuestion::TYPE_MATCHING,
+            'options' => [['left' => 'Kucing', 'right' => 'Mengeong'], ['left' => 'Anjing', 'right' => 'Menggonggong'], ['left' => 'Ayam', 'right' => 'Berkokok']],
+            'correct_answer' => null,
+        ]);
+    }
+
+    public function test_live_matching_answer_earns_points_for_each_correct_pair(): void
+    {
+        [$siswa, $attempt, $question] = $this->liveAttemptOnQuestion($this->matchingQuestion());
+        $attempt->quiz->questions()->updateExistingPivot($question->id, ['points' => 3]);
+
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), [
+            'answer' => ['0' => 'Mengeong', '1' => 'Berkokok', '2' => 'Menggonggong'],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => false, 'awarded_points' => 1]);
+    }
+
+    public function test_live_matching_answer_with_every_pair_correct_earns_full_points(): void
+    {
+        [$siswa, $attempt, $question] = $this->liveAttemptOnQuestion($this->matchingQuestion());
+        $attempt->quiz->questions()->updateExistingPivot($question->id, ['points' => 3]);
+
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), [
+            'answer' => ['0' => 'Mengeong', '1' => 'Menggonggong', '2' => 'Berkokok'],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => true, 'awarded_points' => 3]);
+    }
+
+    public function test_a_live_question_can_only_be_answered_once(): void
+    {
+        $question = QuizQuestion::factory()->create(['correct_answer' => ['A']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => ['B']])->assertOk();
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => ['A']])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Kamu sudah menjawab soal ini.');
+
+        $this->assertDatabaseHas('quiz_answers', ['quiz_attempt_id' => $attempt->id, 'is_correct' => false]);
+    }
+
+    public function test_live_state_hides_matching_pairs_until_reveal(): void
+    {
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($this->matchingQuestion());
+
+        $response = $this->actingAs($siswa)->getJson(route('siswa.kuis.live.state', $attempt->quiz));
+        $response->assertJsonPath('question.matching_left', ['Kucing', 'Anjing', 'Ayam']);
+        $response->assertJsonPath('question.correct', null);
+        $this->assertEqualsCanonicalizing(['Mengeong', 'Menggonggong', 'Berkokok'], $response->json('question.matching_choices'));
+
+        $attempt->quiz->update(['live_phase' => 'reveal']);
+        $this->actingAs($siswa)->getJson(route('siswa.kuis.live.state', $attempt->quiz))
+            ->assertJsonPath('question.correct', ['Mengeong', 'Menggonggong', 'Berkokok']);
+    }
+
+    public function test_live_essay_answer_is_saved_waiting_for_the_teacher_to_grade_it(): void
+    {
+        $question = QuizQuestion::factory()->create(['type' => QuizQuestion::TYPE_ESSAY, 'options' => [], 'correct_answer' => ['Sapi']]);
+        [$siswa, $attempt] = $this->liveAttemptOnQuestion($question);
+
+        $this->actingAs($siswa)->postJson(route('siswa.kuis.live.answer', $attempt), ['answer' => 'Sapi, kambing, dan kelinci'])->assertOk();
+
+        $answer = $attempt->answers()->sole();
+        $this->assertSame(['text' => 'Sapi, kambing, dan kelinci'], $answer->answer);
+        $this->assertSame(0, $answer->awarded_points);
+        $this->assertNull($answer->graded_at);
+    }
+
     public function test_a_submitted_quiz_cannot_be_submitted_again(): void
     {
         $classroom = Classroom::factory()->create();
@@ -715,26 +802,53 @@ class QuizControllerTest extends TestCase
         $this->assertDatabaseHas('quizzes', ['title' => 'Kuis Harian', 'subject_id' => $subject->id, 'classroom_id' => $classroom->id, 'mode' => 'live']);
     }
 
-    public function test_every_created_quiz_is_kahoot_mode_even_if_a_different_mode_is_submitted(): void
+    /**
+     * @return array{0: User, 1: Subject, 2: Classroom, 3: QuizQuestion}
+     */
+    private function guruReadyToCreateAQuiz(): array
     {
         $guruUser = User::factory()->create(['role' => 'guru']);
         $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
         $subject = Subject::factory()->create();
         $classroom = Classroom::factory()->create();
         $teacher->teachingAssignments()->create(['subject_id' => $subject->id, 'classroom_id' => $classroom->id]);
-        $question = QuizQuestion::factory()->create(['subject_id' => $subject->id]);
+
+        return [$guruUser, $subject, $classroom, QuizQuestion::factory()->create(['subject_id' => $subject->id])];
+    }
+
+    public function test_guru_chooses_between_kahoot_and_self_paced_quiz_mode(): void
+    {
+        [$guruUser, $subject, $classroom, $question] = $this->guruReadyToCreateAQuiz();
+        $payload = ['subject_id' => $subject->id, 'classroom_id' => $classroom->id, 'duration_minutes' => 30, 'question_ids' => [$question->id]];
+
+        $this->actingAs($guruUser)->post(route('guru.kuis.store'), $payload + ['title' => 'Kuis Mandiri', 'mode' => 'async']);
+        $this->actingAs($guruUser)->post(route('guru.kuis.store'), $payload + ['title' => 'Kuis Tanpa Pilihan']);
+
+        $this->assertFalse(Quiz::where('title', 'Kuis Mandiri')->sole()->isLive());
+        $this->assertTrue(Quiz::where('title', 'Kuis Tanpa Pilihan')->sole()->isLive());
+    }
+
+    public function test_question_time_is_entered_in_minutes_and_the_end_time_follows_the_duration(): void
+    {
+        [$guruUser, $subject, $classroom, $question] = $this->guruReadyToCreateAQuiz();
 
         $this->actingAs($guruUser)->post(route('guru.kuis.store'), [
             'subject_id' => $subject->id,
             'classroom_id' => $classroom->id,
-            'title' => 'Kuis Mandiri Titipan',
-            'duration_minutes' => 30,
-            'mode' => 'async',
+            'title' => 'Kuis Terjadwal',
+            'mode' => 'live',
+            'duration_minutes' => 60,
+            'question_minutes' => 1.5,
+            'starts_at' => '2026-10-05 08:00',
+            // Waktu selesai kiriman form diabaikan; selalu mulai + durasi.
+            'ends_at' => '2026-10-05 20:00',
             'question_ids' => [$question->id],
-        ]);
+        ])->assertSessionHasNoErrors();
 
-        $quiz = Quiz::where('title', 'Kuis Mandiri Titipan')->firstOrFail();
-        $this->assertTrue($quiz->isLive());
+        $quiz = Quiz::where('title', 'Kuis Terjadwal')->sole();
+        $this->assertSame(90, $quiz->question_seconds);
+        $this->assertSame('2026-10-05 08:00', $quiz->starts_at->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-05 09:00', $quiz->ends_at->format('Y-m-d H:i'));
     }
 
     public function test_guru_cannot_create_a_quiz_for_a_classroom_they_do_not_teach(): void

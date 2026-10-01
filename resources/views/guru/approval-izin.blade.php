@@ -36,7 +36,7 @@
                         @forelse ($leaveRequests as $leaveRequest)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td><strong>{{ $leaveRequest->student->name }}</strong></td>
+                                <td><strong>{{ $leaveRequest->student->name }}</strong><div class="small text-muted">Diajukan: {{ $leaveRequest->applicantLabel() }}</div></td>
                                 <td>{{ $leaveRequest->student->classroom?->name ?? '-' }}</td>
                                 <td>
                                     @if ($leaveRequest->type === \App\Enums\LeaveType::Sick)

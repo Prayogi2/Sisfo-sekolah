@@ -6,14 +6,18 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceParticipantController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClassAttendanceController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassroomImportController;
+use App\Http\Controllers\DataExportController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeWeightController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\QuizEssayGradingController;
+use App\Http\Controllers\QuizQuestionController;
 use App\Http\Controllers\ReportBookController;
 use App\Http\Controllers\ReportHubController;
 use App\Http\Controllers\ScanController;
@@ -22,11 +26,13 @@ use App\Http\Controllers\SppPaymentController;
 use App\Http\Controllers\StudentConductController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
+use App\Http\Controllers\StudentLeaveRequestController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherDashboardController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/akun/password', [AuthController::class, 'editPassword'])->name('account.password.edit');
     Route::put('/akun/password', [AuthController::class, 'updatePassword'])->name('account.password.update');
+    Route::put('/akun/nama', [AuthController::class, 'updateName'])->name('account.name.update');
+    Route::post('/akun/kembali-ke-admin', [AccountController::class, 'stopImpersonating'])->name('account.impersonate.stop');
 
     /*
     |--------------------------------------------------------------------------
@@ -63,6 +71,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
         Route::get('/akun', [AccountController::class, 'index'])->name('akun');
         Route::post('/akun/{user}/reset-password', [AccountController::class, 'resetPassword'])->name('akun.reset-password');
+        Route::post('/akun/{user}/masuk', [AccountController::class, 'impersonate'])->name('akun.impersonate');
         Route::get('/buku-induk', [StudentRecordController::class, 'index'])->name('buku-induk');
         Route::get('/buku-induk/download', [StudentRecordController::class, 'download'])->name('buku-induk.download');
         Route::get('/buku-induk/{student}/download', [StudentRecordController::class, 'download'])->name('buku-induk.student.download');
@@ -76,6 +85,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/buku-induk/{student}/nilai/import/xlsx', [ReportBookController::class, 'importXlsx'])->name('buku-induk.nilai.import.xlsx');
         Route::get('/buku-induk/{student}/nilai/pdf', [ReportBookController::class, 'pdf'])->name('buku-induk.nilai.pdf');
         Route::get('/data-siswa', [StudentController::class, 'index'])->name('data-siswa');
+        Route::get('/data-siswa/unduh/{format}', [DataExportController::class, 'students'])->name('data-siswa.unduh');
         Route::get('/data-siswa/tambah', [StudentRecordController::class, 'create'])->name('data-siswa.create');
         Route::get('/data-siswa/import', [StudentImportController::class, 'create'])->name('data-siswa.import');
         Route::get('/data-siswa/import/template', [StudentImportController::class, 'template'])->name('data-siswa.import.template');
@@ -106,8 +116,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
         Route::delete('/inventaris/barang/{inventoryItem}', [InventoryController::class, 'destroyItem'])->name('inventaris.items.destroy');
         Route::get('/inventaris/laporan/{inventoryReport}', [InventoryController::class, 'showReport'])->name('inventaris.laporan.show');
+        Route::get('/inventaris/{classroom}/unduh/{format}', [DataExportController::class, 'inventory'])->name('inventaris.unduh');
 
         Route::get('/data-guru', [TeacherController::class, 'index'])->name('data-guru');
+        Route::get('/data-guru/unduh/{format}', [DataExportController::class, 'teachers'])->name('data-guru.unduh');
         Route::post('/data-guru', [TeacherController::class, 'store'])->name('data-guru.store');
         Route::put('/data-guru/{teacher}', [TeacherController::class, 'update'])->name('data-guru.update');
         Route::delete('/data-guru/{teacher}', [TeacherController::class, 'destroy'])->name('data-guru.destroy');
@@ -118,8 +130,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/verifikasi-spp/{sppPayment}/approve', [SppPaymentController::class, 'approve'])->name('verifikasi-spp.approve');
         Route::post('/verifikasi-spp/{sppPayment}/reject', [SppPaymentController::class, 'reject'])->name('verifikasi-spp.reject');
         Route::get('/approval-izin', [LeaveRequestController::class, 'index'])->name('approval-izin');
-        Route::post('/approval-izin/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approval-izin.approve');
-        Route::post('/approval-izin/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('approval-izin.reject');
         Route::get('/kritik-saran', [FeedbackController::class, 'index'])->name('kritik-saran');
         Route::get('/notifikasi', [AnnouncementController::class, 'index'])->name('notifikasi');
         Route::post('/notifikasi', [AnnouncementController::class, 'store'])->name('notifikasi.store');
@@ -165,21 +175,34 @@ Route::middleware('auth')->group(function () {
 
         // Manajemen Bank Soal & Kuis
         Route::get('/bank-soal', [QuizController::class, 'questionBank'])->name('bank-soal');
-        Route::post('/bank-soal/simpan', [QuizController::class, 'storeQuestion'])->name('bank-soal.simpan');
-        Route::put('/bank-soal/{question}', [QuizController::class, 'updateQuestion'])->name('bank-soal.update');
+        Route::get('/bank-soal/tambah', [QuizQuestionController::class, 'create'])->name('bank-soal.tambah');
+        Route::post('/bank-soal/simpan', [QuizQuestionController::class, 'store'])->name('bank-soal.simpan');
+        Route::get('/bank-soal/import/template', [QuizQuestionController::class, 'importTemplate'])->name('bank-soal.import.template');
+        Route::post('/bank-soal/import', [QuizQuestionController::class, 'import'])->name('bank-soal.import');
+        Route::get('/bank-soal/{question}/edit', [QuizQuestionController::class, 'edit'])->name('bank-soal.edit');
+        Route::put('/bank-soal/{question}', [QuizQuestionController::class, 'update'])->name('bank-soal.update');
         Route::delete('/bank-soal/{question}', [QuizController::class, 'destroyQuestion'])->name('bank-soal.destroy');
         Route::post('/kuis', [QuizController::class, 'storeQuiz'])->name('kuis.store');
         Route::post('/kuis/{quiz}/publikasi', [QuizController::class, 'togglePublish'])->name('kuis.toggle-publish');
         Route::post('/kuis/{quiz}/buka-tutup', [QuizController::class, 'toggleOpen'])->name('kuis.toggle-open');
         Route::get('/kuis/{quiz}/live', [QuizController::class, 'liveHost'])->name('kuis.live');
+        Route::get('/kuis/{quiz}/live/state', [QuizController::class, 'liveHostState'])->name('kuis.live.state');
+        Route::get('/kuis/{quiz}/cetak', [QuizController::class, 'printSheet'])->name('kuis.cetak');
         Route::post('/kuis/{quiz}/live/mulai', [QuizController::class, 'startLive'])->name('kuis.live.start');
         Route::post('/kuis/{quiz}/live/berikutnya', [QuizController::class, 'advanceLive'])->name('kuis.live.next');
         Route::post('/kuis/{quiz}/live/selesai', [QuizController::class, 'finishLive'])->name('kuis.live.finish');
+        Route::get('/kuis/{quiz}/koreksi', [QuizEssayGradingController::class, 'index'])->name('kuis.koreksi');
+        Route::put('/kuis/{quiz}/koreksi', [QuizEssayGradingController::class, 'update'])->name('kuis.koreksi.simpan');
         Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'index'])->name('prestasi-pelanggaran');
         Route::post('/prestasi-pelanggaran/prestasi', [StudentConductController::class, 'storeAchievement'])->name('prestasi-pelanggaran.prestasi.store');
         Route::delete('/prestasi-pelanggaran/prestasi/{achievement}', [StudentConductController::class, 'destroyAchievement'])->name('prestasi-pelanggaran.prestasi.destroy');
         Route::post('/prestasi-pelanggaran/pelanggaran', [StudentConductController::class, 'storeViolation'])->name('prestasi-pelanggaran.pelanggaran.store');
         Route::delete('/prestasi-pelanggaran/pelanggaran/{violation}', [StudentConductController::class, 'destroyViolation'])->name('prestasi-pelanggaran.pelanggaran.destroy');
+
+        // Absensi Kelas (wali kelas)
+        Route::get('/absensi-kelas', [ClassAttendanceController::class, 'index'])->name('absensi-kelas');
+        Route::put('/absensi-kelas/{classroom}', [ClassAttendanceController::class, 'update'])->name('absensi-kelas.simpan');
+        Route::get('/absensi-kelas/{classroom}/unduh/{format}', [ClassAttendanceController::class, 'export'])->name('absensi-kelas.unduh');
 
         // Inventaris Kelas (wali kelas)
         Route::get('/inventaris', [InventoryController::class, 'index'])->name('inventaris');
@@ -187,6 +210,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
         Route::post('/inventaris/{classroom}/laporan', [InventoryController::class, 'storeReport'])->name('inventaris.laporan.store');
         Route::get('/inventaris/laporan/{inventoryReport}', [InventoryController::class, 'showReport'])->name('inventaris.laporan.show');
+        Route::get('/inventaris/{classroom}/unduh/{format}', [DataExportController::class, 'inventory'])->name('inventaris.unduh');
 
         // Laporan & Input Nilai
         Route::get('/laporan-nilai', [GradeController::class, 'index'])->name('laporan-nilai');
@@ -213,6 +237,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/kuis-cbt/attempt/{attempt}/jawaban', [QuizController::class, 'answer'])->name('kuis.answer');
         Route::post('/kuis-cbt/attempt/{attempt}/kumpulkan', [QuizController::class, 'submit'])->name('kuis.submit');
         Route::get('/riwayat-absensi', [StudentPortalController::class, 'attendanceHistory'])->name('absensi');
+        Route::get('/izin', [StudentLeaveRequestController::class, 'index'])->name('izin');
+        Route::post('/izin', [StudentLeaveRequestController::class, 'store'])->name('izin.store');
         Route::get('/notifikasi', [AnnouncementController::class, 'studentIndex'])->name('notifikasi');
         Route::post('/notifikasi/tandai-semua', [AnnouncementController::class, 'markAllAsRead'])->name('notifikasi.read-all');
         Route::get('/notifikasi/{announcement}', [AnnouncementController::class, 'studentShow'])->name('notifikasi.show');
@@ -227,4 +253,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/scan-qr', [ScanController::class, 'index'])->name('scan-qr');
         Route::post('/scan-qr', [ScanController::class, 'store'])->name('scan-qr.store');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| 5. MAINTENANCE & SYSTEM UTILITIES (Single Setup Route)
+|--------------------------------------------------------------------------
+*/
+Route::get('/system-setup', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    Artisan::call('config:cache');
+
+    Artisan::call('migrate', ['--force' => true]);
+    $migrateOutput = Artisan::output();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Cache berhasil dibersihkan dan migration berhasil dijalankan!',
+        'migration_output' => $migrateOutput,
+    ]);
 });

@@ -34,6 +34,11 @@
             <span><i class="bi bi-clock me-1"></i>Laporan terakhir: <strong class="text-dark">{{ $reports->first()?->created_at->translatedFormat('d F Y, H:i') ?? 'Belum ada' }}</strong></span>
         </div>
 
+        <div class="d-flex justify-content-end gap-2 mb-3">
+            <a href="{{ route('admin.inventaris.unduh', [$classroom, 'xlsx']) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            <a href="{{ route('admin.inventaris.unduh', [$classroom, 'pdf']) }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+        </div>
+
         <x-inventaris.add-item-form :classroom="$classroom" :categories="$categories" route-prefix="admin.inventaris" />
 
         <div class="card border-0 shadow-sm mb-4">

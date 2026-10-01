@@ -52,30 +52,55 @@ class LeaveRequestControllerTest extends TestCase
         $response->assertDontSee($otherStudent->name);
     }
 
+    /**
+     * @return array{0: User, 1: Student}
+     */
+    private function homeroomTeacherWithStudent(): array
+    {
+        $guruUser = User::factory()->create(['role' => 'guru']);
+        $teacher = Teacher::factory()->create(['user_id' => $guruUser->id]);
+        $classroom = Classroom::factory()->create(['homeroom_teacher_id' => $teacher->id]);
+
+        return [$guruUser, Student::factory()->create(['classroom_id' => $classroom->id])];
+    }
+
     public function test_siswa_cannot_approve_a_leave_request(): void
     {
         $siswa = User::factory()->create(['role' => 'siswa']);
         $leaveRequest = LeaveRequest::factory()->create();
 
-        $response = $this->actingAs($siswa)->post(route('admin.approval-izin.approve', $leaveRequest));
+        $this->actingAs($siswa)->post(route('guru.approval-izin.approve', $leaveRequest))->assertForbidden();
+    }
 
-        $response->assertForbidden();
+    public function test_admin_only_monitors_and_cannot_approve_a_leave_request(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [, $student] = $this->homeroomTeacherWithStudent();
+        $leaveRequest = LeaveRequest::factory()->create(['student_id' => $student->id]);
+
+        $this->actingAs($admin)->get(route('admin.approval-izin'))
+            ->assertOk()
+            ->assertSee('Menunggu wali kelas')
+            ->assertDontSee(route('guru.approval-izin.approve', $leaveRequest));
+        $this->actingAs($admin)->post(route('guru.approval-izin.approve', $leaveRequest))->assertForbidden();
+
+        $this->assertSame(LeaveRequestStatus::Pending, $leaveRequest->fresh()->status);
     }
 
     public function test_approving_a_leave_request_marks_attendance_as_excused_for_the_date_range(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $student = Student::factory()->create();
+        [$guruUser, $student] = $this->homeroomTeacherWithStudent();
         $leaveRequest = LeaveRequest::factory()->create([
             'student_id' => $student->id,
             'start_date' => now()->toDateString(),
             'end_date' => now()->addDays(1)->toDateString(),
         ]);
 
-        $response = $this->actingAs($admin)->post(route('admin.approval-izin.approve', $leaveRequest));
+        $response = $this->actingAs($guruUser)->post(route('guru.approval-izin.approve', $leaveRequest));
 
         $response->assertRedirect();
         $this->assertSame(LeaveRequestStatus::Approved, $leaveRequest->fresh()->status);
+        $this->assertSame($guruUser->id, $leaveRequest->fresh()->reviewed_by);
         $this->assertDatabaseHas('attendances', [
             'student_id' => $student->id,
             'date' => now()->toDateString(),
@@ -90,10 +115,10 @@ class LeaveRequestControllerTest extends TestCase
 
     public function test_rejecting_a_leave_request_does_not_touch_attendance(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $leaveRequest = LeaveRequest::factory()->create();
+        [$guruUser, $student] = $this->homeroomTeacherWithStudent();
+        $leaveRequest = LeaveRequest::factory()->create(['student_id' => $student->id]);
 
-        $response = $this->actingAs($admin)->post(route('admin.approval-izin.reject', $leaveRequest));
+        $response = $this->actingAs($guruUser)->post(route('guru.approval-izin.reject', $leaveRequest));
 
         $response->assertRedirect();
         $this->assertSame(LeaveRequestStatus::Rejected, $leaveRequest->fresh()->status);

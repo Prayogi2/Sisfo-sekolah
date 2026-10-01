@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Approval Izin & Sakit')
+@section('title', 'Data Izin & Sakit Siswa')
 
 @section('content')
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800 fw-bold">Approval Pengajuan Izin</h1>
+        <h1 class="h3 mb-0 text-gray-800 fw-bold">Data Izin & Sakit Siswa</h1>
     </div>
 
-    <x-page-guide>Setujui atau tolak pengajuan izin/sakit siswa. Pastikan sudah ada bukti (surat dokter/foto sakit) sebelum menyetujui — tanpa bukti, siswa tercatat alpa.</x-page-guide>
+    <x-page-guide>Halaman ini untuk memantau pengajuan izin/sakit seluruh siswa. Persetujuan dilakukan oleh <strong>wali kelas</strong> masing-masing (admin bisa membantu lewat Kelola Akun → Masuk ke akun wali kelas).</x-page-guide>
 
     <div class="card shadow-sm">
         <div class="card-header py-3 bg-white"><h6 class="m-0 fw-bold text-primary">Daftar Pengajuan</h6></div>
@@ -17,7 +17,7 @@
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Tanggal Izin</th><th>Nama Anak</th><th>Kategori</th><th>Alasan</th><th>Lampiran</th><th>Status</th><th class="text-center">Aksi</th>
+                            <th>Tanggal Izin</th><th>Nama Anak</th><th>Kategori</th><th>Alasan</th><th>Lampiran</th><th>Status</th><th>Diproses Oleh</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -29,7 +29,7 @@
                                         - {{ $leaveRequest->end_date->translatedFormat('d M Y') }}
                                     @endif
                                 </td>
-                                <td>{{ $leaveRequest->student->name }} ({{ $leaveRequest->student->classroom?->name ?? '-' }})</td>
+                                <td>{{ $leaveRequest->student->name }} ({{ $leaveRequest->student->classroom?->name ?? '-' }})<div class="small text-muted">Diajukan: {{ $leaveRequest->applicantLabel() }}</div></td>
                                 <td>{{ $leaveRequest->type === \App\Enums\LeaveType::Sick ? 'Sakit' : 'Izin' }}</td>
                                 <td>{{ $leaveRequest->reason }}</td>
                                 <td>
@@ -52,18 +52,12 @@
                                     @endphp
                                     <span class="badge {{ $badge }}">{{ $label }}</span>
                                 </td>
-                                <td class="text-center">
+                                <td class="small">
                                     @if ($leaveRequest->status === \App\Enums\LeaveRequestStatus::Pending)
-                                        <form action="{{ route('admin.approval-izin.approve', $leaveRequest) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i></button>
-                                        </form>
-                                        <form action="{{ route('admin.approval-izin.reject', $leaveRequest) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-x-lg"></i></button>
-                                        </form>
+                                        <span class="text-muted">Menunggu wali kelas{{ $leaveRequest->student->classroom?->homeroomTeacher ? ' ('.$leaveRequest->student->classroom->homeroomTeacher->name.')' : '' }}</span>
                                     @else
-                                        <span class="text-muted small">Sudah diproses</span>
+                                        <div class="fw-semibold">{{ $leaveRequest->reviewer?->name ?? '-' }}</div>
+                                        <div class="text-muted">{{ $leaveRequest->reviewed_at?->translatedFormat('d M Y, H:i') }}</div>
                                     @endif
                                 </td>
                             </tr>

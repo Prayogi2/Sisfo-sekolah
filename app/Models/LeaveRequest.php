@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'student_id',
     'guardian_id',
+    'applicant_name',
     'reviewed_by',
     'type',
     'start_date',
@@ -51,6 +52,14 @@ class LeaveRequest extends Model
     public function guardian(): BelongsTo
     {
         return $this->belongsTo(Guardian::class);
+    }
+
+    /**
+     * Nama yang mengajukan: orang tua/wali terdaftar, atau nama yang ditulis.
+     */
+    public function applicantLabel(): string
+    {
+        return $this->guardian?->name ?? $this->applicant_name ?? '-';
     }
 
     public function reviewer(): BelongsTo

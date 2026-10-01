@@ -50,4 +50,35 @@ class PasswordChangeTest extends TestCase
 
         $this->assertTrue(password_verify('password123', $guru->fresh()->password));
     }
+
+    public function test_admin_can_rename_their_own_account(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Administrator']);
+
+        $this->actingAs($admin)->get(route('account.password.edit'))->assertOk()->assertSee('Nama Akun');
+        $this->actingAs($admin)->put(route('account.name.update'), ['name' => 'Operator MIS Nurul Falaq'])
+            ->assertSessionHasNoErrors()->assertSessionHas('success', 'Nama akun berhasil diubah.');
+
+        $this->assertSame('Operator MIS Nurul Falaq', $admin->fresh()->name);
+    }
+
+    public function test_admin_name_is_required(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'name' => 'Administrator']);
+
+        $this->actingAs($admin)->put(route('account.name.update'), ['name' => ''])
+            ->assertSessionHasErrors(['name' => 'Nama wajib diisi.']);
+
+        $this->assertSame('Administrator', $admin->fresh()->name);
+    }
+
+    public function test_guru_cannot_rename_their_account_here(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru', 'name' => 'Guru Asli']);
+
+        $this->actingAs($guru)->get(route('account.password.edit'))->assertOk()->assertDontSee('Nama Akun');
+        $this->actingAs($guru)->put(route('account.name.update'), ['name' => 'Nama Lain'])->assertForbidden();
+
+        $this->assertSame('Guru Asli', $guru->fresh()->name);
+    }
 }
