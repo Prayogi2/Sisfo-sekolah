@@ -60,6 +60,8 @@
             <a href="{{ route('admin.data-guru') }}" class="{{ request()->routeIs('admin.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
             <a href="{{ route('admin.inventaris') }}" class="{{ request()->routeIs('admin.inventaris*') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Inventaris Kelas</a>
             <a href="{{ route('admin.akun') }}" class="{{ request()->routeIs('admin.akun') ? 'active' : '' }}"><i class="bi bi-key-fill"></i> Kelola Akun & Password</a>
+            <a href="{{ route('admin.whatsapp') }}" class="{{ request()->routeIs('admin.whatsapp*') ? 'active' : '' }}"><i class="bi bi-whatsapp"></i> Koneksi WhatsApp</a>
+            <a href="{{ route('admin.log-aktivitas') }}" class="{{ request()->routeIs('admin.log-aktivitas') ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Log Aktivitas</a>
             
             <div class="menu-title">Akademik & Keuangan</div>
             <a href="{{ route('admin.verifikasi-spp') }}" class="{{ request()->routeIs('admin.verifikasi-spp') ? 'active' : '' }}"><i class="bi bi-credit-card-2-front-fill"></i> Verifikasi SPP</a>
@@ -79,7 +81,7 @@
             <a href="{{ route('guru.dashboard') }}" class="{{ request()->routeIs('guru.dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
             
             <div class="menu-title">Kelola Akademik</div>
-            <a href="{{ route('guru.data-guru') }}" class="{{ request()->routeIs('guru.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Guru & Wali Kelas</a>
+            <a href="{{ route('guru.data-guru') }}" class="{{ request()->routeIs('guru.data-guru') ? 'active' : '' }}"><i class="bi bi-person-badge-fill"></i> Data Saya</a>
             <a href="{{ route('guru.absensi-kelas') }}" class="{{ request()->routeIs('guru.absensi-kelas*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> Absensi Kelas</a>
             <a href="{{ route('guru.approval-izin') }}" class="{{ request()->routeIs('guru.approval-izin') ? 'active' : '' }}"><i class="bi bi-envelope-paper-heart"></i> Approval Izin & Sakit</a>
             <a href="{{ route('guru.bank-soal') }}" class="{{ request()->routeIs('guru.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Manajemen Bank Soal & Kuis</a>
@@ -198,8 +200,13 @@
                     @if(auth()->user()->hasRole('admin'))
                         <li><h6 class="dropdown-header">Akses Role</h6></li>
                         <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-shield-lock me-2"></i> Admin</a></li>
-                        <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Guru</a></li>
-                        <li><a class="dropdown-item" href="{{ route('admin.akun') }}"><i class="bi bi-key me-2"></i> Kelola Password</a></li>
+                        {{-- Hanya untuk guru yang juga diberi akses admin: ini jalan kembali
+                             ke portal gurunya. Admin biasa masuk ke akun guru lewat tombol
+                             "Masuk" di halaman Kelola Akun. --}}
+                        @if(auth()->user()->hasRole('guru'))
+                            <li><a class="dropdown-item" href="{{ route('guru.dashboard') }}"><i class="bi bi-person-badge me-2"></i> Portal Guru Saya</a></li>
+                        @endif
+                        <li><a class="dropdown-item" href="{{ route('admin.akun') }}"><i class="bi bi-key me-2"></i> Kelola Akun</a></li>
                     @endif
                     <li><a class="dropdown-item" href="{{ route('account.password.edit') }}"><i class="bi bi-shield-lock me-2"></i> {{ auth()->user()->role === 'admin' ? 'Ganti Nama & Password' : 'Ganti Password' }}</a></li>
                     <li><hr class="dropdown-divider"></li>
@@ -252,6 +259,8 @@
             ['route' => 'admin.prestasi-pelanggaran', 'icon' => 'bi-trophy-fill', 'label' => 'Prestasi'],
             ['route' => 'admin.kritik-saran', 'icon' => 'bi-chat-square-text-fill', 'label' => 'Saran'],
             ['route' => 'admin.notifikasi', 'icon' => 'bi-megaphone-fill', 'label' => 'Notifikasi'],
+            ['route' => 'admin.whatsapp', 'icon' => 'bi-whatsapp', 'label' => 'WhatsApp'],
+            ['route' => 'admin.log-aktivitas', 'icon' => 'bi-clock-history', 'label' => 'Log'],
             ['route' => 'admin.laporan', 'icon' => 'bi-bar-chart-fill', 'label' => 'Laporan'],
             ['route' => 'admin.laporan-absensi', 'icon' => 'bi-clock-history', 'label' => 'Absensi'],
             ['route' => 'admin.laporan-spp', 'icon' => 'bi-cash-stack', 'label' => 'Laporan SPP'],
@@ -261,7 +270,7 @@
         'guru' => [
             ['route' => 'guru.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
             ['route' => 'guru.absensi-kelas', 'icon' => 'bi-clipboard-check', 'label' => 'Absensi'],
-            ['route' => 'guru.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Guru'],
+            ['route' => 'guru.data-guru', 'icon' => 'bi-person-badge-fill', 'label' => 'Data Saya'],
             ['route' => 'guru.approval-izin', 'icon' => 'bi-envelope-paper-heart', 'label' => 'Izin'],
             ['route' => 'guru.bank-soal', 'icon' => 'bi-file-earmark-play-fill', 'label' => 'Kuis'],
             ['route' => 'guru.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],

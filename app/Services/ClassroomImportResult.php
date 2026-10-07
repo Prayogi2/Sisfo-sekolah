@@ -22,4 +22,19 @@ readonly class ClassroomImportResult
     {
         return $this->errors !== [];
     }
+
+    /**
+     * Bentuk array agar hasil bisa di-flash ke session yang diserialisasi sebagai JSON.
+     *
+     * @return array{classroomName: string, placed: int, skipped: list<string>, errors: list<string>}
+     */
+    public function toArray(): array
+    {
+        return [
+            'classroomName' => $this->classroomName,
+            'placed' => $this->placed,
+            'skipped' => $this->skipped,
+            'errors' => $this->errors,
+        ];
+    }
 }

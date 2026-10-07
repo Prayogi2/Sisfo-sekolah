@@ -8,17 +8,18 @@ use App\Models\User;
 class TeacherPolicy
 {
     /**
-     * Admin mengelola data guru; guru bisa melihat daftar rekan guru
-     * (halaman guru.data-guru) tapi tidak bisa mengubahnya.
+     * Daftar seluruh guru hanya untuk admin. Guru tidak boleh melihat data
+     * atau akun rekannya — halaman "Data Saya" miliknya hanya berisi
+     * datanya sendiri, yang diizinkan lewat view() di bawah.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', 'guru']);
+        return $user->hasRole('admin');
     }
 
     public function view(User $user, Teacher $teacher): bool
     {
-        return $user->hasRole(['admin', 'guru']);
+        return $user->hasRole('admin') || $teacher->user_id === $user->id;
     }
 
     public function create(User $user): bool

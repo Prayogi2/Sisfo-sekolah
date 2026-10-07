@@ -34,11 +34,12 @@
 
         @if (session('import_result'))
             @php($importResult = session('import_result'))
-            <div class="alert {{ $importResult->hasErrors() ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
-                <p class="fw-semibold mb-1">Impor selesai: {{ $importResult->imported }} siswa baru ditambahkan, {{ $importResult->updated }} siswa lama diperbarui{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal.' : '.' }}</p>
-                @if ($importResult->hasErrors())
+            @php($importErrors = $importResult['errors'] ?? [])
+            <div class="alert {{ $importErrors ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
+                <p class="fw-semibold mb-1">Impor selesai: {{ $importResult['imported'] ?? 0 }} siswa baru ditambahkan, {{ $importResult['updated'] ?? 0 }} siswa lama diperbarui{{ $importErrors ? ', '.count($importErrors).' baris gagal.' : '.' }}</p>
+                @if ($importErrors)
                     <ul class="mb-0 small">
-                        @foreach ($importResult->errors as $error)
+                        @foreach ($importErrors as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>

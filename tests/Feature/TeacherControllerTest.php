@@ -10,6 +10,8 @@ use App\Models\Teacher;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class TeacherControllerTest extends TestCase
@@ -39,6 +41,136 @@ class TeacherControllerTest extends TestCase
         $this->actingAs($guru)->get(route('guru.data-guru'))
             ->assertOk()
             ->assertViewIs('guru.data-guru');
+    }
+
+    /**
+     * Halaman Data Guru milik guru hanya berisi datanya sendiri — daftar
+     * seluruh rekan guru adalah wewenang admin.
+     */
+    public function test_guru_only_sees_their_own_data_not_other_teachers(): void
+    {
+        [$user, $teacher] = $this->teacherWithAccount();
+        $teacher->update(['name' => 'Ustadz Ali', 'nip' => '1987001']);
+        $otherTeacher = Teacher::factory()->create(['name' => 'Ustadzah Rahma', 'nip' => '1987002']);
+
+        $response = $this->actingAs($user)->get(route('guru.data-guru'));
+
+        $response->assertOk()
+            ->assertSee('Ustadz Ali')
+            ->assertSee('1987001')
+            ->assertDontSee('Ustadzah Rahma')
+            ->assertDontSee('1987002');
+        $this->assertSame($teacher->id, $response->viewData('teacher')->id);
+    }
+
+    /**
+     * Guru hanya bisa mengganti passwordnya sendiri lewat halaman akun;
+     * tombol reset password guru lain tidak boleh ada di halamannya.
+     */
+    public function test_the_guru_page_offers_only_their_own_password_change(): void
+    {
+        [$user] = $this->teacherWithAccount();
+
+        $response = $this->actingAs($user)->get(route('guru.data-guru'));
+
+        $response->assertOk()
+            ->assertSee(route('account.password.edit'), false)
+            ->assertDontSee('data-guru/', false);
+    }
+
+    public function test_a_guru_account_without_teacher_data_still_opens_the_page(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($guru)->get(route('guru.data-guru'))
+            ->assertOk()
+            ->assertSee('belum terhubung ke akun ini');
+    }
+
+    /**
+     * Lapisan kedua di bawah middleware: izin "lihat semua guru" memang
+     * hanya milik admin, jadi data rekan guru tetap tertutup walau nanti
+     * ada halaman baru yang lupa dipasangi middleware admin.
+     */
+    public function test_only_admin_is_allowed_to_list_all_teachers(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        [$guru, $teacher] = $this->teacherWithAccount();
+        $otherTeacher = Teacher::factory()->create();
+
+        $this->assertTrue($admin->can('viewAny', Teacher::class));
+        $this->assertFalse($guru->can('viewAny', Teacher::class));
+
+        // Guru boleh melihat datanya sendiri, tapi bukan data rekannya.
+        $this->assertTrue($guru->can('view', $teacher));
+        $this->assertFalse($guru->can('view', $otherTeacher));
+        $this->assertTrue($admin->can('view', $otherTeacher));
+    }
+
+    public function test_guru_cannot_download_the_teacher_list(): void
+    {
+        [$guru] = $this->teacherWithAccount();
+
+        $this->actingAs($guru)->get(route('admin.data-guru.unduh', 'xlsx'))->assertForbidden();
+        $this->actingAs($guru)->get(route('admin.data-guru.unduh', 'pdf'))->assertForbidden();
+    }
+
+    public function test_guru_cannot_reset_another_teachers_password(): void
+    {
+        [$user] = $this->teacherWithAccount();
+        $otherUser = User::factory()->create(['role' => 'guru']);
+        $otherTeacher = Teacher::factory()->create(['user_id' => $otherUser->id]);
+        $passwordBefore = $otherUser->password;
+
+        $this->actingAs($user)->post(route('admin.data-guru.reset-password', $otherTeacher))
+            ->assertForbidden();
+
+        $this->assertSame($passwordBefore, $otherUser->fresh()->password);
+    }
+
+    public function test_guru_cannot_reset_their_own_password_from_the_teacher_module(): void
+    {
+        [$user, $teacher] = $this->teacherWithAccount();
+        $passwordBefore = $user->password;
+
+        $this->actingAs($user)->post(route('admin.data-guru.reset-password', $teacher))
+            ->assertForbidden();
+
+        $this->assertSame($passwordBefore, $user->fresh()->password);
+    }
+
+    public function test_guru_cannot_change_or_delete_another_teacher(): void
+    {
+        [$user] = $this->teacherWithAccount();
+        $otherTeacher = Teacher::factory()->create(['name' => 'Ustadzah Rahma']);
+
+        $this->actingAs($user)->put(route('admin.data-guru.update', $otherTeacher), [
+            'nip' => '9999999999999999',
+            'name' => 'Nama Diubah Guru Lain',
+            'gender' => 'L',
+        ])->assertForbidden();
+
+        $this->actingAs($user)->delete(route('admin.data-guru.destroy', $otherTeacher))->assertForbidden();
+
+        $this->assertDatabaseHas('teachers', ['id' => $otherTeacher->id, 'name' => 'Ustadzah Rahma']);
+    }
+
+    /**
+     * Guru tetap bisa mengganti passwordnya sendiri — itu satu-satunya
+     * perubahan akun yang boleh ia lakukan.
+     */
+    public function test_guru_can_still_change_their_own_password(): void
+    {
+        $user = User::factory()->create(['role' => 'guru', 'password' => 'password-lama']);
+        Teacher::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)->put(route('account.password.update'), [
+            'current_password' => 'password-lama',
+            'password' => 'password-baru-123',
+            'password_confirmation' => 'password-baru-123',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertTrue(Hash::check('password-baru-123', $user->fresh()->password));
     }
 
     public function test_admin_can_create_a_teacher_with_a_login_account(): void
@@ -303,6 +435,73 @@ class TeacherControllerTest extends TestCase
             ->assertSessionHas('error', "Akun {$teacher->name} adalah akun admin utama, aksesnya tidak bisa dicabut dari sini.");
 
         $this->assertTrue($primaryAdmin->fresh()->hasRole('admin'));
+    }
+
+    /**
+     * Guru yang diangkat jadi admin memegang dua peran sekaligus: seluruh
+     * menu admin harus terbuka untuknya, sementara halaman di URL /guru/...
+     * tetap berperilaku sebagai portal guru.
+     */
+    public function test_a_teacher_promoted_to_admin_can_open_every_admin_page(): void
+    {
+        [$user, $teacher] = $this->teacherWithAccount();
+        $user->assignRole('admin');
+        Teacher::factory()->create(['name' => 'Ustadzah Rahma']);
+        Http::fake();
+
+        $adminPages = [
+            'admin.dashboard', 'admin.akun', 'admin.approval-izin', 'admin.bank-soal',
+            'admin.buku-induk', 'admin.data-guru', 'admin.data-mapel', 'admin.data-siswa',
+            'admin.data-siswa.import', 'admin.data-siswa.create', 'admin.inventaris',
+            'admin.kritik-saran', 'admin.laporan', 'admin.laporan-absensi', 'admin.laporan-nilai',
+            'admin.laporan-spp', 'admin.notifikasi', 'admin.pembagian-kelas',
+            'admin.peserta-presensi', 'admin.prestasi-pelanggaran', 'admin.verifikasi-spp',
+            'admin.whatsapp', 'admin.log-aktivitas',
+        ];
+
+        foreach ($adminPages as $name) {
+            $this->actingAs($user)->get(route($name))->assertOk();
+        }
+
+        // Di menu admin ia melihat seluruh guru, bukan hanya dirinya.
+        $this->actingAs($user)->get(route('admin.data-guru'))
+            ->assertViewIs('admin.data-guru')
+            ->assertSee('Ustadzah Rahma');
+
+        // Di URL guru, halamannya tetap portal guru berisi datanya sendiri.
+        $this->actingAs($user)->get(route('guru.data-guru'))
+            ->assertViewIs('guru.data-guru')
+            ->assertDontSee('Ustadzah Rahma');
+        $this->assertTrue($user->fresh()->can('viewAny', Teacher::class));
+    }
+
+    /**
+     * Tindakan pengelolaan — bukan cuma membuka halaman — juga harus bisa
+     * dilakukan guru yang sudah diangkat jadi admin.
+     */
+    public function test_a_teacher_promoted_to_admin_can_manage_other_teachers(): void
+    {
+        [$user] = $this->teacherWithAccount();
+        $user->assignRole('admin');
+        $otherUser = User::factory()->create(['role' => 'guru']);
+        $otherTeacher = Teacher::factory()->create(['user_id' => $otherUser->id, 'name' => 'Ustadzah Rahma']);
+        $passwordBefore = $otherUser->password;
+
+        $this->actingAs($user)->post(route('admin.data-guru.reset-password', $otherTeacher))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+        $this->assertNotSame($passwordBefore, $otherUser->fresh()->password);
+
+        $this->actingAs($user)->post(route('admin.data-guru.store'), [
+            'nip' => '1234567890123456',
+            'name' => 'Ustadz Baru',
+            'gender' => 'L',
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('teachers', ['nip' => '1234567890123456']);
+
+        // Ekspor daftar guru dijaga policy yang sama; unduhan filenya sendiri
+        // sudah diuji di DataExportControllerTest.
+        $this->assertTrue($user->fresh()->can('viewAny', Teacher::class));
     }
 
     public function test_a_teacher_with_admin_access_still_gets_the_guru_pages_under_guru_urls(): void

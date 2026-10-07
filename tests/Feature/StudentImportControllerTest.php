@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\GuardianRelationship;
 use App\Models\Classroom;
+use App\Models\Guardian;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\StudentImporter;
@@ -97,9 +98,12 @@ class StudentImportControllerTest extends TestCase
         // Username akun login pakai NIS (bukan NISN) kalau NIS-nya terisi.
         $this->assertDatabaseHas('users', ['username' => '2024001', 'role' => 'siswa']);
 
+        // Hasil impor harus di-flash sebagai array: session diserialisasi
+        // sebagai JSON, jadi objek tidak akan kembali utuh di halaman tujuan.
         $result = session('import_result');
-        $this->assertSame(2, $result->imported);
-        $this->assertFalse($result->hasErrors());
+        $this->assertSame($result, json_decode(json_encode($result), true));
+        $this->assertSame(2, $result['imported']);
+        $this->assertSame([], $result['errors']);
     }
 
     public function test_import_reports_invalid_rows_without_blocking_valid_ones(): void
@@ -119,9 +123,9 @@ class StudentImportControllerTest extends TestCase
 
         $response->assertRedirect(route('admin.data-siswa'));
         $result = session('import_result');
-        $this->assertSame(1, $result->imported);
-        $this->assertSame(0, $result->updated);
-        $this->assertCount(3, $result->errors);
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['updated']);
+        $this->assertCount(3, $result['errors']);
         $this->assertDatabaseHas('students', ['nisn' => '1111111111']);
         $this->assertDatabaseMissing('students', ['nisn' => '6666666666']);
         $this->assertDatabaseMissing('students', ['nisn' => '4444444444']);
@@ -159,9 +163,9 @@ class StudentImportControllerTest extends TestCase
 
         $response->assertRedirect(route('admin.data-siswa'));
         $result = session('import_result');
-        $this->assertSame(0, $result->imported);
-        $this->assertSame(1, $result->updated);
-        $this->assertFalse($result->hasErrors());
+        $this->assertSame(0, $result['imported']);
+        $this->assertSame(1, $result['updated']);
+        $this->assertSame([], $result['errors']);
         // Tidak membuat siswa/akun login baru — ini pembaruan siswa yang sudah ada.
         $this->assertDatabaseCount('students', 1);
 
@@ -173,6 +177,104 @@ class StudentImportControllerTest extends TestCase
         $father = $existing->guardians->firstWhere('relationship', GuardianRelationship::Father);
         $this->assertNotNull($father);
         $this->assertSame('Slamet Santoso', $father->name);
+    }
+
+    /**
+     * Satu ayah/ibu bisa punya beberapa anak di sekolah yang sama, dan NIK-nya
+     * unik di tabel guardians. Baris kedua harus menautkan orang tua yang sama,
+     * bukan gagal dengan "Duplicate entry ... guardians_nik_unique".
+     */
+    public function test_siblings_sharing_a_parent_nik_are_linked_to_the_same_guardian(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $headers = $this->templateHeaders();
+        $row = function (string $nisn, string $nis, string $name) use ($headers) {
+            $row = array_fill(0, count($headers), '');
+            $row[array_search('NISN', $headers, true)] = $nisn;
+            $row[array_search('NIS', $headers, true)] = $nis;
+            $row[array_search('Nama Lengkap', $headers, true)] = $name;
+            $row[array_search('Jenis Kelamin (L/P)', $headers, true)] = 'L';
+            $row[array_search('Ayah - Nama', $headers, true)] = 'Slamet Santoso';
+            $row[array_search('Ayah - NIK', $headers, true)] = '3273010101800001';
+            $row[array_search('Ayah - Pekerjaan', $headers, true)] = 'Wiraswasta';
+
+            return $row;
+        };
+
+        $response = $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $this->xlsxFile($headers, [
+            $row('1111111111', '2024001', 'Budi Santoso'),
+            $row('2222222222', '2024002', 'Bayu Santoso'),
+        ])]);
+
+        $response->assertRedirect(route('admin.data-siswa'));
+        $result = session('import_result');
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(2, $result['imported']);
+
+        // Satu baris guardian saja, tertaut ke kedua siswa.
+        $this->assertDatabaseCount('guardians', 1);
+        $father = Guardian::query()->where('nik', '3273010101800001')->sole();
+        $this->assertSame('Wiraswasta', $father->occupation);
+        $this->assertCount(2, $father->students);
+    }
+
+    /**
+     * NIK yang sudah dipakai sebagai ibu siswa lain tidak boleh ditimpa jadi
+     * ayah — baris itu dilaporkan dengan pesan yang bisa dibaca admin.
+     */
+    public function test_a_parent_nik_already_used_for_the_other_role_is_reported(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Guardian::factory()->create([
+            'name' => 'Sari Wulandari',
+            'nik' => '3273010101800002',
+            'relationship' => GuardianRelationship::Mother,
+        ]);
+
+        $headers = $this->templateHeaders();
+        $row = array_fill(0, count($headers), '');
+        $row[array_search('NISN', $headers, true)] = '1111111111';
+        $row[array_search('NIS', $headers, true)] = '2024001';
+        $row[array_search('Nama Lengkap', $headers, true)] = 'Budi Santoso';
+        $row[array_search('Jenis Kelamin (L/P)', $headers, true)] = 'L';
+        $row[array_search('Ayah - Nama', $headers, true)] = 'Slamet Santoso';
+        $row[array_search('Ayah - NIK', $headers, true)] = '3273010101800002';
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $this->xlsxFile($headers, [$row])]);
+
+        $result = session('import_result');
+        $this->assertSame(0, $result['imported']);
+        $this->assertStringContainsString('sudah terdaftar sebagai Ibu', $result['errors'][0]);
+        $this->assertStringContainsString('Baris 2', $result['errors'][0]);
+    }
+
+    /**
+     * Kalau database menolak baris karena bentrok data, admin cukup diberi
+     * tahu kolom mana yang bentrok — bukan query SQL mentah.
+     */
+    public function test_a_database_conflict_is_reported_without_showing_sql(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        // Username akun login siswa diambil dari NIS, dan sudah dipakai akun lain.
+        User::factory()->create(['username' => '2024001']);
+
+        $file = $this->xlsxFile($this->templateHeaders(), [
+            ['1111111111', '2024001', 'Budi Santoso', 'L', '', '', '', '', '', ''],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $result = session('import_result');
+        $this->assertSame(0, $result['imported']);
+        // Pesan tanpa nilai: SQLite hanya menyebut tabel.kolom, MySQL juga
+        // menyertakan nilainya — yang penting kolomnya disebut, bukan SQL-nya.
+        $this->assertCount(1, $result['errors']);
+        $this->assertStringStartsWith('Baris 2: Username akun login', $result['errors'][0]);
+        $this->assertStringContainsString('sudah terpakai oleh data lain.', $result['errors'][0]);
+        $this->assertStringNotContainsStringIgnoringCase('select', $result['errors'][0]);
+        $this->assertStringNotContainsStringIgnoringCase('insert', $result['errors'][0]);
+        $this->assertStringNotContainsString('SQLSTATE', $result['errors'][0]);
     }
 
     public function test_import_rejects_a_file_missing_required_columns(): void
@@ -187,6 +289,23 @@ class StudentImportControllerTest extends TestCase
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    /**
+     * File .xlsx yang isinya rusak lolos validasi mimes, jadi pembacanya
+     * harus memberi pesan — bukan melempar error 500.
+     */
+    public function test_import_rejects_an_unreadable_spreadsheet_without_crashing(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        // Diawali signature ZIP supaya dikenali sebagai .xlsx, tapi isinya rusak.
+        $file = UploadedFile::fake()->createWithContent('siswa.xlsx', "PK\x03\x04 isi arsip rusak");
+
+        $response = $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'File tidak bisa dibaca. Gunakan file XLSX/XLS/CSV dari tombol Download Template.');
         $this->assertDatabaseCount('students', 0);
     }
 

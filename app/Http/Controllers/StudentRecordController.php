@@ -67,7 +67,7 @@ class StudentRecordController extends Controller
         $rows = $students->flatMap(function (Student $item) {
             $reports = $this->academicReport($item);
             if ($reports->isEmpty()) {
-                return [[$item->name, $item->nisn, $item->nis, $item->classroom?->name ?? '-', $item->profile?->nik ?? '-', '-', '-', '-', '-', '-', '-', '-']];
+                return [[$item->name, $item->nisn, $item->nis, $item->classroom?->name ?? '-', $item->profile?->nik ?? '-', '-', '-', '-', '-', '-', '-', '-', '-']];
             }
 
             return $reports->flatMap(fn ($report) => $report['grades']->map(fn ($grade) => [

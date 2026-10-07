@@ -37,6 +37,16 @@ return [
 
     'whatsapp' => [
         'url' => env('WA_SERVER_URL', 'http://127.0.0.1:3001'),
+
+        /*
+         * Dipakai tombol "Aktifkan Server" di halaman Koneksi WhatsApp untuk
+         * menjalankan wa-server.mjs. Isi node_binary dengan path lengkap bila
+         * "node" tidak ada di PATH milik PHP (sering terjadi di shared hosting).
+         */
+        'node_binary' => env('WA_NODE_BINARY', 'node'),
+        'script' => env('WA_SERVER_SCRIPT'),
+        'session_dir' => env('WA_SESSION_DIR'),
+        'log' => env('WA_SERVER_LOG'),
     ],
 
 ];

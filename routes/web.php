@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherDashboardController;
+use App\Http\Controllers\WhatsAppSessionController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -48,7 +50,7 @@ Route::get('/', function () {
 
 // Guest Routes (Hanya bisa diakses jika BELUM login)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.attempt');
 Route::get('/presensi/scan', [ScanController::class, 'index'])->name('presensi.scan');
 Route::post('/presensi/scan', [ScanController::class, 'store'])->name('presensi.scan.store');
 
@@ -151,6 +153,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/laporan-absensi/export/csv', [AttendanceController::class, 'exportCsv'])->name('laporan-absensi.export.csv');
         Route::get('/laporan-absensi/export/pdf', [AttendanceController::class, 'exportPdf'])->name('laporan-absensi.export.pdf');
         Route::post('/laporan-absensi/toggle-late-blocking', [ScanController::class, 'toggleLateBlocking'])->name('laporan-absensi.toggle-late-blocking');
+        Route::get('/log-aktivitas', [ActivityLogController::class, 'index'])->name('log-aktivitas');
+        Route::get('/whatsapp', [WhatsAppSessionController::class, 'index'])->name('whatsapp');
+        Route::get('/whatsapp/status', [WhatsAppSessionController::class, 'status'])->name('whatsapp.status');
+        Route::post('/whatsapp/aktifkan', [WhatsAppSessionController::class, 'startServer'])->name('whatsapp.start');
+        Route::post('/whatsapp/logout', [WhatsAppSessionController::class, 'logout'])->name('whatsapp.logout');
         Route::get('/laporan-spp', [SppBillController::class, 'report'])->name('laporan-spp');
         Route::get('/laporan-spp/export/csv', [SppBillController::class, 'exportCsv'])->name('laporan-spp.export.csv');
         Route::get('/laporan-spp/export/pdf', [SppBillController::class, 'exportPdf'])->name('laporan-spp.export.pdf');

@@ -13,3 +13,7 @@ Artisan::command('inspire', function () {
 // Jaring pengaman: kuis yang waktunya habis tetap dikumpulkan & dinilai
 // walau perangkat siswa mati atau kehilangan koneksi.
 Schedule::command('kuis:auto-kumpulkan')->everyMinute()->withoutOverlapping();
+
+// Log aktivitas disimpan satu tahun, sisanya dibuang supaya tabelnya tidak
+// tumbuh tanpa batas di hosting.
+Schedule::command('activity:prune')->monthlyOn(1, '03:00');

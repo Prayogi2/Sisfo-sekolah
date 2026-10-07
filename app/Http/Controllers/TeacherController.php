@@ -20,6 +20,18 @@ class TeacherController extends Controller
 {
     public function index(Request $request): View
     {
+        // Guru hanya melihat datanya sendiri; daftar seluruh guru adalah
+        // wewenang admin (lihat TeacherPolicy::viewAny). Mengelola data guru
+        // — tambah/ubah/hapus/reset password — juga hanya ada di route admin.
+        if ($this->actingAsGuru($request)) {
+            return view('guru.data-guru', [
+                'teacher' => Teacher::query()
+                    ->with(['homeroomClassrooms', 'subjects', 'teachingAssignments.subject', 'teachingAssignments.classroom'])
+                    ->where('user_id', $request->user()->id)
+                    ->first(),
+            ]);
+        }
+
         Gate::authorize('viewAny', Teacher::class);
 
         $teachers = Teacher::query()
@@ -27,12 +39,11 @@ class TeacherController extends Controller
             ->orderBy('name')
             ->get();
 
-        $subjects = Subject::orderBy('name')->get();
-        $classrooms = Classroom::orderBy('name')->get();
-
-        $view = $this->actingAsGuru($request) ? 'guru.data-guru' : 'admin.data-guru';
-
-        return view($view, compact('teachers', 'subjects', 'classrooms'));
+        return view('admin.data-guru', [
+            'teachers' => $teachers,
+            'subjects' => Subject::orderBy('name')->get(),
+            'classrooms' => Classroom::orderBy('name')->get(),
+        ]);
     }
 
     public function store(StoreTeacherRequest $request): RedirectResponse

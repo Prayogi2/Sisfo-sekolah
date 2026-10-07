@@ -65,13 +65,13 @@ class ClassroomImportControllerTest extends TestCase
         ])])->assertRedirect(route('admin.pembagian-kelas'));
 
         $result = session('classroom_import_result');
-        $this->assertSame(2, $result->placed);
+        $this->assertSame(2, $result['placed']);
         $this->assertSame([
             'Baris 4: NISN 9999999999 tidak ditemukan di data siswa.',
             'Baris 5: data tidak lengkap — Nama Siswa wajib diisi.',
             'Baris 6: Ahmad sudah terdaftar di kelas 3-A. Keluarkan dulu lewat Atur Siswa di kelas 3-A.',
-        ], $result->errors);
-        $this->assertSame(['Baris 7: Rina sudah terdaftar di kelas ini.'], $result->skipped);
+        ], $result['errors']);
+        $this->assertSame(['Baris 7: Rina sudah terdaftar di kelas ini.'], $result['skipped']);
 
         $this->assertSame($classroom->id, $byNisn->fresh()->classroom_id);
         $this->assertSame($classroom->id, $byNis->fresh()->classroom_id);
@@ -89,7 +89,7 @@ class ClassroomImportControllerTest extends TestCase
             ['Orang Lain', '', '1234567890'],
         ])]);
 
-        $this->assertSame(0, session('classroom_import_result')->placed);
+        $this->assertSame(0, session('classroom_import_result')['placed']);
         $this->assertNull($student->fresh()->classroom_id);
     }
 
@@ -106,8 +106,8 @@ class ClassroomImportControllerTest extends TestCase
         ])]);
 
         $result = session('classroom_import_result');
-        $this->assertSame(1, $result->placed);
-        $this->assertStringContainsString('Baris 3: Kedua tidak dimasukkan karena kelas 1-A sudah penuh', $result->errors[0]);
+        $this->assertSame(1, $result['placed']);
+        $this->assertStringContainsString('Baris 3: Kedua tidak dimasukkan karena kelas 1-A sudah penuh', $result['errors'][0]);
         $this->assertSame($classroom->id, $first->fresh()->classroom_id);
         $this->assertNull($second->fresh()->classroom_id);
     }

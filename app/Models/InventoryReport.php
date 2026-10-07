@@ -32,4 +32,20 @@ class InventoryReport extends Model
     {
         return $this->hasMany(InventoryReportItem::class);
     }
+
+    /**
+     * Nama pelapor hanya ditampilkan ke admin. Guru cuma perlu tahu apakah
+     * laporan itu kiriman dirinya sendiri — identitas rekan guru lain bukan
+     * haknya untuk dilihat.
+     */
+    public function reporterLabelFor(?User $viewer): string
+    {
+        if ($viewer?->hasRole('admin')) {
+            return $this->reporter?->name ?? '-';
+        }
+
+        return $this->reported_by !== null && $this->reported_by === $viewer?->id
+            ? 'Anda'
+            : 'Petugas lain';
+    }
 }

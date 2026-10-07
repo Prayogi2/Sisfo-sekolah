@@ -17,4 +17,18 @@ readonly class StudentImportResult
     {
         return $this->errors !== [];
     }
+
+    /**
+     * Bentuk array agar hasil bisa di-flash ke session yang diserialisasi sebagai JSON.
+     *
+     * @return array{imported: int, updated: int, errors: list<string>}
+     */
+    public function toArray(): array
+    {
+        return [
+            'imported' => $this->imported,
+            'updated' => $this->updated,
+            'errors' => $this->errors,
+        ];
+    }
 }

@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h1 class="h3 mb-1 fw-bold">Laporan Inventaris Kelas {{ $report->classroom->name }}</h1>
-            <p class="text-muted mb-0">Dikirim {{ $report->created_at->translatedFormat('d F Y, H:i') }} oleh {{ $report->reporter?->name ?? '-' }}</p>
+            <p class="text-muted mb-0">Dikirim {{ $report->created_at->translatedFormat('d F Y, H:i') }} oleh {{ $report->reporterLabelFor(auth()->user()) }}</p>
         </div>
         <a href="{{ route($backRoute, ['classroom' => $report->classroom_id]) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
     </div>

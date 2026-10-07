@@ -24,6 +24,6 @@ class ClassroomImportController extends Controller
     {
         $result = $importer->import($request->file('file'), $classroom);
 
-        return redirect()->route('admin.pembagian-kelas')->with('classroom_import_result', $result);
+        return redirect()->route('admin.pembagian-kelas')->with('classroom_import_result', $result->toArray());
     }
 }

@@ -38,6 +38,6 @@ class StudentImportController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('admin.data-siswa')->with('import_result', $result);
+        return redirect()->route('admin.data-siswa')->with('import_result', $result->toArray());
     }
 }

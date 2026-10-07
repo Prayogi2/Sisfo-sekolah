@@ -424,6 +424,54 @@ class StudentRecordControllerTest extends TestCase
         $this->assertDatabaseHas('guardians', ['id' => $father->id, 'name' => 'Ayah Baru', 'family_card_number' => '3201234567890123']);
     }
 
+    /**
+     * NIK orang tua unik di tabel guardians, jadi mengisi NIK yang sudah
+     * tercatat (mis. ayah dari kakaknya) harus menautkan orang yang sama,
+     * bukan menabrak constraint database.
+     */
+    public function test_entering_a_parent_nik_that_already_exists_links_the_same_guardian(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $sibling = Student::factory()->create();
+        $father = Guardian::factory()->create([
+            'relationship' => GuardianRelationship::Father,
+            'name' => 'Slamet Santoso',
+            'nik' => '3273010101800001',
+        ]);
+        $sibling->guardians()->attach($father);
+
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'father_name' => 'Slamet Santoso',
+            'father_nik' => '3273010101800001',
+            'father_occupation' => 'Wiraswasta',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('guardians', 1);
+        $this->assertSame([$father->id], $student->guardians()->pluck('guardians.id')->all());
+        $this->assertSame('Wiraswasta', $father->fresh()->occupation);
+    }
+
+    public function test_a_parent_nik_belonging_to_the_other_role_is_rejected(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $mother = Guardian::factory()->create([
+            'relationship' => GuardianRelationship::Mother,
+            'name' => 'Sari Wulandari',
+            'nik' => '3273010101800002',
+        ]);
+        $student = Student::factory()->create();
+
+        $this->actingAs($admin)->put(route('admin.buku-induk.update', $student), $this->bukuIndukPayload($student, [
+            'father_name' => 'Slamet Santoso',
+            'father_nik' => $mother->nik,
+        ]))->assertSessionHasErrors('father_nik');
+
+        $this->assertDatabaseCount('guardians', 1);
+        $this->assertSame([], $student->guardians()->pluck('guardians.id')->all());
+    }
+
     public function test_empty_riwayat_sections_are_marked_as_having_no_data(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

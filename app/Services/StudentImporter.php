@@ -13,10 +13,13 @@ use App\Enums\StudentStatus;
 use App\Enums\TransportationMode;
 use App\Models\Classroom;
 use App\Models\Student;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
@@ -35,6 +38,20 @@ class StudentImporter
     private const REQUIRED_COLUMNS = ['nisn', 'nis', 'name', 'gender'];
 
     private const MAX_ROWS = 1000;
+
+    /**
+     * Potongan nama unique index di database -> sebutan kolomnya untuk admin.
+     *
+     * @var array<string, string>
+     */
+    private const DUPLICATE_KEY_LABELS = [
+        'students_nisn' => 'NISN',
+        'students_nis' => 'NIS',
+        'guardians_nik' => 'NIK orang tua',
+        'student_profiles_nik' => 'NIK siswa',
+        'users_username' => 'Username akun login',
+        'users_email' => 'Email akun login',
+    ];
 
     public function __construct(
         private StudentEnroller $enroller,
@@ -61,7 +78,12 @@ class StudentImporter
 
     public function import(UploadedFile $file): StudentImportResult
     {
-        $sheet = IOFactory::load($file->getRealPath())->getActiveSheet();
+        try {
+            $sheet = IOFactory::load($file->getRealPath())->getActiveSheet();
+        } catch (\Throwable) {
+            throw new \InvalidArgumentException('File tidak bisa dibaca. Gunakan file XLSX/XLS/CSV dari tombol Download Template.');
+        }
+
         $rows = $sheet->toArray(null, true, true, false);
         $headerRow = array_shift($rows) ?? [];
 
@@ -117,12 +139,56 @@ class StudentImporter
                     $this->enroller->enroll($validator->validated());
                     $created++;
                 }
+            } catch (ValidationException $e) {
+                $errors[] = "Baris {$sheetRowNumber}: ".implode(' ', $e->validator->errors()->all());
             } catch (\Throwable $e) {
-                $errors[] = "Baris {$sheetRowNumber}: gagal disimpan ({$e->getMessage()}).";
+                $errors[] = "Baris {$sheetRowNumber}: ".$this->saveFailureMessage($e);
             }
         }
 
         return new StudentImportResult($created, $errors, $updated);
+    }
+
+    /**
+     * Pesan siap-baca untuk kegagalan penyimpanan yang tidak tertangkap
+     * validasi. Pesan asli (beserta query-nya) hanya masuk log — admin cukup
+     * tahu data mana yang bentrok, bukan SQL-nya.
+     */
+    private function saveFailureMessage(\Throwable $e): string
+    {
+        Log::warning('Import siswa: baris gagal disimpan.', ['exception' => $e]);
+
+        if ($e instanceof QueryException) {
+            return $this->duplicateEntryMessage($e) ?? 'gagal disimpan karena data tidak diterima database. Periksa kembali isian baris ini.';
+        }
+
+        return 'gagal disimpan. Periksa kembali isian baris ini.';
+    }
+
+    /**
+     * Terjemahkan pelanggaran unique index jadi nama kolom yang dikenal admin.
+     * Formatnya beda per driver: MySQL menyebut nama index dan nilainya,
+     * SQLite hanya menyebut tabel.kolom.
+     */
+    private function duplicateEntryMessage(QueryException $e): ?string
+    {
+        $message = $e->getMessage();
+        $value = null;
+
+        if (preg_match("/Duplicate entry '(.*)' for key '([^']+)'/", $message, $matches)) {
+            [, $value, $key] = $matches;
+        } elseif (preg_match('/UNIQUE constraint failed: ([A-Za-z0-9_.]+)/', $message, $matches)) {
+            $key = str_replace('.', '_', $matches[1]);
+        } else {
+            return null;
+        }
+
+        $label = collect(self::DUPLICATE_KEY_LABELS)
+            ->first(fn (string $label, string $needle) => str_contains($key, $needle)) ?? 'Data';
+
+        return $value === null
+            ? "{$label} sudah terpakai oleh data lain."
+            : "{$label} \"{$value}\" sudah terpakai oleh data lain.";
     }
 
     /**

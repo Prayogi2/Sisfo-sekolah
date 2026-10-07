@@ -11,10 +11,12 @@ use App\Enums\GuardianRelationship;
 use App\Enums\Religion;
 use App\Enums\ResidenceType;
 use App\Enums\TransportationMode;
+use App\Models\Guardian;
 use App\Models\Student;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Menyimpan bagian Buku Induk di luar identitas siswa (profil, foto,
@@ -201,17 +203,57 @@ class StudentRecordWriter
 
         foreach ([GuardianRelationship::Father, GuardianRelationship::Mother] as $relationship) {
             $prefix = $relationship === GuardianRelationship::Father ? 'father' : 'mother';
-            $guardian = $student->guardians()->where('relationship', $relationship)->first();
             $guardianData = collect(self::GUARDIAN_FIELDS)
                 ->mapWithKeys(fn (string $field) => [$field => $data[$prefix.'_'.$field] ?? null])
                 ->filter(fn ($value) => $value !== null && $value !== '')
                 ->all();
 
-            if ($guardian) {
-                $guardian->update($guardianData);
-            } elseif ($guardianData !== []) {
-                $student->guardians()->create($guardianData + ['relationship' => $relationship]);
+            $this->saveGuardian($student, $relationship, $prefix, $guardianData);
+        }
+    }
+
+    /**
+     * Satu orang tua bisa dipakai beberapa siswa sekaligus (kakak-beradik),
+     * dan NIK-nya unik di tabel guardians. Jadi kalau NIK-nya sudah tercatat,
+     * data orang itu diperbarui lalu ditautkan ke siswa ini — bukan dibuat
+     * baris baru yang akan ditolak database.
+     *
+     * @param  array<string, mixed>  $guardianData
+     */
+    private function saveGuardian(Student $student, GuardianRelationship $relationship, string $prefix, array $guardianData): void
+    {
+        $current = $student->guardians()->where('relationship', $relationship)->first();
+        $nik = $guardianData['nik'] ?? null;
+
+        $sharedGuardian = $nik
+            ? Guardian::query()
+                ->where('nik', $nik)
+                ->when($current, fn ($query) => $query->whereKeyNot($current->getKey()))
+                ->first()
+            : null;
+
+        if ($sharedGuardian && $sharedGuardian->relationship !== $relationship) {
+            throw ValidationException::withMessages([
+                $prefix.'_nik' => "NIK {$nik} sudah terdaftar sebagai {$sharedGuardian->relationship->label()} (".$sharedGuardian->name.'), bukan '.$relationship->label().'.',
+            ]);
+        }
+
+        if ($sharedGuardian) {
+            $sharedGuardian->update($guardianData);
+
+            if ($current) {
+                $student->guardians()->detach($current->getKey());
             }
+
+            $student->guardians()->syncWithoutDetaching([$sharedGuardian->getKey()]);
+
+            return;
+        }
+
+        if ($current) {
+            $current->update($guardianData);
+        } elseif ($guardianData !== []) {
+            $student->guardians()->create($guardianData + ['relationship' => $relationship]);
         }
     }
 

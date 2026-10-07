@@ -87,6 +87,31 @@ class ScanControllerTest extends TestCase
         $response->assertJsonStructure(['message']);
     }
 
+    /**
+     * Pos presensi di gerbang memakai /presensi/scan tanpa login, jadi jalur
+     * itu harus tetap berfungsi dan tidak dibatasi peran.
+     */
+    public function test_the_gate_scanner_works_without_logging_in(): void
+    {
+        $classroom = Classroom::factory()->create(['grade_level' => 3]);
+        $student = Student::factory()->create(['classroom_id' => $classroom->id]);
+
+        $this->get(route('presensi.scan'))->assertOk();
+
+        $this->postJson(route('presensi.scan.store'), ['qr_token' => $student->qr_token])
+            ->assertOk()
+            ->assertJsonPath('student.name', $student->name);
+
+        $this->assertDatabaseHas('attendances', ['student_id' => $student->id]);
+    }
+
+    public function test_the_gate_scanner_rejects_an_unknown_token(): void
+    {
+        $this->postJson(route('presensi.scan.store'), ['qr_token' => 'bukan-token'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'QR Code tidak dikenali.');
+    }
+
     public function test_admin_can_toggle_late_scan_blocking(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -14,6 +14,7 @@ use App\Services\CurrentStudentResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +36,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        // Tampilan bawaan paginator memakai kelas Tailwind, sedangkan
+        // antarmuka ini memakai Bootstrap 5. Tanpa baris ini ikon panahnya
+        // tampil raksasa karena SVG-nya tidak punya pembatas ukuran.
+        Paginator::useBootstrapFive();
 
         User::observe(UserObserver::class);
         Teacher::observe(TeacherObserver::class);

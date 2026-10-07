@@ -13,7 +13,7 @@
                     @forelse($reports as $report)
                         <tr>
                             <td>{{ $report->created_at->translatedFormat('d F Y, H:i') }}</td>
-                            <td>{{ $report->reporter?->name ?? '-' }}</td>
+                            <td>{{ $report->reporterLabelFor(auth()->user()) }}</td>
                             <td class="text-center text-success fw-semibold">{{ (int) $report->good_total }}</td>
                             <td class="text-center text-danger fw-semibold">{{ (int) $report->damaged_total }}</td>
                             <td class="small text-muted">{{ $report->notes ?: '-' }}</td>

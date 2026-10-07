@@ -17,17 +17,19 @@
         @if (session('classroom_import_result'))
             @php
                 $importResult = session('classroom_import_result');
+                $importErrors = $importResult['errors'] ?? [];
+                $importSkipped = $importResult['skipped'] ?? [];
             @endphp
-            <div class="alert {{ $importResult->hasErrors() ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
-                <p class="fw-semibold mb-1"><i class="bi bi-clipboard-check me-1"></i>Hasil import ke Kelas {{ $importResult->classroomName }}:
-                    {{ $importResult->placed }} siswa berhasil dimasukkan{{ $importResult->skipped ? ', '.count($importResult->skipped).' dilewati' : '' }}{{ $importResult->hasErrors() ? ', '.count($importResult->errors).' baris gagal' : '' }}.</p>
-                @if ($importResult->hasErrors())
+            <div class="alert {{ $importErrors ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
+                <p class="fw-semibold mb-1"><i class="bi bi-clipboard-check me-1"></i>Hasil import ke Kelas {{ $importResult['classroomName'] ?? '-' }}:
+                    {{ $importResult['placed'] ?? 0 }} siswa berhasil dimasukkan{{ $importSkipped ? ', '.count($importSkipped).' dilewati' : '' }}{{ $importErrors ? ', '.count($importErrors).' baris gagal' : '' }}.</p>
+                @if ($importErrors)
                     <p class="small mb-1 mt-2 fw-semibold">Baris yang gagal (tidak diproses):</p>
-                    <ul class="mb-0 small">@foreach ($importResult->errors as $error)<li>{{ $error }}</li>@endforeach</ul>
+                    <ul class="mb-0 small">@foreach ($importErrors as $error)<li>{{ $error }}</li>@endforeach</ul>
                 @endif
-                @if ($importResult->skipped)
+                @if ($importSkipped)
                     <p class="small mb-1 mt-2 fw-semibold">Dilewati:</p>
-                    <ul class="mb-0 small">@foreach ($importResult->skipped as $note)<li>{{ $note }}</li>@endforeach</ul>
+                    <ul class="mb-0 small">@foreach ($importSkipped as $note)<li>{{ $note }}</li>@endforeach</ul>
                 @endif
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
