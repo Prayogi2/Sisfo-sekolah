@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Inventory;
 
 use App\Enums\InventoryCategory;
+use App\Services\InventoryItemListValidator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -64,18 +65,8 @@ class StoreInventoryItemRequest extends FormRequest
                 return;
             }
 
-            $key = fn (string $category, string $name) => $category.'|'.mb_strtolower($name);
-            $existing = $this->route('classroom')->inventoryItems()->get(['category', 'name'])
-                ->map(fn ($item) => $key($item->category->value, $item->name));
-            $seen = [];
-
-            foreach ($this->input('items') as $index => $item) {
-                $itemKey = $key($item['category'], $item['name']);
-
-                if ($existing->contains($itemKey) || in_array($itemKey, $seen, true)) {
-                    $validator->errors()->add("items.{$index}.name", "Barang \"{$item['name']}\" sudah ada di kategori ".InventoryCategory::from($item['category'])->label().'.');
-                }
-                $seen[] = $itemKey;
+            foreach (InventoryItemListValidator::duplicateErrors($this->input('items'), $this->route('classroom')) as $error) {
+                $validator->errors()->add("items.{$error['index']}.name", $error['message']);
             }
         }];
     }

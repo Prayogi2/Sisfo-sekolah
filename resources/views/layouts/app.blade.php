@@ -87,6 +87,7 @@
             <a href="{{ route('guru.bank-soal') }}" class="{{ request()->routeIs('guru.bank-soal') ? 'active' : '' }}"><i class="bi bi-file-earmark-play-fill"></i> Manajemen Bank Soal & Kuis</a>
             <a href="{{ route('guru.prestasi-pelanggaran') }}" class="{{ request()->routeIs('guru.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Tata Tertib</a>
             <a href="{{ route('guru.inventaris') }}" class="{{ request()->routeIs('guru.inventaris*') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Inventaris Kelas</a>
+            <a href="{{ route('guru.catatan-hafalan-bacaan') }}" class="{{ request()->routeIs('guru.catatan-hafalan-bacaan*') ? 'active' : '' }}"><i class="bi bi-journal-text"></i> Catatan Hafalan & Bacaan</a>
 
             <div class="menu-title">Laporan</div>
             <a href="{{ route('guru.laporan-nilai') }}" class="{{ request()->routeIs('guru.laporan-nilai') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph-fill"></i> Laporan Nilai</a>
@@ -105,6 +106,7 @@
             <a href="{{ route('siswa.kuis') }}" class="{{ request()->routeIs('siswa.kuis*') ? 'active' : '' }}"><i class="bi bi-mortarboard-fill"></i> Kuis & Ranking</a>
             <a href="{{ route('siswa.hasil-kuis') }}" class="{{ request()->routeIs('siswa.hasil-kuis') ? 'active' : '' }}"><i class="bi bi-trophy-fill"></i> Hasil Kuis</a>
             <a href="{{ route('siswa.prestasi-pelanggaran') }}" class="{{ request()->routeIs('siswa.prestasi-pelanggaran') ? 'active' : '' }}"><i class="bi bi-award-fill"></i> Prestasi & Data Akademik</a>
+            <a href="{{ route('siswa.kritik-saran') }}" class="{{ request()->routeIs('siswa.kritik-saran*') ? 'active' : '' }}"><i class="bi bi-chat-square-text"></i> Kritik & Saran</a>
 
             <div class="menu-title">Keuangan</div>
             <a href="{{ route('siswa.status-spp') }}" class="{{ request()->routeIs('siswa.status-spp') ? 'active' : '' }}"><i class="bi bi-cash-coin"></i> Status SPP</a>
@@ -181,7 +183,7 @@
                         @forelse ($adminFeedbackNotifications ?? [] as $notification)
                             <a class="dropdown-item" href="{{ route('admin.kritik-saran') }}">
                                 <i class="bi bi-chat-square-text text-primary me-2"></i>
-                                Kritik/saran baru dari {{ $notification->data['guardian_name'] }}
+                                Kritik/saran baru dari {{ $notification->data['sender_name'] ?? $notification->data['guardian_name'] ?? 'Pengguna' }}
                             </a>
                         @empty
                             <span class="dropdown-item text-muted">Tidak ada notifikasi baru</span>
@@ -276,6 +278,7 @@
             ['route' => 'guru.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
             ['route' => 'guru.laporan-nilai', 'icon' => 'bi-bar-chart-fill', 'label' => 'Nilai'],
             ['route' => 'guru.inventaris', 'icon' => 'bi-box-seam', 'label' => 'Inventaris'],
+            ['route' => 'guru.catatan-hafalan-bacaan', 'icon' => 'bi-journal-text', 'label' => 'Hafalan'],
         ],
         default => [
             ['route' => 'siswa.dashboard', 'icon' => 'bi-speedometer2', 'label' => 'Beranda'],
@@ -287,6 +290,7 @@
             ['route' => 'siswa.hasil-kuis', 'icon' => 'bi-trophy-fill', 'label' => 'Hasil Kuis'],
             ['route' => 'siswa.prestasi-pelanggaran', 'icon' => 'bi-award-fill', 'label' => 'Prestasi'],
             ['route' => 'siswa.spp', 'icon' => 'bi-upload', 'label' => 'Bayar SPP'],
+            ['route' => 'siswa.kritik-saran', 'icon' => 'bi-chat-square-text', 'label' => 'Saran'],
         ],
     };
 @endphp

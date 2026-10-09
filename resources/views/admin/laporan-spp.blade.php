@@ -23,7 +23,11 @@
             </div>
         </div>
 
-        <x-page-guide><strong>Buat Tagihan Bulan Ini</strong> membuat tagihan SPP untuk siswa yang belum ditagih bulan berjalan. Pembayaran siswa diverifikasi lewat menu <strong>Verifikasi Pembayaran SPP</strong>.</x-page-guide>
+        <x-page-guide>
+            <strong>Buat Tagihan Bulan Ini</strong> membuat tagihan SPP untuk siswa yang belum ditagih bulan berjalan.
+            Tanggal jatuh tempo tagihan yang dibuat: <strong>{{ $currentDueDate->translatedFormat('d M Y') }}</strong>.
+            Pembayaran siswa diverifikasi lewat menu <strong>Verifikasi Pembayaran SPP</strong>.
+        </x-page-guide>
 
 
         <!-- Form Filter -->
@@ -112,6 +116,7 @@
                             <tr>
                                 <th>Nama Siswa</th>
                                 <th>Kelas</th>
+                                <th>Jatuh Tempo</th>
                                 <th>Tagihan</th>
                                 <th>Dibayar</th>
                                 <th>Sisa</th>
@@ -130,6 +135,7 @@
                                 <tr>
                                     <td class="fw-semibold text-dark">{{ $bill->student->name }}</td>
                                     <td>{{ $bill->student->classroom?->name ?? '-' }}</td>
+                                    <td>{{ $bill->due_date?->translatedFormat('d M Y') ?? '-' }}</td>
                                     <td>Rp {{ number_format($bill->amount, 0, ',', '.') }}</td>
                                     <td>Rp {{ number_format($bill->paidAmount(), 0, ',', '.') }}</td>
                                     <td>Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}</td>
@@ -137,7 +143,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">
+                                    <td colspan="7" class="text-center text-muted py-4">
                                         Belum ada tagihan untuk periode ini. Klik "Buat Tagihan Bulan Ini" untuk membuatnya.
                                     </td>
                                 </tr>

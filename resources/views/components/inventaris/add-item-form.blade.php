@@ -7,6 +7,19 @@
 @endphp
 
 <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-bold"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>Unggah Daftar Inventaris</div>
+    <div class="card-body border-bottom">
+        <p class="small text-muted">Import banyak barang sekaligus dari file Excel. Unduh template, isi kategori, nama barang, dan jumlah, lalu unggah file .xlsx.</p>
+        <form action="{{ route($routePrefix.'.import', $classroom) }}" method="POST" enctype="multipart/form-data" class="d-flex flex-wrap align-items-end gap-2">
+            @csrf
+            <div class="flex-grow-1">
+                <label for="inventorySpreadsheet" class="form-label">File daftar inventaris (.xlsx)</label>
+                <input id="inventorySpreadsheet" type="file" name="file" class="form-control" accept=".xlsx" required>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Import Inventaris</button>
+            <a href="{{ route($routePrefix.'.import.template') }}" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Unduh Template</a>
+        </form>
+    </div>
     <div class="card-header bg-white fw-bold"><i class="bi bi-plus-square me-2 text-primary"></i>Tambah Barang Inventaris</div>
     <div class="card-body">
         <form action="{{ route($routePrefix.'.items.store', $classroom) }}" method="POST" id="addInventoryItemsForm">

@@ -32,9 +32,13 @@ class NewFeedbackSubmitted extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $student = $this->feedback->student;
+        $guardian = $this->feedback->guardian;
+
         return [
             'feedback_id' => $this->feedback->id,
-            'guardian_name' => $this->feedback->guardian->name,
+            'sender_name' => $student?->name ?? $guardian?->name ?? 'Pengguna',
+            'sender_role' => $student ? 'siswa' : 'wali murid',
             'message' => $this->feedback->message,
         ];
     }

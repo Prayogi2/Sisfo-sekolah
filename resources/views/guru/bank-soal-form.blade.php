@@ -14,7 +14,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
             <h1 class="h3 mb-1 fw-bold">{{ $isEdit ? 'Edit Soal' : 'Tambah Soal' }}</h1>
-            <p class="text-muted mb-0">{{ $isEdit ? 'Ubah isi, jenis, atau kunci jawaban soal.' : 'Tambah beberapa soal sekaligus — pilihan ganda, essay, atau menjodohkan.' }}</p>
+            <p class="text-muted mb-0">{{ $isEdit ? 'Ubah isi, jenis, atau kunci jawaban soal.' : 'Ketik soal pada kolom Pertanyaan, isi opsi atau pasangan sesuai jenisnya, lalu simpan.' }}</p>
         </div>
         <a href="{{ route('guru.bank-soal') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
     </div>

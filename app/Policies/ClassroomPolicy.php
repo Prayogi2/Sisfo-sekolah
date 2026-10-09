@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Classroom;
+use App\Models\Teacher;
 use App\Models\User;
 
 class ClassroomPolicy
@@ -71,6 +72,16 @@ class ClassroomPolicy
     public function reportInventory(User $user, Classroom $classroom): bool
     {
         return $this->isHomeroomTeacher($user, $classroom);
+    }
+
+    public function manageRecitationNotes(User $user, Classroom $classroom): bool
+    {
+        return $user->hasRole('admin')
+            || $this->isHomeroomTeacher($user, $classroom)
+            || ($user->hasRole('guru') && Teacher::query()
+                ->where('user_id', $user->id)
+                ->whereHas('teachingAssignments', fn ($query) => $query->where('classroom_id', $classroom->id))
+                ->exists());
     }
 
     /**

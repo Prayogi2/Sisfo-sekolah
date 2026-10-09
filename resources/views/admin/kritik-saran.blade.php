@@ -5,10 +5,10 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800 fw-bold">Kritik & Saran dari Wali Murid</h1>
+        <h1 class="h3 mb-0 text-gray-800 fw-bold">Kritik & Saran dari Wali Murid dan Siswa</h1>
     </div>
 
-    <x-page-guide>Pesan yang dikirim wali murid lewat akun mereka muncul otomatis di sini — tidak perlu tindakan tambahan, ini hanya untuk dibaca.</x-page-guide>
+    <x-page-guide>Pesan yang dikirim siswa dan wali murid muncul di sini. Identitas pengirim hanya dapat dilihat admin.</x-page-guide>
 
     <div class="card shadow-sm">
         <div class="card-header py-3 bg-white"><h6 class="m-0 fw-bold text-primary">Daftar Pesan</h6></div>
@@ -17,9 +17,14 @@
                 @forelse ($feedbacks as $feedback)
                     <div class="list-group-item">
                         <div class="d-flex justify-content-between">
-                            <span class="fw-bold text-dark">{{ $feedback->guardian->name }}</span>
+                            <span class="fw-bold text-dark">{{ $feedback->student?->name ?? $feedback->guardian?->name ?? 'Pengguna' }}</span>
                             <small class="text-muted">{{ $feedback->created_at->translatedFormat('d F Y, H:i') }} WIB</small>
                         </div>
+                        @if($feedback->student)
+                            <small class="text-muted">Siswa{{ $feedback->student->classroom ? ' · Kelas '.$feedback->student->classroom->name : '' }}</small>
+                        @else
+                            <small class="text-muted">Wali murid</small>
+                        @endif
                         <p class="mb-0 mt-1">{{ $feedback->message }}</p>
                     </div>
                 @empty

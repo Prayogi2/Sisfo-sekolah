@@ -44,6 +44,7 @@ class QuizQuestionControllerTest extends TestCase
 
         $this->actingAs($user)->get(route('guru.bank-soal.tambah'))
             ->assertOk()
+            ->assertSee('Ketik Soal / Pertanyaan')
             ->assertSeeInOrder(['Pilihan Ganda (satu jawaban)', 'Pilihan Ganda Kompleks (banyak jawaban)', 'Essay / Uraian', 'Menjodohkan']);
     }
 

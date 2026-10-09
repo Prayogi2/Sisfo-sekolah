@@ -53,6 +53,7 @@ class GuruPortalPrivacyTest extends TestCase
             route('guru.bank-soal.tambah'),
             route('guru.bank-soal.edit', $question),
             route('guru.inventaris'),
+            route('guru.catatan-hafalan-bacaan'),
             route('guru.inventaris.laporan.show', $report),
             route('guru.laporan-nilai'),
             route('guru.prestasi-pelanggaran'),

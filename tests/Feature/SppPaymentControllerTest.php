@@ -179,10 +179,19 @@ class SppPaymentControllerTest extends TestCase
 
     public function test_siswa_sees_their_own_spp_pages(): void
     {
+        $this->travelTo('2026-05-05 09:00:00');
         [$siswa, , $student] = $this->siswaWithGuardian();
-        SppBill::factory()->create(['student_id' => $student->id]);
+        $bill = SppBill::factory()->create([
+            'student_id' => $student->id,
+            'due_date' => '2026-05-10',
+        ]);
 
-        $this->actingAs($siswa)->get(route('siswa.spp'))->assertOk()->assertSee($student->name);
+        $this->actingAs($siswa)->get(route('siswa.spp'))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee($bill->due_date->translatedFormat('d M Y'))
+            ->assertSee('id="proof"', false)
+            ->assertSee('Pilih file bukti pembayaran');
         $this->actingAs($siswa)->get(route('siswa.status-spp'))->assertOk()->assertSee($student->name);
     }
 

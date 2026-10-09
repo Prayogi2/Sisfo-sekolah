@@ -29,6 +29,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
 use App\Http\Controllers\StudentLeaveRequestController;
 use App\Http\Controllers\StudentPortalController;
+use App\Http\Controllers\StudentRecitationNoteController;
 use App\Http\Controllers\StudentRecordController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TeacherController;
@@ -114,6 +115,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/data-mapel/{subject}/guru-pengampu', [SubjectController::class, 'updateTeachers'])->name('data-mapel.guru-pengampu');
 
         Route::get('/inventaris', [InventoryController::class, 'index'])->name('inventaris');
+        Route::get('/inventaris/import/template', [InventoryController::class, 'importTemplate'])->name('inventaris.import.template');
+        Route::post('/inventaris/{classroom}/import', [InventoryController::class, 'import'])->name('inventaris.import');
         Route::post('/inventaris/{classroom}/barang', [InventoryController::class, 'storeItem'])->name('inventaris.items.store');
         Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
         Route::delete('/inventaris/barang/{inventoryItem}', [InventoryController::class, 'destroyItem'])->name('inventaris.items.destroy');
@@ -206,6 +209,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/prestasi-pelanggaran/pelanggaran', [StudentConductController::class, 'storeViolation'])->name('prestasi-pelanggaran.pelanggaran.store');
         Route::delete('/prestasi-pelanggaran/pelanggaran/{violation}', [StudentConductController::class, 'destroyViolation'])->name('prestasi-pelanggaran.pelanggaran.destroy');
 
+        Route::get('/catatan-hafalan-bacaan', [StudentRecitationNoteController::class, 'index'])->name('catatan-hafalan-bacaan');
+        Route::post('/catatan-hafalan-bacaan/{classroom}', [StudentRecitationNoteController::class, 'store'])->name('catatan-hafalan-bacaan.store');
+
         // Absensi Kelas (wali kelas)
         Route::get('/absensi-kelas', [ClassAttendanceController::class, 'index'])->name('absensi-kelas');
         Route::put('/absensi-kelas/{classroom}', [ClassAttendanceController::class, 'update'])->name('absensi-kelas.simpan');
@@ -213,6 +219,8 @@ Route::middleware('auth')->group(function () {
 
         // Inventaris Kelas (wali kelas)
         Route::get('/inventaris', [InventoryController::class, 'index'])->name('inventaris');
+        Route::get('/inventaris/import/template', [InventoryController::class, 'importTemplate'])->name('inventaris.import.template');
+        Route::post('/inventaris/{classroom}/import', [InventoryController::class, 'import'])->name('inventaris.import');
         Route::post('/inventaris/{classroom}/barang', [InventoryController::class, 'storeItem'])->name('inventaris.items.store');
         Route::post('/inventaris/{classroom}/barang-standar', [InventoryController::class, 'storeDefaultItems'])->name('inventaris.items.defaults');
         Route::post('/inventaris/{classroom}/laporan', [InventoryController::class, 'storeReport'])->name('inventaris.laporan.store');
@@ -234,6 +242,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/status-spp', [SppPaymentController::class, 'status'])->name('status-spp');
         Route::get('/pembayaran-spp', [SppPaymentController::class, 'create'])->name('spp');
         Route::post('/pembayaran-spp', [SppPaymentController::class, 'store'])->name('spp.store');
+        Route::get('/kritik-saran', [FeedbackController::class, 'studentCreate'])->name('kritik-saran');
+        Route::post('/kritik-saran', [FeedbackController::class, 'studentStore'])->name('kritik-saran.store');
         Route::get('/hasil-kuis', [QuizController::class, 'results'])->name('hasil-kuis');
         Route::get('/prestasi-pelanggaran', [StudentConductController::class, 'studentIndex'])->name('prestasi-pelanggaran');
         Route::get('/kuis-cbt', [QuizController::class, 'available'])->name('kuis');

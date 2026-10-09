@@ -34,6 +34,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Bulan / Tahun</th>
+                                        <th>Jatuh Tempo</th>
                                         <th>Tagihan</th>
                                         <th>Sudah Dibayar</th>
                                         <th>Sisa</th>
@@ -47,6 +48,7 @@
                                         @endphp
                                         <tr>
                                             <td>{{ $bill->period->translatedFormat('F Y') }}</td>
+                                            <td>{{ $bill->due_date?->translatedFormat('d M Y') ?? '-' }}</td>
                                             <td>Rp {{ number_format($bill->amount, 0, ',', '.') }}</td>
                                             <td>Rp {{ number_format($bill->paidAmount(), 0, ',', '.') }}</td>
                                             <td>Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}</td>
@@ -54,7 +56,7 @@
                                         </tr>
                                         @foreach ($bill->payments as $payment)
                                             <tr class="small text-muted">
-                                                <td class="ps-4" colspan="2">
+                                                <td class="ps-4" colspan="3">
                                                     <i class="bi bi-arrow-return-right me-1"></i>
                                                     Setoran {{ $payment->created_at->translatedFormat('d M Y') }}
                                                 </td>
@@ -73,7 +75,7 @@
                                         @endforeach
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted py-4">Belum ada tagihan SPP.</td>
+                                            <td colspan="6" class="text-center text-muted py-4">Belum ada tagihan SPP.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -128,7 +130,7 @@
                         @endphp
 
                         @if ($unpaidBills->isEmpty())
-                            <p class="text-muted mb-0">Tidak ada tagihan yang perlu dibayar saat ini.</p>
+                            <p class="text-muted mb-0">Tidak ada tagihan yang perlu dibayar saat ini. Form upload bukti hanya tersedia untuk tagihan yang belum lunas. Hubungi admin jika tagihan belum muncul.</p>
                         @else
                             <form action="{{ route('siswa.spp.store') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
@@ -138,7 +140,7 @@
                                         <option value="">-- Pilih Tagihan --</option>
                                         @foreach ($unpaidBills as $bill)
                                             <option value="{{ $bill->id }}" @selected(old('spp_bill_id') == $bill->id)>
-                                                {{ $bill->period->translatedFormat('F Y') }} - sisa Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}
+                                                {{ $bill->period->translatedFormat('F Y') }} - jatuh tempo {{ $bill->due_date?->translatedFormat('d M Y') ?? '-' }} - sisa Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -149,9 +151,9 @@
                                     <small class="text-muted">Boleh dicicil, tidak harus lunas sekaligus.</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label fw-semibold">Bukti Pembayaran (Foto Struk) <span class="text-danger">*</span></label>
-                                    <input type="file" name="proof" class="form-control" accept="image/png, image/jpeg, application/pdf" required>
-                                    <small class="text-muted">Format: PNG, JPG, PDF (Max 2MB)</small>
+                                    <label for="proof" class="form-label fw-semibold">Pilih file bukti pembayaran (Foto Struk) <span class="text-danger">*</span></label>
+                                    <input id="proof" type="file" name="proof" class="form-control" accept="image/png, image/jpeg, application/pdf" aria-describedby="proofHelp" required>
+                                    <small id="proofHelp" class="text-muted">Pilih foto atau PDF bukti transfer. Format: PNG, JPG, PDF (maks. 2MB).</small>
                                 </div>
                                 <div class="alert alert-info d-flex p-2" role="alert">
                                     <i class="bi bi-info-circle me-2 mt-1"></i>

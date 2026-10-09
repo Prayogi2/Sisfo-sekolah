@@ -110,6 +110,11 @@ class Student extends Model
         return $this->hasMany(StudentProgressNote::class);
     }
 
+    public function recitationNotes(): HasMany
+    {
+        return $this->hasMany(StudentRecitationNote::class);
+    }
+
     /**
      * Baris mata pelajaran tabel nilai buku induk, sesuai urutan di form.
      */

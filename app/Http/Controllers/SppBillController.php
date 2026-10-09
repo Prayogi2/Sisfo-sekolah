@@ -58,6 +58,7 @@ class SppBillController extends Controller
             ->pluck('period');
 
         $classrooms = Classroom::orderBy('name')->get();
+        $currentDueDate = now()->startOfMonth()->day(10);
 
         return view('admin.laporan-spp', compact(
             'bills',
@@ -67,6 +68,7 @@ class SppBillController extends Controller
             'period',
             'classroomId',
             'status',
+            'currentDueDate',
         ));
     }
 
@@ -79,6 +81,7 @@ class SppBillController extends Controller
         Gate::authorize('create', SppBill::class);
 
         $period = now()->startOfMonth();
+        $dueDate = $period->copy()->day(10);
         $amount = (int) Setting::get('spp_amount', 350000);
 
         $alreadyBilled = SppBill::query()
@@ -93,7 +96,7 @@ class SppBillController extends Controller
                 'student_id' => $studentId,
                 'period' => $period->toDateString(),
                 'amount' => $amount,
-                'due_date' => $period->copy()->day(10)->toDateString(),
+                'due_date' => $dueDate->toDateString(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ])
@@ -103,7 +106,11 @@ class SppBillController extends Controller
             SppBill::query()->insert($rows);
         }
 
-        return back()->with('success', count($rows).' tagihan SPP periode '.$period->translatedFormat('F Y').' berhasil dibuat.');
+        return back()->with(
+            'success',
+            count($rows).' tagihan SPP periode '.$period->translatedFormat('F Y')
+                .' berhasil dibuat. Jatuh tempo: '.$dueDate->translatedFormat('d M Y').'.'
+        );
     }
 
     public function exportCsv(Request $request, ReportExportService $exporter)
@@ -112,11 +119,16 @@ class SppBillController extends Controller
 
         $rows = $bills->map(fn (SppBill $bill) => [
             $bill->period->format('Y-m-d'), $bill->student->nisn, $bill->student->name,
-            $bill->student->classroom?->name ?? '-', $bill->amount, $bill->paidAmount(),
+            $bill->student->classroom?->name ?? '-', $bill->due_date?->format('Y-m-d') ?? '-',
+            $bill->amount, $bill->paidAmount(),
             $bill->remainingAmount(), $bill->status()->value,
         ]);
 
-        return $exporter->xlsx('laporan-spp-'.now()->format('Ymd-His').'.xlsx', ['Periode', 'NISN', 'Nama Siswa', 'Kelas', 'Tagihan', 'Dibayar', 'Sisa', 'Status'], $rows);
+        return $exporter->xlsx(
+            'laporan-spp-'.now()->format('Ymd-His').'.xlsx',
+            ['Periode', 'NISN', 'Nama Siswa', 'Kelas', 'Jatuh Tempo', 'Tagihan', 'Dibayar', 'Sisa', 'Status'],
+            $rows
+        );
     }
 
     public function exportPdf(Request $request, ReportExportService $exporter)

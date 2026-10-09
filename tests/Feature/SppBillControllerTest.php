@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\SppSettingSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class SppBillControllerTest extends TestCase
@@ -28,8 +29,13 @@ class SppBillControllerTest extends TestCase
     public function test_admin_can_view_the_spp_report(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
+        $this->travelTo('2026-05-05 09:00:00');
+        $bill = SppBill::factory()->create(['due_date' => '2026-05-10']);
 
-        $this->actingAs($admin)->get(route('admin.laporan-spp'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.laporan-spp'))
+            ->assertOk()
+            ->assertSee($bill->due_date->translatedFormat('d M Y'))
+            ->assertSee('Tanggal jatuh tempo tagihan yang dibuat');
     }
 
     public function test_guru_is_forbidden_from_the_spp_report(): void
@@ -42,16 +48,22 @@ class SppBillControllerTest extends TestCase
     public function test_generating_bills_creates_one_bill_per_active_student(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
+        $this->travelTo('2026-05-05 09:00:00');
         Student::factory(3)->create(['status' => StudentStatus::Active]);
         Student::factory()->create(['status' => StudentStatus::Graduated]);
 
         $response = $this->actingAs($admin)->post(route('admin.laporan-spp.generate'));
 
-        $response->assertRedirect();
+        $response->assertRedirect()
+            ->assertSessionHas('success', fn (string $message) => str_contains(
+                $message,
+                Carbon::parse('2026-05-10')->translatedFormat('d M Y')
+            ));
         $this->assertDatabaseCount('spp_bills', 3);
         $this->assertDatabaseHas('spp_bills', [
             'period' => now()->startOfMonth()->toDateString(),
             'amount' => 350000,
+            'due_date' => '2026-05-10',
         ]);
     }
 

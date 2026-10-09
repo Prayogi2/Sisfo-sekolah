@@ -102,10 +102,10 @@ class StudentConductController extends Controller
     {
         $this->authorizeStaff($request);
         [$achievements, $violations] = $this->exportData($request);
-        $rows = $achievements->map(fn ($item) => ['Prestasi', $item->achieved_at?->format('Y-m-d') ?: '-', $item->student->name, $item->category, $item->title, $item->event ?: '-', $item->level ?: '-', $item->benefit ?: '-'])
-            ->concat($violations->map(fn ($item) => ['Pelanggaran', $item->occurred_at->format('Y-m-d'), $item->student->name, $item->severity, $item->title, $item->description, '-', $item->action_taken ?: '-']));
+        $rows = $achievements->map(fn ($item) => ['Prestasi', $item->achieved_at?->format('Y-m-d') ?: '-', $item->student->name, $item->student->classroom?->name ?: '-', $item->category, $item->title, $item->event ?: '-', $item->level ?: '-', $item->benefit ?: '-'])
+            ->concat($violations->map(fn ($item) => ['Pelanggaran', $item->occurred_at->format('Y-m-d'), $item->student->name, $item->student->classroom?->name ?: '-', $item->severity, $item->title, $item->description, '-', $item->action_taken ?: '-']));
 
-        return $exporter->xlsx('laporan-prestasi-pelanggaran-'.now()->format('Ymd-His').'.xlsx', ['Jenis', 'Tanggal', 'Nama Siswa', 'Kategori', 'Judul', 'Detail/Event', 'Tingkat', 'Benefit/Pembinaan'], $rows);
+        return $exporter->xlsx('laporan-prestasi-pelanggaran-'.now()->format('Ymd-His').'.xlsx', ['Jenis', 'Tanggal', 'Nama Siswa', 'Kelas', 'Kategori', 'Judul', 'Detail/Event', 'Tingkat', 'Benefit/Pembinaan'], $rows);
     }
 
     public function exportPdf(Request $request, ReportExportService $exporter)
@@ -142,8 +142,8 @@ class StudentConductController extends Controller
         }))->pluck('id');
 
         return [
-            StudentAchievement::with('student')->whereIn('student_id', $studentIds)->latest('achieved_at')->get(),
-            StudentViolation::with('student')->whereIn('student_id', $studentIds)->latest('occurred_at')->get(),
+            StudentAchievement::with('student.classroom')->whereIn('student_id', $studentIds)->latest('achieved_at')->get(),
+            StudentViolation::with('student.classroom')->whereIn('student_id', $studentIds)->latest('occurred_at')->get(),
         ];
     }
 }

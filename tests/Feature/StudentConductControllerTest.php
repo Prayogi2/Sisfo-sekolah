@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentAcademicRecord;
 use App\Models\StudentAchievement;
+use App\Models\StudentViolation;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -46,6 +48,34 @@ class StudentConductControllerTest extends TestCase
 
         $this->assertDatabaseHas('student_achievements', ['student_id' => $student->id, 'title' => 'Juara Olimpiade']);
         $this->assertDatabaseHas('student_violations', ['student_id' => $student->id, 'title' => 'Terlambat']);
+    }
+
+    public function test_admin_sees_the_student_class_with_achievement_and_violation_records(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create(['name' => 'Kelas 5B']);
+        $student = Student::factory()->create([
+            'classroom_id' => $classroom->id,
+            'name' => 'Nadia Rahma',
+        ]);
+        StudentAchievement::create([
+            'student_id' => $student->id,
+            'category' => 'academic',
+            'title' => 'Juara Cerdas Cermat',
+        ]);
+        StudentViolation::create([
+            'student_id' => $student->id,
+            'severity' => 'light',
+            'title' => 'Terlambat',
+            'description' => 'Datang terlambat.',
+            'occurred_at' => '2026-10-09',
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.prestasi-pelanggaran'))
+            ->assertOk()
+            ->assertSee('Nadia Rahma')
+            ->assertSee('Kelas 5B');
+
     }
 
     public function test_guru_can_record_conduct_but_siswa_cannot(): void

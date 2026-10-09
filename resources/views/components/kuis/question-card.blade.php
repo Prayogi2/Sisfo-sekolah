@@ -38,8 +38,8 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Pertanyaan</label>
-            <textarea name="{{ $name('[question]') }}" rows="3" class="form-control" required>{{ $item['question'] ?? '' }}</textarea>
+            <label class="form-label">Ketik Soal / Pertanyaan</label>
+            <textarea name="{{ $name('[question]') }}" rows="3" class="form-control" placeholder="Tulis soal yang akan dijawab siswa..." required>{{ $item['question'] ?? '' }}</textarea>
         </div>
 
         <div class="mb-3">

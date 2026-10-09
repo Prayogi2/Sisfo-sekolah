@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\InventoryCategory;
+use App\Http\Requests\Inventory\ImportInventoryItemsRequest;
 use App\Http\Requests\Inventory\StoreInventoryItemRequest;
 use App\Http\Requests\Inventory\StoreInventoryReportRequest;
 use App\Models\Classroom;
 use App\Models\InventoryItem;
 use App\Models\InventoryReport;
 use App\Models\InventoryReportItem;
+use App\Services\InventoryItemSpreadsheet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Inventaris kelas. Admin mengelola daftar barang semua kelas (tambah &
@@ -23,6 +26,11 @@ use Illuminate\View\View;
  */
 class InventoryController extends Controller
 {
+    public function importTemplate(InventoryItemSpreadsheet $spreadsheet): BinaryFileResponse
+    {
+        return $spreadsheet->template();
+    }
+
     public function index(Request $request): View
     {
         $isAdminPage = $request->routeIs('admin.*');
@@ -83,6 +91,26 @@ class InventoryController extends Controller
         });
 
         return back()->with('success', count($items).' barang inventaris berhasil ditambahkan.');
+    }
+
+    public function import(ImportInventoryItemsRequest $request, Classroom $classroom, InventoryItemSpreadsheet $spreadsheet): RedirectResponse
+    {
+        $items = $spreadsheet->parse($request->file('file'), $classroom);
+        $sortOrder = (int) $classroom->inventoryItems()->max('sort_order');
+
+        DB::transaction(function () use ($classroom, $items, $request, &$sortOrder) {
+            foreach ($items as $item) {
+                $classroom->inventoryItems()->create([
+                    'category' => $item['category'],
+                    'name' => $item['name'],
+                    'good_quantity' => (int) $item['quantity'],
+                    'sort_order' => ++$sortOrder,
+                    'created_by' => $request->user()->id,
+                ]);
+            }
+        });
+
+        return back()->with('success', count($items).' barang inventaris berhasil di-import.');
     }
 
     /**

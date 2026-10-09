@@ -17,20 +17,21 @@
     <h1>Laporan Pembayaran SPP</h1>
     <p>Periode {{ \Illuminate\Support\Carbon::parse($period)->translatedFormat('F Y') }}</p>
     <table>
-        <thead><tr><th>NISN</th><th>Nama Siswa</th><th>Kelas</th><th>Tagihan</th><th>Dibayar</th><th>Sisa</th><th>Status</th></tr></thead>
+        <thead><tr><th>NISN</th><th>Nama Siswa</th><th>Kelas</th><th>Jatuh Tempo</th><th>Tagihan</th><th>Dibayar</th><th>Sisa</th><th>Status</th></tr></thead>
         <tbody>
             @forelse($bills as $bill)
                 <tr>
                     <td>{{ $bill->student->nisn }}</td>
                     <td>{{ $bill->student->name }}</td>
                     <td>{{ $bill->student->classroom?->name ?? '-' }}</td>
+                    <td>{{ $bill->due_date?->translatedFormat('d M Y') ?? '-' }}</td>
                     <td class="number">Rp {{ number_format($bill->amount, 0, ',', '.') }}</td>
                     <td class="number">Rp {{ number_format($bill->paidAmount(), 0, ',', '.') }}</td>
                     <td class="number">Rp {{ number_format($bill->remainingAmount(), 0, ',', '.') }}</td>
                     <td>{{ $bill->status()->value }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7">Belum ada tagihan.</td></tr>
+                <tr><td colspan="8">Belum ada tagihan.</td></tr>
             @endforelse
         </tbody>
     </table>

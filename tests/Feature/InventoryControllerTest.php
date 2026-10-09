@@ -12,6 +12,8 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Tests\TestCase;
 
 class InventoryControllerTest extends TestCase
@@ -88,6 +90,67 @@ class InventoryControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Lemari Kelasku');
         $response->assertDontSee('Lemari Kelas Lain');
+        $response->assertSee('Unggah Daftar Inventaris');
+        $response->assertSee('Tambah Barang Inventaris');
+    }
+
+    public function test_a_homeroom_teacher_can_download_the_inventory_template(): void
+    {
+        [$user] = $this->homeroomTeacher();
+
+        $this->actingAs($user)->get(route('guru.inventaris.import.template'))
+            ->assertOk()
+            ->assertDownload('template-inventaris-kelas.xlsx');
+    }
+
+    public function test_a_homeroom_teacher_can_import_inventory_items_from_excel(): void
+    {
+        [$user, $classroom] = $this->homeroomTeacher();
+        $file = $this->inventorySpreadsheet([
+            ['Mebelair', 'Meja Siswa', 24],
+            ['Elektronik', 'Proyektor', 1],
+        ]);
+
+        $this->actingAs($user)->post(route('guru.inventaris.import', $classroom), ['file' => $file])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', '2 barang inventaris berhasil di-import.');
+
+        $this->assertDatabaseHas('inventory_items', [
+            'classroom_id' => $classroom->id,
+            'category' => InventoryCategory::Furniture->value,
+            'name' => 'Meja Siswa',
+            'good_quantity' => 24,
+            'created_by' => $user->id,
+        ]);
+        $this->assertDatabaseHas('inventory_items', [
+            'classroom_id' => $classroom->id,
+            'category' => InventoryCategory::Electronics->value,
+            'name' => 'Proyektor',
+            'good_quantity' => 1,
+        ]);
+    }
+
+    public function test_a_teacher_cannot_import_inventory_into_another_class(): void
+    {
+        [$user] = $this->homeroomTeacher();
+        $otherClassroom = Classroom::factory()->create();
+
+        $this->actingAs($user)->post(route('guru.inventaris.import', $otherClassroom), [
+            'file' => $this->inventorySpreadsheet([['Mebelair', 'Meja Siswa', 24]]),
+        ])->assertForbidden();
+
+        $this->assertDatabaseCount('inventory_items', 0);
+    }
+
+    public function test_an_invalid_inventory_spreadsheet_does_not_import_any_items(): void
+    {
+        [$user, $classroom] = $this->homeroomTeacher();
+
+        $this->actingAs($user)->post(route('guru.inventaris.import', $classroom), [
+            'file' => $this->inventorySpreadsheet([['Kategori Tidak Ada', 'Barang', 1]]),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('inventory_items', 0);
     }
 
     public function test_guru_without_a_homeroom_class_is_told_there_is_nothing_to_report(): void
@@ -323,5 +386,21 @@ class InventoryControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Sapu Ijuk');
         $this->actingAs($otherGuru)->get(route('guru.inventaris.laporan.show', $report))->assertForbidden();
+    }
+
+    /**
+     * @param  list<list<string|int>>  $rows
+     */
+    private function inventorySpreadsheet(array $rows): UploadedFile
+    {
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->fromArray([
+            ['Kategori', 'Nama Barang', 'Jumlah'],
+            ...$rows,
+        ]);
+        $path = tempnam(sys_get_temp_dir(), 'inventaris').'.xlsx';
+        IOFactory::createWriter($spreadsheet, 'Xlsx')->save($path);
+
+        return new UploadedFile($path, 'inventaris.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
     }
 }

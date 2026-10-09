@@ -10,7 +10,7 @@
             <div class="text-end"><span class="badge bg-danger fs-6" id="quizTimer">--:--</span><br><span class="badge bg-primary mt-1">{{ $attempt->status === 'in_progress' ? 'Sedang dikerjakan' : 'Selesai' }}</span></div>
         </div>
         <div class="card-body">
-            <x-page-guide>Jawab semua soal sebelum waktu habis. Jawaban tersimpan begitu dipilih; kuis otomatis dikumpulkan jika waktu berakhir.</x-page-guide>
+            <x-page-guide>Kuis dapat berisi pilihan ganda (pilih satu), pilihan ganda kompleks (pilih semua yang benar), essay (ketik jawaban), atau menjodohkan. Jawaban tersimpan saat disimpan; kuis otomatis dikumpulkan jika waktu habis.</x-page-guide>
             @foreach($quiz->questions as $number => $question)
                 @php $savedAnswer = optional($attempt->answers->firstWhere('quiz_question_id', $question->id))->answer ?? []; @endphp
                 <form method="POST" action="{{ route('siswa.kuis.answer', $attempt) }}" class="border rounded p-3 mb-3">
