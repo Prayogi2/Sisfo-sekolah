@@ -3,23 +3,29 @@
 @section('content')
 <div class="container-fluid">
     <x-page-guide>Halaman ini otomatis memperbarui diri. Jangan tutup/refresh — tunggu soal muncul, lalu jawab (pilih, tulis, atau jodohkan) sebelum waktunya habis. Makin cepat jawaban benar, makin besar poin permainanmu!</x-page-guide>
-    <div class="card shadow-sm">
-        <div class="card-body text-center">
-            <h1 class="h3 fw-bold">{{ $quiz->title }}</h1>
-            <p class="text-muted">Tunggu guru menampilkan soal berikutnya.</p>
-            <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
-                <div class="display-6 fw-bold" id="phase">Menunggu...</div>
-                <div class="live-timer d-none" id="timerWrap"><span id="timer">0</span></div>
-            </div>
-            <div class="h4 mb-4" id="question"></div>
-            <div class="row g-2" id="options"></div>
-            <div class="alert d-none mt-3" id="answerStatus"></div>
-            <div class="d-none mt-3" id="roundResult">
-                <div class="round-points" id="roundPoints"></div>
-                <div class="fw-bold mb-2" id="roundRank"></div>
-                <ol class="live-top5 text-start mx-auto" id="roundTop5"></ol>
-            </div>
-            <div class="alert alert-info mt-4" id="score">Skor sementara: 0</div>
+    <div class="kahoot-stage">
+        <div class="kahoot-topbar">
+            <div><span class="badge bg-light text-dark fs-6" id="phase">Lobi</span></div>
+            <div class="kahoot-timer d-none" id="timerWrap"><span id="timer">0</span></div>
+            <div class="text-end small fw-bold" id="score">Skor sementara: 0</div>
+        </div>
+
+        <div id="lobby" class="text-center py-5">
+            <div class="display-6 fw-bold mb-2">Bersiap!</div>
+            <p class="fs-5 mb-1">{{ $quiz->title }}</p>
+            <p class="opacity-75 mb-0">Tunggu guru menampilkan soal di layar.</p>
+        </div>
+
+        <div id="questionView" class="d-none">
+            <div class="kahoot-question" id="question"></div>
+            <div class="row g-3 mt-1" id="options"></div>
+        </div>
+
+        <div class="alert d-none mt-3 mb-0 text-center fw-bold" id="answerStatus"></div>
+        <div class="kahoot-panel d-none mt-3 text-center" id="roundResult">
+            <div class="round-points" id="roundPoints"></div>
+            <div class="fw-bold mb-2" id="roundRank"></div>
+            <ol class="kahoot-leaderboard text-start mx-auto mb-0" id="roundTop5"></ol>
         </div>
     </div>
 </div>
@@ -40,17 +46,29 @@
 
 @push('styles')
 <style>
-.live-timer { width: 64px; height: 64px; border-radius: 50%; background: #46178f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 900; }
-.live-timer.urgent { background: #e21b3c; animation: pulse .5s infinite alternate; }
-@keyframes pulse { to { transform: scale(1.1); } }
+/* Gaya panggung disamakan dengan panel Kahoot guru (guru/kuis-live-host). */
+.kahoot-stage { background: linear-gradient(135deg, #46178f, #7b2ff7); color: #fff; border-radius: 18px; padding: 16px; min-height: 70vh; }
+.kahoot-topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.kahoot-topbar > div { flex: 1; } .kahoot-topbar > .kahoot-timer { flex: none; }
+.kahoot-timer { width: 72px; height: 72px; border-radius: 50%; background: #fff; color: #46178f; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; box-shadow: 0 6px 18px rgba(0,0,0,.25); transition: transform .2s; }
+.kahoot-timer.urgent { color: #e21b3c; transform: scale(1.12); }
+.kahoot-question { background: #fff; color: #222; border-radius: 14px; padding: 16px 20px; text-align: center; font-size: 1.4rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+.kahoot-question img, .kahoot-question video { max-height: 30vh; border-radius: 10px; margin-bottom: 10px; }
+.kahoot-option { width: 100%; border: 0; border-radius: 12px; padding: 16px 18px; font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 14px; min-height: 76px; text-align: left; transition: opacity .3s, transform .15s; }
+.kahoot-option .shape { font-size: 1.7rem; }
+.kahoot-option:not(:disabled):active { transform: scale(.97); }
+.kahoot-option:disabled { cursor: default; }
+.kahoot-option.selected { outline: 5px solid #fff; transform: scale(1.02); }
+.kahoot-option.dim { opacity: .35; }
+.kahoot-option.correct { outline: 5px solid #fff; transform: scale(1.02); }
+.kahoot-option.wrong { opacity: .6; text-decoration: line-through; }
+.opt-A { background: #e21b3c; } .opt-B { background: #1368ce; } .opt-C { background: #d89e00; } .opt-D { background: #26890c; }
+.kahoot-panel { background: rgba(255,255,255,.96); color: #222; border-radius: 14px; padding: 16px 20px; }
+.kahoot-leaderboard { max-width: 360px; padding-left: 0; list-style: none; }
+.kahoot-leaderboard li { display: flex; justify-content: space-between; padding: 6px 12px; margin-bottom: 6px; background: #f3f0ff; border-radius: 8px; font-weight: 700; color: #222; }
+.kahoot-leaderboard li.me { background: #ffe9a8; }
 .round-points { font-size: 2.4rem; font-weight: 900; color: #26890c; animation: popupPopIn .5s; }
 .round-points.zero { color: #6b7280; }
-.live-top5 { max-width: 360px; padding-left: 0; list-style: none; }
-.live-top5 li { display: flex; justify-content: space-between; background: #f3f0ff; border-radius: 8px; padding: 6px 12px; margin-bottom: 4px; font-weight: 700; }
-.live-top5 li.me { background: #ffe9a8; }
-.option.opt-A { --kahoot: #e21b3c; } .option.opt-B { --kahoot: #1368ce; } .option.opt-C { --kahoot: #d89e00; } .option.opt-D { --kahoot: #26890c; }
-.option.btn-outline-primary { border-color: var(--kahoot); color: var(--kahoot); border-width: 3px; }
-.option.btn-primary { background: var(--kahoot); border-color: var(--kahoot); }
 .result-popup-overlay {
     position: fixed; inset: 0; z-index: 2000;
     background: rgba(20, 20, 45, .78);
@@ -200,7 +218,9 @@ async function refresh() {
 
     document.getElementById('phase').textContent = data.phase === 'finished'
         ? 'Selesai'
-        : 'Soal ' + (data.index === null ? '-' : data.index + 1) + '/' + data.total;
+        : (data.index === null || !data.question ? 'Lobi' : 'Soal ' + (data.index + 1) + ' / ' + data.total);
+    document.getElementById('lobby').classList.toggle('d-none', !!data.question);
+    document.getElementById('questionView').classList.toggle('d-none', !data.question);
     document.getElementById('score').textContent = data.show_score
         ? 'Skor sementara: ' + data.score
         : 'Skor akan ditampilkan sesuai pengaturan guru.';
@@ -299,7 +319,7 @@ async function submitWith(button, payload, lockSelector) {
 
 function renderEssay(data, isAnswering) {
     const text = data.answer?.text ?? '';
-    let html = '<div class="col-12"><textarea id="essayAnswer" class="form-control" rows="5" maxlength="5000" placeholder="Tulis jawabanmu di sini..."' + (isAnswering ? '' : ' disabled') + '>' + escapeHtml(text) + '</textarea></div>';
+    let html = '<div class="col-12"><textarea id="essayAnswer" style="min-height: 140px" class="form-control" rows="5" maxlength="5000" placeholder="Tulis jawabanmu di sini..."' + (isAnswering ? '' : ' disabled') + '>' + escapeHtml(text) + '</textarea></div>';
     if (isAnswering) {
         html += '<div class="col-12 mt-2"><button type="button" id="submitEssay" class="btn btn-warning w-100">Kirim Jawaban</button></div>';
     } else if (data.phase === 'reveal') {
@@ -332,7 +352,7 @@ function renderMatching(data, isAnswering) {
         const options = ['<option value="">— Pilih pasangan —</option>'].concat(
             data.question.matching_choices.map(choice => '<option value="' + escapeHtml(choice) + '"' + (choice === chosen ? ' selected' : '') + '>' + escapeHtml(choice) + '</option>')
         ).join('');
-        return '<div class="col-12"><div class="row g-2 align-items-center text-start border rounded p-2 mx-0">'
+        return '<div class="col-12"><div class="row g-2 align-items-center text-start kahoot-panel p-2 mx-0">'
             + '<div class="col-md-5 fw-semibold">' + escapeHtml(left) + '</div>'
             + '<div class="col-md-7"><select class="form-select matching-choice" data-index="' + index + '"' + (isAnswering ? '' : ' disabled') + '>' + options + '</select>' + status + '</div>'
             + '</div></div>';
@@ -359,7 +379,7 @@ function renderChoice(data, isAnswering) {
         ? '<div class="col-12 mt-2"><button type="button" id="submitMultiAnswer" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>'
         : '';
     document.getElementById('options').innerHTML = Object.entries(data.question.options).map(([key, value]) =>
-        '<div class="col-md-6"><button class="btn ' + optionClass(key, data) + ' w-100 py-3 option opt-' + escapeHtml(key) + '" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><strong>' + (shapes[key] || escapeHtml(key)) + '</strong> ' + escapeHtml(value) + '</button></div>'
+        '<div class="col-6 col-md-6"><button type="button" class="kahoot-option option opt-' + escapeHtml(key) + ' ' + optionClass(key, data) + '" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><span class="shape">' + (shapes[key] || escapeHtml(key)) + '</span><span>' + escapeHtml(value) + '</span></button></div>'
     ).join('') + submitButtonHtml;
 
     if (!isAnswering) return;
@@ -370,11 +390,10 @@ function renderChoice(data, isAnswering) {
             const key = button.dataset.key;
             if (selectedKeys.includes(key)) {
                 selectedKeys = selectedKeys.filter(item => item !== key);
-                button.classList.replace('btn-primary', 'btn-outline-primary');
             } else {
                 selectedKeys.push(key);
-                button.classList.replace('btn-outline-primary', 'btn-primary');
             }
+            button.classList.toggle('selected', selectedKeys.includes(key));
             submitButton.disabled = selectedKeys.length === 0;
         });
         submitButton.onclick = async () => {
@@ -393,7 +412,8 @@ function renderChoice(data, isAnswering) {
         document.querySelectorAll('.option').forEach(item => item.disabled = true);
         const response = await sendAnswer([button.dataset.key]);
         if (response.ok) {
-            button.classList.replace('btn-outline-primary', 'btn-primary');
+            document.querySelectorAll('.option').forEach(item => item.classList.toggle('dim', item !== button));
+            button.classList.add('selected');
         } else {
             document.querySelectorAll('.option').forEach(item => item.disabled = false);
         }
@@ -410,11 +430,14 @@ function optionClass(key, data) {
     const isSelected = Array.isArray(data.answer) && data.answer.includes(key);
     if (data.phase === 'reveal') {
         const isCorrectOption = Array.isArray(data.question.correct) && data.question.correct.includes(key);
-        if (isCorrectOption) return 'btn-success';
-        if (isSelected) return 'btn-danger';
-        return 'btn-outline-secondary';
+        if (isCorrectOption) return 'correct';
+        if (isSelected) return 'wrong';
+        return 'dim';
     }
-    return isSelected ? 'btn-primary' : 'btn-outline-primary';
+    if (Array.isArray(data.answer) && data.answer.length) {
+        return isSelected ? 'selected' : 'dim';
+    }
+    return '';
 }
 
 refresh();
