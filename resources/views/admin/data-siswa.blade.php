@@ -35,12 +35,22 @@
         @if (session('import_result'))
             @php($importResult = session('import_result'))
             @php($importErrors = $importResult['errors'] ?? [])
-            <div class="alert {{ $importErrors ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
+            @php($importWarnings = $importResult['warnings'] ?? [])
+            <div class="alert {{ $importErrors || $importWarnings ? 'alert-warning' : 'alert-success' }} alert-dismissible fade show" role="alert">
                 <p class="fw-semibold mb-1">Impor selesai: {{ $importResult['imported'] ?? 0 }} siswa baru ditambahkan, {{ $importResult['updated'] ?? 0 }} siswa lama diperbarui{{ $importErrors ? ', '.count($importErrors).' baris gagal.' : '.' }}</p>
                 @if ($importErrors)
+                    <p class="small fw-semibold mb-1 mt-2">Baris gagal (siswa tidak tersimpan):</p>
                     <ul class="mb-0 small">
                         @foreach ($importErrors as $error)
                             <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+                @if ($importWarnings)
+                    <p class="small fw-semibold mb-1 mt-2">{{ count($importWarnings) }} siswa tersimpan dengan sebagian isian Buku Induk dikosongkan (bisa dilengkapi dari halaman Buku Induk):</p>
+                    <ul class="mb-0 small">
+                        @foreach ($importWarnings as $warning)
+                            <li>{{ $warning }}</li>
                         @endforeach
                     </ul>
                 @endif

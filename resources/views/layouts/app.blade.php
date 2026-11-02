@@ -114,7 +114,7 @@
         @endif
 
         <div class="menu-title">Aksi</div>
-        <form action="{{ route('logout') }}" method="POST" class="d-inline px-3">
+        <form action="{{ route('logout') }}" method="POST" class="px-3">
             @csrf
             <button type="submit" class="btn btn-link text-danger p-0 border-0 text-decoration-none w-100 text-start">
                 <i class="bi bi-box-arrow-right me-2"></i> Logout

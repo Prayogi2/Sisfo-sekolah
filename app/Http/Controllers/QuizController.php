@@ -49,11 +49,9 @@ class QuizController extends Controller
 
         // Jumlah jawaban essay yang sudah dikirim siswa tapi belum dikoreksi, per kuis.
         $pendingEssays = QuizAnswer::query()
+            ->awaitingEssayGrading()
             ->join('quiz_attempts', 'quiz_attempts.id', '=', 'quiz_answers.quiz_attempt_id')
-            ->join('quiz_questions', 'quiz_questions.id', '=', 'quiz_answers.quiz_question_id')
-            ->where('quiz_questions.type', QuizQuestion::TYPE_ESSAY)
-            ->whereNull('quiz_answers.graded_at')
-            ->whereNotNull('quiz_answers.answer')
+            ->where('quiz_attempts.status', 'submitted')
             ->whereIn('quiz_attempts.quiz_id', $quizzes->pluck('id'))
             ->groupBy('quiz_attempts.quiz_id')
             ->selectRaw('quiz_attempts.quiz_id, count(*) as total')
@@ -488,7 +486,9 @@ class QuizController extends Controller
         if ($student instanceof RedirectResponse) {
             return $student;
         }
-        $attempts = QuizAttempt::with(['quiz.subject', 'quiz.classroom'])->where('student_id', $student->id)->where('status', 'submitted')->latest('submitted_at')->get();
+        $attempts = QuizAttempt::with(['quiz.subject', 'quiz.classroom'])
+            ->withCount(['answers as pending_essays_count' => fn ($query) => $query->awaitingEssayGrading()])
+            ->where('student_id', $student->id)->where('status', 'submitted')->latest('submitted_at')->get();
 
         return view('siswa.hasil-kuis', compact('student', 'attempts'));
     }

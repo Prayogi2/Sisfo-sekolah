@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,5 +24,17 @@ class QuizAnswer extends Model
     public function question(): BelongsTo
     {
         return $this->belongsTo(QuizQuestion::class, 'quiz_question_id');
+    }
+
+    /**
+     * Jawaban essay berisi yang masih menunggu dikoreksi guru. Jawaban
+     * kosong tidak termasuk karena otomatis bernilai 0.
+     */
+    #[Scope]
+    protected function awaitingEssayGrading(Builder $query): void
+    {
+        $query->whereNull('quiz_answers.graded_at')
+            ->whereNotNull('quiz_answers.answer')
+            ->whereHas('question', fn (Builder $query) => $query->where('type', QuizQuestion::TYPE_ESSAY));
     }
 }

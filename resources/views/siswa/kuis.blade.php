@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div><h5 class="mb-0">{{ $quiz->title }}</h5><small class="text-muted">{{ $quiz->subject->name }} · {{ $quiz->duration_minutes }} menit</small></div>
             <div class="text-end"><span class="badge bg-danger fs-6" id="quizTimer">--:--</span><br><span class="badge bg-primary mt-1">{{ $attempt->status === 'in_progress' ? 'Sedang dikerjakan' : 'Selesai' }}</span></div>
         </div>
@@ -47,7 +47,10 @@
                         @endforeach
                     @else
                         @foreach($question->options as $key => $option)
-                            <label class="d-block mb-2"><input type="{{ $question->type === 'multiple' ? 'checkbox' : 'radio' }}" name="answer[]" value="{{ $key }}" {{ in_array($key, $savedAnswer, true) ? 'checked' : '' }}> {{ $key }}. {{ $option }}</label>
+                            <label class="quiz-option">
+                                <input type="{{ $question->type === 'multiple' ? 'checkbox' : 'radio' }}" name="answer[]" value="{{ $key }}" {{ in_array($key, $savedAnswer, true) ? 'checked' : '' }} class="form-check-input mt-0">
+                                <span><strong>{{ $key }}.</strong> {{ $option }}</span>
+                            </label>
                         @endforeach
                     @endif
                     <button class="btn btn-sm btn-outline-primary">Simpan Jawaban</button>
@@ -58,6 +61,25 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+/* Pilihan jawaban dibuat sebagai baris penuh agar nyaman disentuh di HP. */
+.quiz-option {
+    display: flex; gap: 10px; align-items: flex-start;
+    border: 1px solid #dee2e6; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+}
+.quiz-option input { width: 1.15rem; height: 1.15rem; flex: none; margin-top: .15rem; }
+.quiz-option:has(input:checked) { border-color: #0d6efd; background: #eef4ff; }
+
+@media (max-width: 575.98px) {
+    .quiz-option { padding: 10px 12px; }
+    /* Sisa waktu tetap terlihat walau soal digulir jauh ke bawah. */
+    #quizTimer { position: sticky; top: 70px; }
+}
+</style>
+@endpush
 
 @push('scripts')
 <script>

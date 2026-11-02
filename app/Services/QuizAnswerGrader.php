@@ -87,7 +87,8 @@ class QuizAnswerGrader
             'answer' => $text === '' ? null : ['text' => $text],
             'is_correct' => false,
             'awarded_points' => 0,
-            'graded_at' => null,
+            // Essay kosong langsung bernilai 0, tidak perlu menunggu guru.
+            'graded_at' => $text === '' ? now() : null,
         ];
     }
 }

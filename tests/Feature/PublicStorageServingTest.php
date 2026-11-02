@@ -36,6 +36,15 @@ class PublicStorageServingTest extends TestCase
             ->assertHeader('Content-Type', 'image/png');
     }
 
+    /**
+     * Media kuis memakai disk public; URL-nya harus ikut domain yang sedang
+     * dibuka (mis. tunnel), bukan APP_URL.
+     */
+    public function test_public_disk_url_stays_relative_to_the_current_domain(): void
+    {
+        $this->assertSame('/storage/quiz-media/soal.png', Storage::disk('public')->url('quiz-media/soal.png'));
+    }
+
     public function test_a_missing_file_returns_not_found(): void
     {
         Storage::fake('public');

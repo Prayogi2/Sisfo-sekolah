@@ -158,8 +158,9 @@
 
     <!-- Template baris penugasan mapel + kelas (dipakai tambah & edit) -->
     <template id="templateAssignmentRow">
-        <div class="row g-2 align-items-start mb-2 assignment-row">
-            <div class="col-md-5">
+        <div class="row g-2 align-items-start border rounded p-2 mx-0 mb-2 assignment-row">
+            <div class="col-md-4">
+                <label class="form-label small text-muted mb-1">Mata Pelajaran</label>
                 <select name="assignments[__INDEX__][subject_id]" class="form-select form-select-sm" required>
                     <option value="">-- Pilih Mapel --</option>
                     @foreach ($subjects as $subject)
@@ -167,18 +168,24 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6">
-                <select name="assignments[__INDEX__][classroom_ids][]" class="form-select form-select-sm" multiple required size="3">
+            <div class="col-md-7">
+                <label class="form-label small text-muted mb-1">Kelas yang Diajar</label>
+                <div class="d-flex flex-wrap gap-2 classroom-options">
                     @foreach ($classrooms as $classroom)
-                        <option value="{{ $classroom->id }}">{{ $classroom->name }}</option>
+                        <label class="btn btn-sm btn-outline-secondary mb-0">
+                            <input type="checkbox" name="assignments[__INDEX__][classroom_ids][]" value="{{ $classroom->id }}" class="form-check-input me-1">{{ $classroom->name }}
+                        </label>
                     @endforeach
-                </select>
+                </div>
+                <div class="invalid-feedback classroom-error">Pilih minimal satu kelas.</div>
             </div>
-            <div class="col-md-1">
-                <button type="button" class="btn btn-outline-danger btn-sm remove-assignment-row" title="Hapus baris"><i class="bi bi-trash"></i></button>
+            <div class="col-md-1 text-md-end">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-assignment-row mt-md-4" title="Hapus baris"><i class="bi bi-trash"></i></button>
             </div>
         </div>
     </template>
+
+    @php($assignmentDataMissing = $subjects->isEmpty() || $classrooms->isEmpty())
 
     <!-- Modal Tambah Guru -->
     <div class="modal fade" id="modalTambahGuru" tabindex="-1" aria-hidden="true">
@@ -208,10 +215,20 @@
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label fw-semibold mb-0">Mata Pelajaran & Kelas yang Diajarkan</label>
-                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row"><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row" @disabled($assignmentDataMissing)><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
                         </div>
+                        @if ($assignmentDataMissing)
+                            <div class="alert alert-warning small mb-2">
+                                Belum ada {{ $subjects->isEmpty() ? 'mata pelajaran' : '' }}{{ $subjects->isEmpty() && $classrooms->isEmpty() ? ' dan ' : '' }}{{ $classrooms->isEmpty() ? 'kelas' : '' }} yang terdaftar.
+                                Tambahkan dulu lewat menu
+                                @if ($subjects->isEmpty())<a href="{{ route('admin.data-mapel') }}">Data Mapel</a>@endif
+                                {{ $subjects->isEmpty() && $classrooms->isEmpty() ? 'dan' : '' }}
+                                @if ($classrooms->isEmpty())<a href="{{ route('admin.pembagian-kelas') }}">Pembagian Kelas</a>@endif,
+                                lalu kembali ke sini untuk menetapkan mapel & kelas guru.
+                            </div>
+                        @endif
                         <div class="assignment-rows"></div>
-                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (tahan Ctrl/Cmd untuk pilih lebih dari satu). Guru hanya akan bisa mengakses kelas yang dipilih di sini.</p>
+                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (centang semua kelas yang diajar). Guru hanya akan bisa mengakses kelas yang dipilih di sini.</p>
                         <p class="text-muted small mt-2 mb-0">Akun login guru (username = email) akan dibuat otomatis dengan password acak yang ditampilkan setelah data disimpan.</p>
                         <hr>
                         <label class="form-check border rounded p-3 ps-5 mb-0 bg-light">
@@ -258,10 +275,20 @@
                         <hr>
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label fw-semibold mb-0">Mata Pelajaran & Kelas yang Diajarkan</label>
-                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row"><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-assignment-row" @disabled($assignmentDataMissing)><i class="bi bi-plus-lg"></i> Tambah Mapel</button>
                         </div>
+                        @if ($assignmentDataMissing)
+                            <div class="alert alert-warning small mb-2">
+                                Belum ada {{ $subjects->isEmpty() ? 'mata pelajaran' : '' }}{{ $subjects->isEmpty() && $classrooms->isEmpty() ? ' dan ' : '' }}{{ $classrooms->isEmpty() ? 'kelas' : '' }} yang terdaftar.
+                                Tambahkan dulu lewat menu
+                                @if ($subjects->isEmpty())<a href="{{ route('admin.data-mapel') }}">Data Mapel</a>@endif
+                                {{ $subjects->isEmpty() && $classrooms->isEmpty() ? 'dan' : '' }}
+                                @if ($classrooms->isEmpty())<a href="{{ route('admin.pembagian-kelas') }}">Pembagian Kelas</a>@endif,
+                                lalu kembali ke sini untuk menetapkan mapel & kelas guru.
+                            </div>
+                        @endif
                         <div class="assignment-rows"></div>
-                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (tahan Ctrl/Cmd untuk pilih lebih dari satu).</p>
+                        <p class="text-muted small mb-0">Tiap mapel bisa dipilih untuk beberapa kelas sekaligus (centang semua kelas yang diajar).</p>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -276,8 +303,10 @@
         (function () {
             const template = document.getElementById('templateAssignmentRow');
 
+            let nextAssignmentIndex = 0;
+
             function addAssignmentRow(container, subjectId, classroomIds) {
-                const index = container.children.length;
+                const index = nextAssignmentIndex++;
                 const fragment = template.content.cloneNode(true);
                 fragment.querySelectorAll('[name]').forEach((field) => {
                     field.name = field.name.replace('__INDEX__', index);
@@ -288,11 +317,13 @@
                     row.querySelector('select[name$="[subject_id]"]').value = subjectId;
                 }
                 if (classroomIds && classroomIds.length) {
-                    const classroomSelect = row.querySelector('select[name$="[classroom_ids][]"]');
-                    Array.from(classroomSelect.options).forEach((option) => {
-                        option.selected = classroomIds.map(String).includes(option.value);
+                    row.querySelectorAll('input[name$="[classroom_ids][]"]').forEach((checkbox) => {
+                        checkbox.checked = classroomIds.map(String).includes(checkbox.value);
                     });
                 }
+                row.querySelectorAll('input[name$="[classroom_ids][]"]').forEach((checkbox) => {
+                    checkbox.addEventListener('change', () => row.querySelector('.classroom-error').classList.remove('d-block'));
+                });
                 row.querySelector('.remove-assignment-row').addEventListener('click', () => row.remove());
 
                 container.appendChild(fragment);
@@ -303,6 +334,31 @@
                     const container = button.closest('.modal-body').querySelector('.assignment-rows');
                     addAssignmentRow(container, null, []);
                 });
+            });
+
+            const assignmentDataMissing = @json($assignmentDataMissing);
+
+            // Tiap baris mapel wajib punya minimal satu kelas tercentang;
+            // checkbox tidak punya "required" grup bawaan HTML.
+            document.querySelectorAll('#modalTambahGuru form, #formEditGuru').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    let valid = true;
+                    form.querySelectorAll('.assignment-row').forEach((row) => {
+                        const hasClassroom = row.querySelector('input[name$="[classroom_ids][]"]:checked') !== null;
+                        row.querySelector('.classroom-error').classList.toggle('d-block', !hasClassroom);
+                        valid = valid && hasClassroom;
+                    });
+                    if (!valid) {
+                        event.preventDefault();
+                    }
+                });
+            });
+
+            document.getElementById('modalTambahGuru').addEventListener('show.bs.modal', function () {
+                const container = this.querySelector('.assignment-rows');
+                if (!assignmentDataMissing && container.children.length === 0) {
+                    addAssignmentRow(container, null, []);
+                }
             });
 
             document.getElementById('modalTambahGuru').addEventListener('hidden.bs.modal', function () {
@@ -327,7 +383,9 @@
                 container.innerHTML = '';
                 const assignments = JSON.parse(button.dataset.assignments || '[]');
                 if (assignments.length === 0) {
-                    addAssignmentRow(container, null, []);
+                    if (!assignmentDataMissing) {
+                        addAssignmentRow(container, null, []);
+                    }
                 } else {
                     assignments.forEach((assignment) => addAssignmentRow(container, assignment.subject_id, assignment.classroom_ids));
                 }

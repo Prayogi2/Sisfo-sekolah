@@ -18,7 +18,7 @@
 
         <div id="questionView" class="d-none">
             <div class="kahoot-question" id="question"></div>
-            <div class="row g-3 mt-1" id="options"></div>
+            <div class="row g-3 mt-1 kahoot-options" id="options"></div>
         </div>
 
         <div class="alert d-none mt-3 mb-0 text-center fw-bold" id="answerStatus"></div>
@@ -54,14 +54,22 @@
 .kahoot-timer.urgent { color: #e21b3c; transform: scale(1.12); }
 .kahoot-question { background: #fff; color: #222; border-radius: 14px; padding: 16px 20px; text-align: center; font-size: 1.4rem; font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
 .kahoot-question img, .kahoot-question video { max-height: 30vh; border-radius: 10px; margin-bottom: 10px; }
-.kahoot-option { width: 100%; border: 0; border-radius: 12px; padding: 16px 18px; font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 14px; min-height: 76px; text-align: left; transition: opacity .3s, transform .15s; }
-.kahoot-option .shape { font-size: 1.7rem; }
+.kahoot-option { width: 100%; border: 0; border-radius: 12px; padding: 16px 18px; font-size: 1.25rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 14px; min-height: 76px; text-align: left; transition: opacity .3s, transform .15s; overflow-wrap: anywhere; line-height: 1.25; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.kahoot-option .shape { font-size: 1.7rem; flex: none; }
 .kahoot-option:not(:disabled):active { transform: scale(.97); }
 .kahoot-option:disabled { cursor: default; }
 .kahoot-option.selected { outline: 5px solid #fff; transform: scale(1.02); }
 .kahoot-option.dim { opacity: .35; }
 .kahoot-option.correct { outline: 5px solid #fff; transform: scale(1.02); }
 .kahoot-option.wrong { opacity: .6; text-decoration: line-through; }
+/* Tanda centang pada opsi terpilih: penanda visual yang terbaca tanpa bergantung outline tipis. */
+.kahoot-option.selected::after, .kahoot-option.correct::after { content: '✓'; margin-left: auto; font-size: 1.5rem; flex: none; }
+/*
+    Saat jawaban sedang dikirim, opsi dikunci lewat pointer-events (bukan :disabled)
+    supaya gaya .selected/:active yang sudah tampil tidak ikut hilang — inilah yang
+    dulu membuat klik terasa tidak bereaksi sampai server menjawab.
+*/
+.kahoot-options.locked { pointer-events: none; }
 .opt-A { background: #e21b3c; } .opt-B { background: #1368ce; } .opt-C { background: #d89e00; } .opt-D { background: #26890c; }
 .kahoot-panel { background: rgba(255,255,255,.96); color: #222; border-radius: 14px; padding: 16px 20px; }
 .kahoot-leaderboard { max-width: 360px; padding-left: 0; list-style: none; }
@@ -119,6 +127,35 @@
 @keyframes confettiFall {
     to { transform: translateY(110vh) rotate(540deg); opacity: .5; }
 }
+
+/*
+    Tombol kirim untuk soal kompleks/menjodohkan/essay dibuat menempel di bawah
+    pada layar kecil. Sebelumnya tombol ini sering berada di luar layar setelah
+    empat opsi, sehingga siswa menyangka centangnya tidak berfungsi.
+*/
+.kahoot-submit { position: sticky; bottom: 6px; z-index: 5; }
+.kahoot-submit .btn { box-shadow: 0 8px 22px rgba(0,0,0,.35); }
+
+@media (max-width: 575.98px) {
+    .kahoot-stage { padding: 12px; border-radius: 14px; min-height: 60vh; }
+    .kahoot-topbar { flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .kahoot-topbar > div { flex: 1 1 auto; }
+    .kahoot-topbar .badge { font-size: .85rem !important; }
+    .kahoot-topbar #score { font-size: .8rem; }
+    .kahoot-timer { width: 54px; height: 54px; font-size: 1.5rem; }
+    .kahoot-question { font-size: 1.05rem; padding: 12px 14px; border-radius: 12px; }
+    .kahoot-question img, .kahoot-question video { max-height: 22vh; }
+    .kahoot-option { min-height: 58px; font-size: 1rem; padding: 12px 14px; gap: 10px; border-radius: 10px; }
+    .kahoot-option .shape { font-size: 1.25rem; }
+    .kahoot-option.selected::after, .kahoot-option.correct::after { font-size: 1.15rem; }
+    .kahoot-panel { padding: 12px 14px; }
+    .kahoot-leaderboard li { padding: 5px 10px; font-size: .9rem; }
+    .round-points { font-size: 1.8rem; }
+    .result-popup-card { padding: 1.75rem 1.25rem; border-radius: 22px; }
+    .result-emoji { font-size: 3.25rem; }
+    .result-score { font-size: 2.75rem; }
+    .result-subtitle { font-size: 1rem; }
+}
 </style>
 @endpush
 
@@ -130,6 +167,7 @@ let current = null;
 let popupShown = false;
 let pollTimer = null;
 let selectedKeys = [];
+let optionsLocked = false;
 let deadline = null;
 let myStudentId = @json($student->id);
 const shapes = { A: '▲', B: '◆', C: '●', D: '■' };
@@ -145,11 +183,21 @@ function lockAnswers() {
 }
 
 async function sendAnswer(keys) {
-    const response = await fetch(answerUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-        body: JSON.stringify({ answer: keys })
-    });
+    let response;
+
+    try {
+        response = await fetch(answerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
+            body: JSON.stringify({ answer: keys })
+        });
+    } catch (error) {
+        // Tanpa penjagaan ini, koneksi HP yang terputus membuat tombol terkunci selamanya.
+        showAnswerStatus('Koneksi terputus, jawaban belum terkirim. Coba lagi.', 'danger');
+
+        return { ok: false };
+    }
+
     if (response.ok) {
         showAnswerStatus('Jawaban terkirim! Tunggu guru menampilkan jawaban yang benar…', 'success');
     } else {
@@ -214,7 +262,14 @@ function showResultPopup(data) {
 }
 
 async function refresh() {
-    const data = await fetch(stateUrl).then(response => response.json());
+    let data;
+
+    try {
+        data = await fetch(stateUrl).then(response => response.json());
+    } catch (error) {
+        // Jaringan HP sempat terputus: lewati satu siklus, polling berikutnya mencoba lagi.
+        return;
+    }
 
     document.getElementById('phase').textContent = data.phase === 'finished'
         ? 'Selesai'
@@ -246,6 +301,8 @@ async function refresh() {
     if (current === renderKey) return;
     current = renderKey;
     selectedKeys = [];
+    optionsLocked = false;
+    document.getElementById('options').classList.remove('locked');
     renderRoundResult(data);
     if (data.phase === 'question') {
         document.getElementById('answerStatus').className = 'alert d-none mt-3';
@@ -305,8 +362,11 @@ function typeBadge(type) {
 }
 
 async function submitWith(button, payload, lockSelector) {
+    const originalLabel = button.textContent;
     document.querySelectorAll(lockSelector).forEach(item => item.disabled = true);
     button.disabled = true;
+    // Umpan balik langsung saat ditekan; tanpa ini tombol tampak mati selama menunggu server.
+    button.textContent = 'Mengirim…';
     const response = await sendAnswer(payload);
     if (response.ok) {
         button.textContent = 'Jawaban terkirim ✓';
@@ -314,6 +374,7 @@ async function submitWith(button, payload, lockSelector) {
     } else {
         document.querySelectorAll(lockSelector).forEach(item => item.disabled = false);
         button.disabled = false;
+        button.textContent = originalLabel;
     }
 }
 
@@ -321,7 +382,7 @@ function renderEssay(data, isAnswering) {
     const text = data.answer?.text ?? '';
     let html = '<div class="col-12"><textarea id="essayAnswer" style="min-height: 140px" class="form-control" rows="5" maxlength="5000" placeholder="Tulis jawabanmu di sini..."' + (isAnswering ? '' : ' disabled') + '>' + escapeHtml(text) + '</textarea></div>';
     if (isAnswering) {
-        html += '<div class="col-12 mt-2"><button type="button" id="submitEssay" class="btn btn-warning w-100">Kirim Jawaban</button></div>';
+        html += '<div class="col-12 mt-2 kahoot-submit"><button type="button" id="submitEssay" class="btn btn-warning w-100">Kirim Jawaban</button></div>';
     } else if (data.phase === 'reveal') {
         const key = Array.isArray(data.question.correct) && data.question.correct[0] ? '<div class="mt-1">Pedoman jawaban: <strong>' + escapeHtml(data.question.correct[0]) + '</strong></div>' : '';
         html += '<div class="col-12 mt-2"><div class="alert alert-secondary mb-0 text-start">Jawaban essay akan dinilai oleh guru.' + key + '</div></div>';
@@ -357,7 +418,7 @@ function renderMatching(data, isAnswering) {
             + '<div class="col-md-7"><select class="form-select matching-choice" data-index="' + index + '"' + (isAnswering ? '' : ' disabled') + '>' + options + '</select>' + status + '</div>'
             + '</div></div>';
     }).join('');
-    const submit = isAnswering ? '<div class="col-12 mt-2"><button type="button" id="submitMatching" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>' : '';
+    const submit = isAnswering ? '<div class="col-12 mt-2 kahoot-submit"><button type="button" id="submitMatching" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>' : '';
     document.getElementById('options').innerHTML = rows + submit;
 
     if (!isAnswering) return;
@@ -376,47 +437,75 @@ function renderMatching(data, isAnswering) {
 function renderChoice(data, isAnswering) {
     const isMultiple = data.question.type === 'multiple';
     const submitButtonHtml = (isAnswering && isMultiple)
-        ? '<div class="col-12 mt-2"><button type="button" id="submitMultiAnswer" class="btn btn-warning w-100" disabled>Kirim Jawaban</button></div>'
+        ? '<div class="col-12 mt-2 kahoot-submit"><button type="button" id="submitMultiAnswer" class="btn btn-warning w-100" disabled>Pilih jawaban dulu</button></div>'
         : '';
+    // col-12 di layar HP: opsi ditumpuk satu per baris agar teks panjang tidak terpotong.
     document.getElementById('options').innerHTML = Object.entries(data.question.options).map(([key, value]) =>
-        '<div class="col-6 col-md-6"><button type="button" class="kahoot-option option opt-' + escapeHtml(key) + ' ' + optionClass(key, data) + '" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><span class="shape">' + (shapes[key] || escapeHtml(key)) + '</span><span>' + escapeHtml(value) + '</span></button></div>'
+        '<div class="col-12 col-sm-6"><button type="button" class="kahoot-option option opt-' + escapeHtml(key) + ' ' + optionClass(key, data) + '" data-key="' + escapeHtml(key) + '"' + (isAnswering ? '' : ' disabled') + '><span class="shape">' + (shapes[key] || escapeHtml(key)) + '</span><span>' + escapeHtml(value) + '</span></button></div>'
     ).join('') + submitButtonHtml;
 
     if (!isAnswering) return;
 
+    const optionsBox = document.getElementById('options');
+    const options = [...document.querySelectorAll('.option')];
+
     if (isMultiple) {
         const submitButton = document.getElementById('submitMultiAnswer');
-        document.querySelectorAll('.option').forEach(button => button.onclick = () => {
-            const key = button.dataset.key;
-            if (selectedKeys.includes(key)) {
-                selectedKeys = selectedKeys.filter(item => item !== key);
-            } else {
-                selectedKeys.push(key);
-            }
-            button.classList.toggle('selected', selectedKeys.includes(key));
+        const syncSubmitLabel = () => {
             submitButton.disabled = selectedKeys.length === 0;
+            submitButton.textContent = selectedKeys.length === 0
+                ? 'Pilih jawaban dulu'
+                : 'Kirim Jawaban (' + selectedKeys.length + ' dipilih)';
+        };
+        options.forEach(button => button.onclick = () => {
+            const key = button.dataset.key;
+            selectedKeys = selectedKeys.includes(key)
+                ? selectedKeys.filter(item => item !== key)
+                : [...selectedKeys, key];
+            button.classList.toggle('selected', selectedKeys.includes(key));
+            syncSubmitLabel();
         });
         submitButton.onclick = async () => {
-            document.querySelectorAll('.option').forEach(item => item.disabled = true);
+            if (optionsLocked) return;
+            optionsLocked = true;
+            optionsBox.classList.add('locked');
             submitButton.disabled = true;
+            submitButton.textContent = 'Mengirim…';
             const response = await sendAnswer(selectedKeys);
-            if (!response.ok) {
-                document.querySelectorAll('.option').forEach(item => item.disabled = false);
-                submitButton.disabled = false;
+            if (response.ok) {
+                options.forEach(item => item.disabled = true);
+                submitButton.textContent = 'Jawaban terkirim ✓';
+                submitButton.classList.replace('btn-warning', 'btn-success');
+            } else {
+                optionsBox.classList.remove('locked');
+                optionsLocked = false;
+                syncSubmitLabel();
             }
         };
         return;
     }
 
-    document.querySelectorAll('.option').forEach(button => button.onclick = async () => {
-        document.querySelectorAll('.option').forEach(item => item.disabled = true);
+    options.forEach(button => button.onclick = async () => {
+        if (optionsLocked) {
+            return;
+        }
+        optionsLocked = true;
+
+        // Tandai pilihan seketika, jangan tunggu balasan server dulu.
+        options.forEach(item => item.classList.toggle('dim', item !== button));
+        button.classList.add('selected');
+        optionsBox.classList.add('locked');
+
         const response = await sendAnswer([button.dataset.key]);
         if (response.ok) {
-            document.querySelectorAll('.option').forEach(item => item.classList.toggle('dim', item !== button));
-            button.classList.add('selected');
-        } else {
-            document.querySelectorAll('.option').forEach(item => item.disabled = false);
+            options.forEach(item => item.disabled = true);
+            return;
         }
+
+        // Gagal kirim: kembalikan tampilan supaya siswa bisa mencoba lagi.
+        options.forEach(item => item.classList.remove('dim', 'selected'));
+        optionsBox.classList.remove('locked');
+        optionsLocked = false;
     });
 }
 

@@ -101,4 +101,54 @@ class QuizEssayGradingControllerTest extends TestCase
             ->assertSee(route('guru.kuis.koreksi', $quiz))
             ->assertSeeInOrder(['Koreksi Essay', '1']);
     }
+
+    public function test_answers_of_students_still_working_are_hidden_and_cannot_be_graded(): void
+    {
+        [$guru, $quiz, $essayAnswer, $attempt] = $this->submittedQuizWithEssay();
+        $attempt->update(['status' => 'in_progress', 'submitted_at' => null]);
+
+        $this->actingAs($guru)->get(route('guru.kuis.koreksi', $quiz))
+            ->assertOk()
+            ->assertDontSee('Air menguap lalu turun jadi hujan');
+
+        $this->actingAs($guru)->put(route('guru.kuis.koreksi.simpan', $quiz), ['scores' => [$essayAnswer->id => 8]]);
+
+        $this->assertNull($essayAnswer->fresh()->graded_at);
+        $this->actingAs($guru)->get(route('guru.bank-soal'))->assertDontSee('<span class="badge bg-danger">', false);
+    }
+
+    public function test_a_blank_essay_answer_is_graded_zero_automatically(): void
+    {
+        $classroom = Classroom::factory()->create();
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $student = Student::factory()->create(['classroom_id' => $classroom->id, 'user_id' => $siswa->id]);
+        $quiz = Quiz::factory()->create(['classroom_id' => $classroom->id, 'is_published' => true, 'is_open' => true]);
+        $essay = QuizQuestion::factory()->create(['subject_id' => $quiz->subject_id, 'type' => QuizQuestion::TYPE_ESSAY, 'options' => [], 'correct_answer' => ['']]);
+        $quiz->questions()->attach([$essay->id => ['sort_order' => 1, 'points' => 8]]);
+        $attempt = QuizAttempt::create(['quiz_id' => $quiz->id, 'student_id' => $student->id, 'status' => 'in_progress', 'started_at' => now()]);
+
+        $this->actingAs($siswa)->post(route('siswa.kuis.answer', $attempt), ['quiz_question_id' => $essay->id, 'answer' => '   ']);
+
+        $answer = QuizAnswer::where('quiz_attempt_id', $attempt->id)->sole();
+        $this->assertNull($answer->answer);
+        $this->assertSame(0, $answer->awarded_points);
+        $this->assertNotNull($answer->graded_at);
+    }
+
+    public function test_siswa_sees_a_provisional_score_until_the_essay_is_graded(): void
+    {
+        [$guru, $quiz, $essayAnswer, $attempt] = $this->submittedQuizWithEssay();
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $attempt->student->update(['user_id' => $siswa->id]);
+
+        $this->actingAs($siswa)->get(route('siswa.hasil-kuis'))
+            ->assertOk()
+            ->assertSee('Menunggu koreksi guru');
+
+        $this->actingAs($guru)->put(route('guru.kuis.koreksi.simpan', $quiz), ['scores' => [$essayAnswer->id => 8]]);
+
+        $this->actingAs($siswa)->get(route('siswa.hasil-kuis'))
+            ->assertOk()
+            ->assertDontSee('Menunggu koreksi guru');
+    }
 }

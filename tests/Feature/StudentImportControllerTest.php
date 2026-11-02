@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EducationLevel;
 use App\Enums\GuardianRelationship;
+use App\Enums\TransportationMode;
 use App\Models\Classroom;
 use App\Models\Guardian;
 use App\Models\Student;
@@ -11,6 +13,7 @@ use App\Services\StudentImporter;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -220,8 +223,68 @@ class StudentImportControllerTest extends TestCase
     }
 
     /**
+     * Satu ibu bisa punya beberapa anak. NIK ibu yang sama menautkan kedua
+     * siswa ke ibu yang sama, meski namanya ditulis sedikit berbeda.
+     */
+    public function test_a_mother_nik_links_siblings_even_when_the_name_is_written_differently(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $file = $this->xlsxFile(['NISN', 'NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Ibu - Nama', 'Ibu - NIK'], [
+            ['1111111111', '2024001', 'Budi Santoso', 'L', 'Suci Riyani', '3273010101870001'],
+            ['2222222222', '2024002', 'Adeeva Ananda', 'P', 'Suci Riyani, S.Pd', '3273010101870001'],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $result = session('import_result');
+        $this->assertSame([], $result['errors']);
+        $this->assertSame([], $result['warnings']);
+        $this->assertSame(2, $result['imported']);
+        $this->assertDatabaseCount('guardians', 1);
+        $this->assertCount(2, Guardian::query()->where('nik', '3273010101870001')->sole()->students);
+    }
+
+    /**
+     * Format ekspor EMIS: judul kolom berbeda dari template, "Nama Ayah
+     * Kandung" dua kali, NIK berawalan tanda kutip, NIK ayah "0", salah
+     * ketik pilihan, dan tanggal yang mustahil.
+     */
+    public function test_import_accepts_an_emis_style_file(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $classroom = Classroom::factory()->create(['name' => '1-A']);
+
+        $headers = ['NISN', 'NIS', 'Nama Lengkap', "Jenis Kelamin  (L/P)\n", 'Tingkat - Rombel', 'Tanggal Lahir', 'Alamat', 'Nama Ayah Kandung', 'NIK', 'Transportasi ke Sekolah', 'Nama Ayah Kandung', 'Ayah - NIK', 'Ayah - Tanggal Lahir (YYYY-MM-DD)', 'Nama Ibu Kandung', 'Alamat'];
+        $row = fn (string $nisn, string $nis, string $fatherBirthDate) => [$nisn, $nis, 'Abil Hanif', 'L', 'Kelas 1 - 1 A', '2019-07-17', 'Jl. Sei Blumei', 'Dinda Prayitna', "'120702170719".substr($nis, -4), 'Sepeda mototr', 'Dinda Prayitna', '0', $fatherBirthDate, 'Suci Riyani', 'Jl. Ibu No. 1'];
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $this->xlsxFile($headers, [
+            $row('3197662471', '111212070074251626', '1985-01-01'),
+            $row('3196729113', '111212070074251627', '1985-01-32'),
+        ])]);
+
+        $result = session('import_result');
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(2, $result['imported']);
+        $this->assertCount(1, $result['warnings']);
+        $this->assertStringContainsString('Ayah - Tanggal Lahir "1985-01-32" bukan tanggal yang valid', $result['warnings'][0]);
+
+        $student = Student::where('nisn', '3197662471')->firstOrFail();
+        $this->assertSame($classroom->id, $student->classroom_id);
+        $this->assertSame('Dinda Prayitna', $student->parent_name);
+        $this->assertSame('1207021707191626', $student->profile->nik);
+        $this->assertSame(TransportationMode::Motorcycle, $student->profile->transportation);
+
+        $father = $student->guardians->firstWhere('relationship', GuardianRelationship::Father);
+        $this->assertSame('Dinda Prayitna', $father->name);
+        $this->assertNull($father->nik);
+        $this->assertSame('Jl. Ibu No. 1', $student->guardians->firstWhere('relationship', GuardianRelationship::Mother)->address);
+    }
+
+    /**
      * NIK yang sudah dipakai sebagai ibu siswa lain tidak boleh ditimpa jadi
-     * ayah — baris itu dilaporkan dengan pesan yang bisa dibaca admin.
+     * ayah — NIK-nya tidak dipakai dan admin diberi tahu dengan pesan yang
+     * bisa dibaca.
      */
     public function test_a_parent_nik_already_used_for_the_other_role_is_reported(): void
     {
@@ -244,9 +307,10 @@ class StudentImportControllerTest extends TestCase
         $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $this->xlsxFile($headers, [$row])]);
 
         $result = session('import_result');
-        $this->assertSame(0, $result['imported']);
-        $this->assertStringContainsString('sudah terdaftar sebagai Ibu', $result['errors'][0]);
-        $this->assertStringContainsString('Baris 2', $result['errors'][0]);
+        $this->assertSame(1, $result['imported']);
+        $this->assertStringContainsString('Baris 2', $result['warnings'][0]);
+        $this->assertStringContainsString('sudah dipakai oleh Sari Wulandari sebagai Ibu', $result['warnings'][0]);
+        $this->assertSame(GuardianRelationship::Mother, Guardian::query()->where('nik', '3273010101800002')->sole()->relationship);
     }
 
     /**
@@ -275,6 +339,87 @@ class StudentImportControllerTest extends TestCase
         $this->assertStringNotContainsStringIgnoringCase('select', $result['errors'][0]);
         $this->assertStringNotContainsStringIgnoringCase('insert', $result['errors'][0]);
         $this->assertStringNotContainsString('SQLSTATE', $result['errors'][0]);
+    }
+
+    /**
+     * Judul kolom dari file lain (Dapodik/EMIS) atau hasil copy-paste yang
+     * berisi spasi tak terlihat tetap harus dikenali.
+     */
+    public function test_import_accepts_common_variants_of_required_column_headers(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $file = $this->xlsxFile(['NISN', 'NIS', "Nama\u{00A0}Siswa", 'Jenis Kelamin'], [
+            ['1111111111', '2024001', 'Budi Santoso', 'L'],
+        ]);
+        $spacedFile = $this->xlsxFile([' NISN ', 'NIS', 'Nama  Lengkap', 'Jenis Kelamin ( L / P )'], [
+            ['2222222222', '2024002', 'Siti Aminah', 'P'],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file])
+            ->assertSessionMissing('error');
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $spacedFile])
+            ->assertSessionMissing('error');
+
+        $this->assertDatabaseHas('students', ['nisn' => '1111111111', 'name' => 'Budi Santoso', 'gender' => 'L']);
+        $this->assertDatabaseHas('students', ['nisn' => '2222222222', 'name' => 'Siti Aminah', 'gender' => 'P']);
+    }
+
+    /**
+     * Tanggal dibaca hari/bulan/tahun (bukan urutan Amerika), dan isian
+     * ala Dapodik/EMIS untuk kolom pilihan dikenali.
+     */
+    public function test_import_reads_indonesian_dates_and_common_option_values(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $headers = ['NISN', 'NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Tanggal Lahir (YYYY-MM-DD)', 'Transportasi ke Sekolah', 'B. Tanggal Masuk (DD/MM/YYYY)', 'Ayah - Nama', 'Ayah - Pendidikan Terakhir', 'Ibu - Nama', 'Ibu - Pendidikan Terakhir'];
+        $file = $this->xlsxFile($headers, [
+            ['1111111111', '2024001', 'Budi Santoso', 'L', '05/07/2016', 'Motor', '13-07-2022', 'Slamet', 'SLTA', 'Siti', 'Sarjana Strata'],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $this->assertSame([], session('import_result')['errors']);
+        $student = Student::where('nisn', '1111111111')->firstOrFail();
+        $this->assertSame('2016-07-05', $student->birth_date->format('Y-m-d'));
+        $this->assertSame(TransportationMode::Motorcycle, $student->profile->transportation);
+        $this->assertSame('2022-07-13', $student->academicRecord->entry_date->format('Y-m-d'));
+        $this->assertSame(EducationLevel::SeniorHighSchool, $student->guardians->firstWhere('relationship', GuardianRelationship::Father)->last_education);
+        $this->assertSame(EducationLevel::Bachelor, $student->guardians->firstWhere('relationship', GuardianRelationship::Mother)->last_education);
+    }
+
+    public function test_import_reads_excel_date_cells(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $file = $this->xlsxFile(['NISN', 'NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'Tanggal Lahir (DD/MM/YYYY)'], [
+            ['1111111111', '2024001', 'Budi Santoso', 'L', ExcelDate::PHPToExcel(new \DateTime('2016-07-13'))],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $this->assertSame('2016-07-13', Student::where('nisn', '1111111111')->firstOrFail()->birth_date->format('Y-m-d'));
+    }
+
+    /**
+     * Isian Buku Induk yang salah tidak menggagalkan siswanya: kolom itu
+     * dikosongkan dan dilaporkan dalam bahasa Indonesia.
+     */
+    public function test_invalid_option_and_date_are_skipped_and_reported_in_indonesian(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $file = $this->xlsxFile(['NISN', 'NIS', 'Nama Lengkap', 'Jenis Kelamin (L/P)', 'B. Tanggal Masuk (DD/MM/YYYY)', 'Ayah - Pendidikan Terakhir'], [
+            ['1111111111', '2024001', 'Budi Santoso', 'L', '31/02/2022', 'Pesantren Kilat'],
+        ]);
+
+        $this->actingAs($admin)->post(route('admin.data-siswa.import.store'), ['file' => $file]);
+
+        $warning = session('import_result')['warnings'][0];
+        $this->assertStringContainsString('B. Tanggal Masuk "31/02/2022" bukan tanggal yang valid', $warning);
+        $this->assertStringContainsString('Ayah - Pendidikan Terakhir "Pesantren Kilat" tidak dikenali. Isi dengan salah satu: Tidak Sekolah, SD/Sederajat', $warning);
+        $this->assertDatabaseHas('students', ['nisn' => '1111111111']);
     }
 
     public function test_import_rejects_a_file_missing_required_columns(): void

@@ -49,7 +49,8 @@
                             <li>Unduh template di bawah, jangan ubah nama kolomnya. Template ini sudah mencakup seluruh isian Buku Induk (profil, data ayah/ibu, riwayat pendidikan A-E) — kolom yang tidak relevan boleh dikosongkan.</li>
                             <li>Kolom <strong>NISN, NIS, Nama Lengkap, Jenis Kelamin</strong> wajib diisi. Jenis Kelamin diisi L atau P.</li>
                             <li>Kolom <strong>Kelas</strong> diisi nama kelas persis seperti di menu Pembagian Kelas (mis. "1-A"). Boleh dikosongkan jika belum ada kelasnya.</li>
-                            <li>Kolom pilihan (Agama, Golongan Darah, dll.) boleh diisi dengan teks Indonesia seperti di form Buku Induk, mis. "Islam", "SMA/Sederajat".</li>
+                            <li>Kolom pilihan (Agama, Golongan Darah, dll.) boleh diisi dengan teks Indonesia seperti di form Buku Induk, mis. "Islam", "SMA/Sederajat". Isian ala Dapodik/EMIS seperti "SLTA", "MTs", "D3", "Motor", "Antar Jemput" juga dikenali.</li>
+                            <li>Kolom tanggal diisi format <strong>DD/MM/YYYY</strong> (hari/bulan/tahun), mis. 13/07/2022. Format 2022-07-13, "13 Juli 2022", atau sel bertipe tanggal di Excel juga diterima.</li>
                             <li>Kalau <strong>NISN sudah terdaftar</strong>, baris itu dipakai untuk memperbarui/melengkapi data siswa tersebut (bukan gagal/duplikat) — cocok untuk mengisi Buku Induk siswa yang sudah ada.</li>
                             <li>Baris dengan NIS bentrok milik siswa lain, kelas tidak ditemukan, atau format tidak valid akan gagal dan dilaporkan; baris lain tetap diproses.</li>
                             <li>Untuk siswa baru, akun login dibuat otomatis (username = NIS/NISN, password default <code>password123</code>).</li>

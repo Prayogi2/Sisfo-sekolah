@@ -42,7 +42,8 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            // Relatif supaya foto ikut domain yang sedang dibuka, termasuk tunnel.
+            'url' => '/storage',
             // Foto upload tetap tampil walau hosting belum punya symlink
             // public/storage: Laravel yang menyajikan filenya lewat route.
             'serve' => true,

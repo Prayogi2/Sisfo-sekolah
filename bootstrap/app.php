@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // cloudflared terhubung dari mesin yang sama dan meneruskan HTTPS lewat
+        // X-Forwarded-Proto. Tanpa ini URL asset tetap http:// lalu diblokir
+        // browser sebagai mixed content sehingga halaman tampil tanpa style.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);

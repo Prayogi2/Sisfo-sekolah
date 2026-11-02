@@ -8,6 +8,7 @@ use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizQuestion;
 use App\Services\QuizAttemptFinalizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -29,7 +30,7 @@ class QuizEssayGradingController extends Controller
         $essayQuestions = $this->essayQuestions($quiz);
         $answers = QuizAnswer::query()
             ->whereIn('quiz_question_id', $essayQuestions->pluck('id'))
-            ->whereHas('attempt', fn ($query) => $query->where('quiz_id', $quiz->id))
+            ->whereHas('attempt', fn ($query) => $this->submittedAttemptsOf($query, $quiz))
             ->with('attempt.student')
             ->get()
             ->sortBy(fn (QuizAnswer $answer) => $answer->attempt->student->name)
@@ -58,7 +59,7 @@ class QuizEssayGradingController extends Controller
         $answers = QuizAnswer::query()
             ->whereIn('id', array_keys($request->input('scores')))
             ->whereIn('quiz_question_id', $maxPoints->keys())
-            ->whereHas('attempt', fn ($query) => $query->where('quiz_id', $quiz->id))
+            ->whereHas('attempt', fn ($query) => $this->submittedAttemptsOf($query, $quiz))
             ->get();
 
         $graded = 0;
@@ -90,6 +91,15 @@ class QuizEssayGradingController extends Controller
             ->each(fn (QuizAttempt $attempt) => $finalizer->recalculate($attempt));
 
         return back()->with('success', "{$graded} jawaban essay dinilai. Nilai kuis & rapor siswa sudah diperbarui.");
+    }
+
+    /**
+     * Hanya jawaban yang sudah dikumpulkan yang dikoreksi. Jawaban siswa
+     * yang masih mengerjakan bisa berubah dan nilainya akan terhapus.
+     */
+    private function submittedAttemptsOf(Builder $query, Quiz $quiz): void
+    {
+        $query->where('quiz_id', $quiz->id)->where('status', 'submitted');
     }
 
     /**
